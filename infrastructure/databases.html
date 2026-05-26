@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Databases - DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html" class="active">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; <a href="../index.html">Infrastructure</a> &gt; Databases
+        </div>
+
+        <h1>Databases</h1>
+        <p class="subtitle">SQL, NoSQL, replication, sharding, caching, migrations, and production database patterns</p>
+
+        <!-- ============================================ -->
+        <!-- 1. SQL vs NoSQL -->
+        <!-- ============================================ -->
+        <h2>1. SQL vs NoSQL</h2>
+
+        <div class="card card-info">
+            <h4>Comparison Overview</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Aspect</th>
+                        <th>SQL (Relational)</th>
+                        <th>NoSQL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Structure</strong></td>
+                        <td>Tables with rows and columns</td>
+                        <td>Documents, key-value, columns, graphs</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Schema</strong></td>
+                        <td>Fixed schema, predefined</td>
+                        <td>Dynamic/flexible schema</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Scaling</strong></td>
+                        <td>Vertical (scale up), limited horizontal</td>
+                        <td>Horizontal (scale out) by design</td>
+                    </tr>
+                    <tr>
+                        <td><strong>ACID</strong></td>
+                        <td>Full ACID compliance</td>
+                        <td>Eventual consistency (some offer ACID)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Joins</strong></td>
+                        <td>Complex joins supported</td>
+                        <td>Denormalized; joins are expensive/unsupported</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Query Language</strong></td>
+                        <td>SQL (standardized)</td>
+                        <td>Varies (MongoDB Query, CQL, etc.)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Use Cases</strong></td>
+                        <td>Financial, ERP, complex queries, OLTP</td>
+                        <td>Real-time analytics, IoT, content management</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Examples</strong></td>
+                        <td>PostgreSQL, MySQL, Oracle</td>
+                        <td>MongoDB, Redis, Cassandra, DynamoDB</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3>CAP Theorem</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">CAP Theorem - Pick Two (in presence of partition)</div>
+<pre>
+                        Consistency (C)
+                            /\
+                           /  \
+                          /    \
+                         / CA   \
+                        /________\
+                       /   CP     \
+                      / PostgreSQL  \
+                     /   MongoDB     \
+                    /   (primary)     \
+                   /                   \
+                  /                     \
+ Availability   /_________AP____________\ Partition
+    (A)              Cassandra            Tolerance (P)
+                     DynamoDB
+                     CouchDB
+
+  +---------------------------------------------------------+
+  | In distributed systems, network partitions WILL happen. |
+  | So the real choice is: CP or AP                         |
+  |                                                         |
+  | CP = Consistent + Partition Tolerant                    |
+  |      (blocks writes during partition)                   |
+  |      Examples: PostgreSQL, MongoDB, HBase, Redis        |
+  |                                                         |
+  | AP = Available + Partition Tolerant                     |
+  |      (allows writes, resolves conflicts later)          |
+  |      Examples: Cassandra, DynamoDB, CouchDB             |
+  +---------------------------------------------------------+
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 2. Relational Databases -->
+        <!-- ============================================ -->
+        <h2>2. Relational Databases</h2>
+
+        <div class="card">
+            <h4>ACID Properties</h4>
+            <div class="point">
+                <span class="point-num">A</span>
+                <div class="point-content">
+                    <span class="point-title">Atomicity</span> - Transaction is all-or-nothing. If any part fails, the entire transaction rolls back.
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num green">C</span>
+                <div class="point-content">
+                    <span class="point-title">Consistency</span> - Database moves from one valid state to another. All constraints, triggers, and rules are satisfied.
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num purple">I</span>
+                <div class="point-content">
+                    <span class="point-title">Isolation</span> - Concurrent transactions don't interfere. Levels: Read Uncommitted, Read Committed, Repeatable Read, Serializable.
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num orange">D</span>
+                <div class="point-content">
+                    <span class="point-title">Durability</span> - Once committed, data survives crashes. Written to WAL (Write-Ahead Log) before confirming.
+                </div>
+            </div>
+        </div>
+
+        <h3>Indexes</h3>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>B-Tree Index (Default)</h4>
+                <ul>
+                    <li>Balanced tree structure, O(log n) lookups</li>
+                    <li>Best for range queries and equality</li>
+                    <li>Supports ORDER BY efficiently</li>
+                    <li>Works with: <code>&lt;</code>, <code>&gt;</code>, <code>=</code>, <code>BETWEEN</code>, <code>LIKE 'prefix%'</code></li>
+                </ul>
+                <div class="cmd">CREATE INDEX idx_users_email ON users(email);</div>
+            </div>
+            <div class="card">
+                <h4>Hash Index</h4>
+                <ul>
+                    <li>O(1) for equality lookups only</li>
+                    <li>Cannot do range queries</li>
+                    <li>Smaller than B-tree for simple equality</li>
+                    <li>Use case: exact-match lookups (sessions, cache keys)</li>
+                </ul>
+                <div class="cmd">CREATE INDEX idx_session ON sessions USING hash(session_id);</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h4>Other Index Types</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Use Case</th>
+                        <th>Example</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Composite</td>
+                        <td>Multi-column queries</td>
+                        <td><code>CREATE INDEX ON orders(user_id, created_at)</code></td>
+                    </tr>
+                    <tr>
+                        <td>Partial</td>
+                        <td>Index subset of rows</td>
+                        <td><code>CREATE INDEX ON orders(total) WHERE status='active'</code></td>
+                    </tr>
+                    <tr>
+                        <td>GIN</td>
+                        <td>Full-text search, JSONB, arrays</td>
+                        <td><code>CREATE INDEX ON docs USING gin(content)</code></td>
+                    </tr>
+                    <tr>
+                        <td>GiST</td>
+                        <td>Geometric/spatial data</td>
+                        <td><code>CREATE INDEX ON geo USING gist(location)</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3>Query Optimization</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">EXPLAIN ANALYZE example</span>
+                <span class="tag tag-blue">PostgreSQL</span>
+            </div>
+<pre>
+-- Identify slow queries
+EXPLAIN ANALYZE SELECT * FROM orders WHERE user_id = 123 AND status = 'pending';
+
+-- Key things to look for in output:
+-- Seq Scan      = Full table scan (bad for large tables)
+-- Index Scan    = Using index (good)
+-- Bitmap Scan   = Multiple index conditions (good)
+-- Nested Loop   = OK for small result sets
+-- Hash Join     = Better for larger joins
+-- Sort          = May need index for ORDER BY
+
+-- Common optimizations:
+-- 1. Add missing indexes for WHERE/JOIN columns
+-- 2. Use composite indexes matching query patterns
+-- 3. Avoid SELECT * (fetch only needed columns)
+-- 4. Use LIMIT for pagination (with keyset pagination)
+-- 5. Rewrite NOT IN as NOT EXISTS (avoids null issues)
+</pre>
+        </div>
+
+        <h3>Connection Pooling</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Connection Pooling Architecture</div>
+<pre>
+  App Instance 1 ──┐                    ┌── PostgreSQL Backend 1
+  App Instance 2 ──┼── PgBouncer/HikariCP ──┼── PostgreSQL Backend 2
+  App Instance 3 ──┤   (Pool Manager)   ├── PostgreSQL Backend 3
+  App Instance 4 ──┘                    └── ...
+       100+ app                    20-50 actual DB
+       connections                 connections
+
+  Pool Modes (PgBouncer):
+  ┌─────────────────────────────────────────────────────┐
+  | Session    | 1:1 mapping, released on disconnect    |
+  | Transaction| Released after each transaction (best) |
+  | Statement  | Released after each statement (limited)|
+  └─────────────────────────────────────────────────────┘
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">pgbouncer.ini</span>
+                <span class="tag tag-green">Config</span>
+            </div>
+<pre>
+[databases]
+mydb = host=127.0.0.1 port=5432 dbname=mydb
+
+[pgbouncer]
+pool_mode = transaction
+max_client_conn = 1000
+default_pool_size = 25
+min_pool_size = 5
+reserve_pool_size = 5
+reserve_pool_timeout = 3
+server_idle_timeout = 600
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 3. NoSQL Types -->
+        <!-- ============================================ -->
+        <h2>3. NoSQL Types</h2>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Examples</th>
+                        <th>Data Model</th>
+                        <th>Best For</th>
+                        <th>Limitations</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Document</strong></td>
+                        <td>MongoDB, CouchDB</td>
+                        <td>JSON/BSON documents</td>
+                        <td>Content management, catalogs, user profiles</td>
+                        <td>Complex transactions, deep joins</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Key-Value</strong></td>
+                        <td>Redis, DynamoDB, Memcached</td>
+                        <td>Simple key-value pairs</td>
+                        <td>Caching, sessions, leaderboards, queues</td>
+                        <td>No complex queries, limited filtering</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Column-Family</strong></td>
+                        <td>Cassandra, HBase, ScyllaDB</td>
+                        <td>Wide columns, row keys</td>
+                        <td>Time-series, IoT, write-heavy workloads</td>
+                        <td>Limited ad-hoc queries, no joins</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Graph</strong></td>
+                        <td>Neo4j, Amazon Neptune</td>
+                        <td>Nodes + Edges + Properties</td>
+                        <td>Social networks, fraud detection, recommendations</td>
+                        <td>Not ideal for bulk analytics</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="grid-2">
+            <div class="card card-info">
+                <h4>MongoDB (Document)</h4>
+                <ul>
+                    <li>Flexible JSON-like documents (BSON)</li>
+                    <li>Rich query language with aggregation pipelines</li>
+                    <li>Replica sets for HA, sharding for horizontal scale</li>
+                    <li>Multi-document ACID transactions (since 4.0)</li>
+                    <li>Change streams for real-time event processing</li>
+                </ul>
+            </div>
+            <div class="card card-success">
+                <h4>Redis (Key-Value)</h4>
+                <ul>
+                    <li>In-memory, sub-millisecond latency</li>
+                    <li>Rich data structures: strings, hashes, lists, sets, sorted sets, streams</li>
+                    <li>Pub/Sub, Lua scripting, transactions (MULTI/EXEC)</li>
+                    <li>Redis Cluster for sharding, Sentinel for HA</li>
+                    <li>Persistence: RDB snapshots + AOF (append-only file)</li>
+                </ul>
+            </div>
+            <div class="card card-warning">
+                <h4>Cassandra (Column-Family)</h4>
+                <ul>
+                    <li>Masterless ring architecture (no SPOF)</li>
+                    <li>Tunable consistency (ONE, QUORUM, ALL)</li>
+                    <li>Excellent write throughput at scale</li>
+                    <li>Data modeling: design tables for query patterns</li>
+                    <li>CQL (Cassandra Query Language) - SQL-like syntax</li>
+                </ul>
+            </div>
+            <div class="card card-danger">
+                <h4>DynamoDB (Key-Value / Document)</h4>
+                <ul>
+                    <li>Fully managed, serverless scaling</li>
+                    <li>Single-digit millisecond at any scale</li>
+                    <li>Partition key + optional sort key</li>
+                    <li>GSI/LSI for alternative access patterns</li>
+                    <li>DynamoDB Streams for change data capture</li>
+                    <li>On-demand or provisioned capacity modes</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 4. Replication -->
+        <!-- ============================================ -->
+        <h2>4. Replication</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">Primary-Replica Replication</div>
+<pre>
+                    ┌─────────────┐
+     Writes ──────>│   PRIMARY   │
+                    │  (Leader)   │
+                    └──────┬──────┘
+                           │
+              ┌────────────┼────────────┐
+              │ WAL Stream │            │ WAL Stream
+              ▼            ▼            ▼
+     ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+     │  REPLICA 1  │ │  REPLICA 2  │ │  REPLICA 3  │
+     │  (Read)     │ │  (Read)     │ │  (Standby)  │
+     └─────────────┘ └─────────────┘ └─────────────┘
+           ▲               ▲
+           │               │
+     Read queries    Read queries
+     (load balanced)
+
+  Synchronous vs Asynchronous:
+  ┌──────────────────────────────────────────────────────────────┐
+  │ Sync:  Primary waits for replica ACK before confirming write │
+  │        + Zero data loss   - Higher write latency             │
+  │                                                              │
+  │ Async: Primary confirms write immediately, streams later     │
+  │        + Lower latency    - Possible data loss on failover   │
+  │                           - Replication lag (read-your-writes)│
+  └──────────────────────────────────────────────────────────────┘
+</pre>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">AWS RDS Multi-AZ Deployment</div>
+<pre>
+  ┌─────────────── Region: us-east-1 ───────────────────────┐
+  │                                                          │
+  │  ┌──── AZ-1a ────────┐    ┌──── AZ-1b ────────┐        │
+  │  │                    │    │                    │        │
+  │  │  ┌──────────────┐  │    │  ┌──────────────┐  │        │
+  │  │  │   Primary    │  │sync│  │   Standby    │  │        │
+  │  │  │   RDS        │──┼────┼──│   RDS        │  │        │
+  │  │  │   Instance   │  │    │  │   Instance   │  │        │
+  │  │  └──────────────┘  │    │  └──────────────┘  │        │
+  │  │        │           │    │        │           │        │
+  │  │  ┌─────▼──────┐   │    │  ┌─────▼──────┐   │        │
+  │  │  │   EBS      │   │    │  │   EBS      │   │        │
+  │  │  │   Volume   │   │    │  │   Volume   │   │        │
+  │  │  └────────────┘   │    │  └────────────┘   │        │
+  │  └────────────────────┘    └────────────────────┘        │
+  │                                                          │
+  │  Failover: DNS endpoint swaps to standby (60-120s)       │
+  │  Trigger: AZ failure, instance failure, storage failure   │
+  └──────────────────────────────────────────────────────────┘
+</pre>
+        </div>
+
+        <div class="card">
+            <h4>Failover Strategies</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Strategy</th>
+                        <th>RTO</th>
+                        <th>Data Loss Risk</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Automatic (Multi-AZ)</td>
+                        <td>60-120 seconds</td>
+                        <td>None (sync)</td>
+                        <td>DNS flips to standby automatically</td>
+                    </tr>
+                    <tr>
+                        <td>Manual Promotion</td>
+                        <td>Minutes</td>
+                        <td>Possible (async)</td>
+                        <td>DBA promotes a read replica</td>
+                    </tr>
+                    <tr>
+                        <td>Patroni (K8s)</td>
+                        <td>~10 seconds</td>
+                        <td>Configurable</td>
+                        <td>Consensus-based leader election</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 5. Sharding -->
+        <!-- ============================================ -->
+        <h2>5. Sharding</h2>
+
+        <div class="card card-info">
+            <h4>Horizontal Partitioning</h4>
+            <p>Sharding splits data across multiple database instances (shards). Each shard holds a subset of the data, allowing horizontal scaling of both storage and throughput.</p>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">Sharding Architecture</div>
+<pre>
+  Application
+       │
+       ▼
+  ┌──────────────┐
+  │  Router /    │    Determines which shard based on shard key
+  │  Proxy       │    (e.g., user_id % num_shards)
+  └──────┬───────┘
+         │
+    ┌────┼────┬────────────┐
+    ▼    ▼    ▼            ▼
+  ┌────┐┌────┐┌────┐   ┌────┐
+  │ S1 ││ S2 ││ S3 │...│ SN │
+  │    ││    ││    │   │    │
+  │A-F ││G-M ││N-S │   │T-Z │
+  └────┘└────┘└────┘   └────┘
+
+  Shard Key Selection Criteria:
+  ┌─────────────────────────────────────────────┐
+  │ 1. High cardinality (many unique values)    │
+  │ 2. Even distribution (avoid hot spots)      │
+  │ 3. Query isolation (queries hit 1 shard)    │
+  │ 4. Growth pattern (monotonic = bad)         │
+  └─────────────────────────────────────────────┘
+</pre>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">Consistent Hashing</div>
+<pre>
+  Traditional Hashing: hash(key) % N
+  Problem: Adding/removing nodes reshuffles ALL keys
+
+  Consistent Hashing Ring:
+                    Node A
+                   /      \
+                  /   A's   \
+                 /   range   \
+        Node D  |             |  Node B
+                 \   C's     /
+                  \  range  /
+                   \      /
+                    Node C
+
+  Adding Node E:
+  - Only keys between D and E move to E
+  - Other nodes unaffected (~1/N keys move)
+
+  Virtual Nodes:
+  - Each physical node gets multiple positions on ring
+  - Improves distribution evenness
+  - Node A: A1, A2, A3 (3 virtual nodes)
+</pre>
+        </div>
+
+        <div class="card">
+            <h4>Sharding Pros vs Cons</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Pros</th>
+                        <th>Cons</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Horizontal scalability (near-linear)</td>
+                        <td>Cross-shard queries are expensive</td>
+                    </tr>
+                    <tr>
+                        <td>Isolation: one shard failure doesn't affect others</td>
+                        <td>Distributed transactions are complex</td>
+                    </tr>
+                    <tr>
+                        <td>Each shard can be independently tuned</td>
+                        <td>Rebalancing shards is operationally difficult</td>
+                    </tr>
+                    <tr>
+                        <td>Geo-locality (shard per region)</td>
+                        <td>Application complexity increases significantly</td>
+                    </tr>
+                    <tr>
+                        <td>Smaller indexes per shard (faster queries)</td>
+                        <td>Schema changes must apply to all shards</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 6. Backup Strategies -->
+        <!-- ============================================ -->
+        <h2>6. Backup Strategies</h2>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Restore Time</th>
+                        <th>Storage</th>
+                        <th>Frequency</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Full</strong></td>
+                        <td>Complete copy of entire database</td>
+                        <td>Fastest restore</td>
+                        <td>Highest</td>
+                        <td>Weekly</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Incremental</strong></td>
+                        <td>Changes since last backup (any type)</td>
+                        <td>Slowest (chain)</td>
+                        <td>Lowest</td>
+                        <td>Hourly/Daily</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Differential</strong></td>
+                        <td>Changes since last full backup</td>
+                        <td>Moderate</td>
+                        <td>Moderate</td>
+                        <td>Daily</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>PostgreSQL Backup Tools</h4>
+                <div class="cmd">pg_dump -Fc mydb > mydb_$(date +%Y%m%d).dump</div>
+                <div class="cmd">pg_dumpall > all_databases.sql</div>
+                <div class="cmd">pg_restore -d mydb mydb_20240101.dump</div>
+                <p><strong>Point-in-Time Recovery (PITR):</strong></p>
+                <ul>
+                    <li>Enable WAL archiving: <code>archive_mode = on</code></li>
+                    <li>Take base backup with <code>pg_basebackup</code></li>
+                    <li>Replay WAL to desired timestamp</li>
+                    <li>Recovery target: <code>recovery_target_time</code></li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>RDS Backup Features</h4>
+                <ul>
+                    <li><strong>Automated backups:</strong> Daily full snapshot + transaction logs every 5 min</li>
+                    <li><strong>Retention:</strong> 1-35 days (default 7)</li>
+                    <li><strong>PITR:</strong> Restore to any second within retention</li>
+                    <li><strong>Manual snapshots:</strong> Retained until deleted</li>
+                    <li><strong>Cross-region:</strong> Copy snapshots to other regions</li>
+                    <li><strong>Backup window:</strong> Preferred time for daily backup</li>
+                </ul>
+                <div class="cmd">aws rds create-db-snapshot --db-instance-identifier mydb --db-snapshot-identifier pre-migration</div>
+            </div>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">backup-cron.sh</span>
+                <span class="tag tag-green">Script</span>
+            </div>
+<pre>
+#!/bin/bash
+# PostgreSQL backup with retention
+DB_NAME="production"
+BACKUP_DIR="/backups/postgres"
+RETENTION_DAYS=30
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+# Full backup with compression
+pg_dump -Fc -Z9 "$DB_NAME" > "$BACKUP_DIR/${DB_NAME}_${TIMESTAMP}.dump"
+
+# Upload to S3
+aws s3 cp "$BACKUP_DIR/${DB_NAME}_${TIMESTAMP}.dump" \
+    "s3://my-backups/postgres/${DB_NAME}_${TIMESTAMP}.dump" \
+    --storage-class STANDARD_IA
+
+# Clean old local backups
+find "$BACKUP_DIR" -name "*.dump" -mtime +$RETENTION_DAYS -delete
+
+# Verify backup integrity
+pg_restore --list "$BACKUP_DIR/${DB_NAME}_${TIMESTAMP}.dump" > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    echo "ALERT: Backup verification failed!" | mail -s "Backup Failure" ops@company.com
+fi
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 7. Database in Kubernetes -->
+        <!-- ============================================ -->
+        <h2>7. Database in Kubernetes</h2>
+
+        <div class="card card-warning">
+            <h4>Should You Run Databases in Kubernetes?</h4>
+            <p>This is a common debate. Many organizations avoid it for production, while others embrace operators for stateful workloads.</p>
+        </div>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Pros</th>
+                        <th>Cons</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Unified platform (same tooling, RBAC, monitoring)</td>
+                        <td>Complexity of stateful workloads in K8s</td>
+                    </tr>
+                    <tr>
+                        <td>Declarative management via operators</td>
+                        <td>Storage performance (network-attached vs local)</td>
+                    </tr>
+                    <tr>
+                        <td>Automated failover and scaling</td>
+                        <td>Data safety concerns during node drain/eviction</td>
+                    </tr>
+                    <tr>
+                        <td>Environment parity (dev/staging/prod)</td>
+                        <td>Backup/restore workflows more complex</td>
+                    </tr>
+                    <tr>
+                        <td>Cost savings (no managed DB premium)</td>
+                        <td>Requires deep K8s expertise + DBA skills</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3>StatefulSet Approach</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">postgres-statefulset.yaml</span>
+                <span class="tag tag-blue">Kubernetes</span>
+            </div>
+<pre>
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  serviceName: postgres
+  replicas: 3
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: gp3-encrypted
+      resources:
+        requests:
+          storage: 100Gi
+</pre>
+        </div>
+
+        <h3>Operators</h3>
+
+        <div class="grid-2">
+            <div class="card card-info">
+                <h4>CloudNativePG</h4>
+                <ul>
+                    <li>Official CNCF PostgreSQL operator</li>
+                    <li>Automated failover with Raft consensus</li>
+                    <li>Continuous backup to S3/GCS/Azure</li>
+                    <li>PITR built-in</li>
+                    <li>Rolling updates with zero downtime</li>
+                    <li>Connection pooling (PgBouncer sidecar)</li>
+                </ul>
+                <div class="cmd">kubectl apply -f https://get.enterprisedb.io/cnp/postgresql-operator-1.22.yaml</div>
+            </div>
+            <div class="card card-success">
+                <h4>Zalando Postgres Operator</h4>
+                <ul>
+                    <li>Uses Patroni for HA (etcd-based leader election)</li>
+                    <li>Logical backups and WAL-E/WAL-G shipping</li>
+                    <li>Connection pooling built-in</li>
+                    <li>Clone from S3 or existing cluster</li>
+                    <li>Teams API integration</li>
+                </ul>
+                <div class="cmd">helm install postgres-operator postgres-operator-charts/postgres-operator</div>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 8. Migrations -->
+        <!-- ============================================ -->
+        <h2>8. Migrations</h2>
+
+        <h3>Zero-Downtime Migrations (Expand-Contract Pattern)</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Expand-Contract Pattern for Column Rename</div>
+<pre>
+  Phase 1: EXPAND (add new column)
+  ┌────────────────────────────────────────────────┐
+  │  ALTER TABLE users ADD COLUMN full_name TEXT;   │
+  │  -- Both old (name) and new (full_name) exist  │
+  │  -- App writes to BOTH columns                 │
+  └────────────────────────────────────────────────┘
+              │
+              ▼
+  Phase 2: MIGRATE (backfill data)
+  ┌────────────────────────────────────────────────┐
+  │  UPDATE users SET full_name = name             │
+  │  WHERE full_name IS NULL                       │
+  │  -- Do in batches to avoid long locks!         │
+  │  -- App reads from new column                  │
+  └────────────────────────────────────────────────┘
+              │
+              ▼
+  Phase 3: CONTRACT (remove old column)
+  ┌────────────────────────────────────────────────┐
+  │  -- Deploy app version that only uses new col  │
+  │  ALTER TABLE users DROP COLUMN name;           │
+  │  -- Only after all app instances updated       │
+  └────────────────────────────────────────────────┘
+
+  Timeline:  Deploy v2 ────> Backfill ────> Deploy v3 ────> Drop
+             (writes both)   (copy data)    (reads new)   (cleanup)
+</pre>
+        </div>
+
+        <h3>Migration Tools</h3>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tool</th>
+                        <th>Language</th>
+                        <th>Format</th>
+                        <th>Key Features</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Flyway</strong></td>
+                        <td>Java/JVM</td>
+                        <td>SQL files (V1__name.sql)</td>
+                        <td>Simple, convention-based, repeatable migrations</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Alembic</strong></td>
+                        <td>Python</td>
+                        <td>Python scripts</td>
+                        <td>Auto-generate from SQLAlchemy models, branching</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Liquibase</strong></td>
+                        <td>Java/JVM</td>
+                        <td>XML/YAML/JSON/SQL</td>
+                        <td>Rollback support, diff, multi-DB</td>
+                    </tr>
+                    <tr>
+                        <td><strong>golang-migrate</strong></td>
+                        <td>Go</td>
+                        <td>SQL files (up/down)</td>
+                        <td>CLI + library, multiple DB drivers</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">V003__add_email_index.sql</span>
+                <span class="tag tag-purple">Flyway</span>
+            </div>
+<pre>
+-- Safe migration: CREATE INDEX CONCURRENTLY (no lock)
+-- Note: Cannot run inside a transaction in PostgreSQL
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_email
+    ON users (email);
+
+-- Unsafe alternative (holds AccessExclusiveLock):
+-- CREATE INDEX idx_users_email ON users (email);
+-- This blocks ALL reads and writes!
+</pre>
+        </div>
+
+        <div class="card card-danger">
+            <h4>Rollback Strategies</h4>
+            <ul>
+                <li><strong>Forward-only:</strong> Never roll back, fix forward with new migration. Safest for production.</li>
+                <li><strong>Down migrations:</strong> Each migration has up/down. Risk: down may lose data.</li>
+                <li><strong>Snapshots:</strong> Take DB snapshot before migration. Roll back by restoring snapshot.</li>
+                <li><strong>Feature flags:</strong> Decouple migration from feature. Disable feature without rolling back schema.</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 9. Caching -->
+        <!-- ============================================ -->
+        <h2>9. Caching</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">Cache-Aside Pattern (Lazy Loading)</div>
+<pre>
+  ┌──────────┐         ┌───────────┐         ┌──────────┐
+  │          │── 1. ──>│           │         │          │
+  │   App    │  Check  │   Cache   │         │ Database │
+  │          │<── 2. ──│  (Redis)  │         │          │
+  │          │  Miss!  │           │         │          │
+  │          │─── 3. Read ──────────────────>│          │
+  │          │<── 4. Data ──────────────────-│          │
+  │          │── 5. ──>│           │         │          │
+  │          │  Store  │           │         │          │
+  └──────────┘         └───────────┘         └──────────┘
+
+  Cache Hit:   App -> Cache -> Return (fast, ~1ms)
+  Cache Miss:  App -> Cache -> DB -> Store in Cache -> Return
+
+  Pros: Only requested data is cached (no waste)
+  Cons: Cache miss = 3 round trips; stale data possible
+</pre>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">Write-Through vs Write-Behind</div>
+<pre>
+  WRITE-THROUGH:
+  App ──> Cache ──> Database    (synchronous, consistent but slower writes)
+
+  WRITE-BEHIND (Write-Back):
+  App ──> Cache ──(async)──> Database   (fast writes, risk of data loss)
+
+  WRITE-AROUND:
+  App ──> Database              (cache not updated until read miss)
+         ╳ Cache                (avoids cache churn for write-heavy data)
+</pre>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Redis Caching Example</h4>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="filename">cache.py</span>
+                        <span class="tag tag-blue">Python</span>
+                    </div>
+<pre>
+import redis
+import json
+
+r = redis.Redis(host='redis', port=6379, db=0)
+
+def get_user(user_id):
+    # Check cache first
+    cache_key = f"user:{user_id}"
+    cached = r.get(cache_key)
+
+    if cached:
+        return json.loads(cached)
+
+    # Cache miss - query database
+    user = db.query(
+        "SELECT * FROM users WHERE id = %s",
+        user_id
+    )
+
+    # Store in cache with TTL
+    r.setex(
+        cache_key,
+        timedelta(minutes=15),
+        json.dumps(user)
+    )
+    return user
+
+def update_user(user_id, data):
+    db.execute("UPDATE users SET ...", data)
+    # Invalidate cache
+    r.delete(f"user:{user_id}")
+</pre>
+                </div>
+            </div>
+            <div class="card">
+                <h4>Cache Invalidation Strategies</h4>
+                <div class="point">
+                    <span class="point-num">1</span>
+                    <div class="point-content">
+                        <span class="point-title">TTL (Time-To-Live)</span> - Set expiry; data refreshes on next miss. Simple but allows staleness.
+                    </div>
+                </div>
+                <div class="point">
+                    <span class="point-num green">2</span>
+                    <div class="point-content">
+                        <span class="point-title">Event-Driven Invalidation</span> - Publish event on write; subscribers invalidate. Low staleness.
+                    </div>
+                </div>
+                <div class="point">
+                    <span class="point-num purple">3</span>
+                    <div class="point-content">
+                        <span class="point-title">Version Keys</span> - Append version to cache key. Increment version on update. Old entries expire naturally.
+                    </div>
+                </div>
+                <div class="point">
+                    <span class="point-num orange">4</span>
+                    <div class="point-content">
+                        <span class="point-title">Cache Stampede Prevention</span> - Use locking (SETNX) or probabilistic early expiration to prevent thundering herd.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h4>Redis vs Memcached</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Redis</th>
+                        <th>Memcached</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Data Structures</td>
+                        <td>Strings, hashes, lists, sets, sorted sets, streams</td>
+                        <td>Strings only</td>
+                    </tr>
+                    <tr>
+                        <td>Persistence</td>
+                        <td>RDB + AOF</td>
+                        <td>None (pure cache)</td>
+                    </tr>
+                    <tr>
+                        <td>Replication</td>
+                        <td>Primary-Replica, Cluster</td>
+                        <td>None (client-side sharding)</td>
+                    </tr>
+                    <tr>
+                        <td>Max Value Size</td>
+                        <td>512MB</td>
+                        <td>1MB</td>
+                    </tr>
+                    <tr>
+                        <td>Multithreading</td>
+                        <td>Single-threaded (I/O threads in 6.0+)</td>
+                        <td>Multi-threaded</td>
+                    </tr>
+                    <tr>
+                        <td>Use Case</td>
+                        <td>Caching + data store + pub/sub</td>
+                        <td>Simple, high-throughput caching</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 10. Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>10. Interview Q&A</h2>
+
+        <div class="qa">
+            <div class="q">Q1: How do you choose between SQL and NoSQL for a new project?</div>
+            <div class="a"><strong>Answer:</strong> Consider these factors: (1) <strong>Data relationships</strong> - complex relationships with joins favor SQL; (2) <strong>Schema stability</strong> - evolving schemas favor NoSQL; (3) <strong>Consistency requirements</strong> - financial data needing ACID favors SQL; (4) <strong>Scale pattern</strong> - massive write throughput or geographic distribution favors NoSQL; (5) <strong>Query patterns</strong> - ad-hoc complex queries favor SQL, known access patterns favor NoSQL (especially DynamoDB). Many systems use both: SQL for transactional data, NoSQL for caching/sessions/analytics.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q2: Explain the CAP theorem with a real-world example.</div>
+            <div class="a"><strong>Answer:</strong> CAP states a distributed system can guarantee at most 2 of: Consistency, Availability, Partition tolerance. Since network partitions are inevitable, the real choice is CP vs AP. <strong>CP example:</strong> A banking system (PostgreSQL with sync replication) - during a network partition, it refuses writes rather than risk inconsistency. <strong>AP example:</strong> A shopping cart (DynamoDB) - during a partition, both sides accept writes and resolve conflicts later (last-writer-wins or merge). The system stays available but may show stale data temporarily.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q3: What are the differences between synchronous and asynchronous replication?</div>
+            <div class="a"><strong>Answer:</strong> <strong>Synchronous:</strong> Primary waits for at least one replica to confirm the write before acknowledging to the client. Guarantees zero data loss but adds latency (network round-trip to replica). Used for: financial systems, RDS Multi-AZ. <strong>Asynchronous:</strong> Primary acknowledges immediately and streams changes in background. Lower write latency but risks data loss if primary fails before replica catches up (replication lag). Used for: read replicas, cross-region replication. <strong>Semi-synchronous:</strong> Middle ground - waits for one replica, others are async. PostgreSQL supports this with <code>synchronous_commit</code> settings.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q4: What are the trade-offs of database sharding?</div>
+            <div class="a"><strong>Answer:</strong> <strong>Benefits:</strong> Horizontal scalability, reduced index sizes, isolation of failures, ability to scale writes (not just reads). <strong>Costs:</strong> (1) Cross-shard queries require scatter-gather (slow); (2) Distributed transactions need 2PC or saga patterns; (3) Resharding is extremely disruptive; (4) Application must be shard-aware; (5) Operational complexity multiplies. <strong>When to shard:</strong> Only after exhausting vertical scaling, read replicas, and caching. Start with a shard key that distributes evenly (UUID hash) and allows query isolation (most queries hit one shard). Avoid monotonic keys (timestamps) as shard keys - they create hot spots.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q5: How do you perform a zero-downtime database migration?</div>
+            <div class="a"><strong>Answer:</strong> Use the <strong>expand-contract pattern</strong>: (1) <strong>Expand:</strong> Add new column/table without removing old. Deploy app version that writes to both old and new. (2) <strong>Migrate:</strong> Backfill existing data in batches (avoid long locks). Verify data consistency. (3) <strong>Contract:</strong> Deploy app that reads only from new. Remove old column. Key rules: never rename columns in-place, use <code>CREATE INDEX CONCURRENTLY</code>, batch large updates, test migrations against production-size data, always have a rollback plan (which may be "fix forward").</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q6: Why is connection pooling important and how does it work?</div>
+            <div class="a"><strong>Answer:</strong> Each database connection consumes ~10MB RAM (PostgreSQL) and spawns a backend process. With microservices, hundreds of instances each opening connections can exhaust the DB. <strong>Connection pooling</strong> (PgBouncer, HikariCP) maintains a pool of reusable connections. 100 app instances sharing a pool of 25 actual DB connections. PgBouncer's <code>transaction</code> mode releases connections after each transaction, maximizing reuse. Key settings: <code>max_client_conn</code> (how many apps can connect to pooler), <code>default_pool_size</code> (actual DB connections per database), <code>reserve_pool_size</code> (burst capacity).</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q7: How do you design an indexing strategy for a production database?</div>
+            <div class="a"><strong>Answer:</strong> (1) Start with query patterns - index columns in WHERE, JOIN, and ORDER BY clauses; (2) Use composite indexes matching your most common multi-column queries (leftmost prefix rule); (3) Consider partial indexes for queries that filter on a specific condition (e.g., <code>WHERE status = 'active'</code>); (4) Monitor with <code>pg_stat_user_indexes</code> to find unused indexes (they slow writes); (5) Use <code>EXPLAIN ANALYZE</code> to verify index usage; (6) Avoid over-indexing - each index adds write overhead and storage. Rule of thumb: index columns with high selectivity that appear in frequent queries.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q8: What are common Redis use cases beyond simple caching?</div>
+            <div class="a"><strong>Answer:</strong> (1) <strong>Session store:</strong> Fast reads, TTL for expiry; (2) <strong>Rate limiting:</strong> INCR + EXPIRE for sliding window; (3) <strong>Leaderboards:</strong> Sorted sets with ZADD/ZRANGE; (4) <strong>Pub/Sub:</strong> Real-time notifications, chat; (5) <strong>Distributed locks:</strong> SETNX + TTL (Redlock algorithm); (6) <strong>Queue:</strong> Lists with LPUSH/BRPOP for simple job queues; (7) <strong>Geospatial:</strong> GEOADD/GEORADIUS for location-based queries; (8) <strong>Streams:</strong> Event log with consumer groups (like mini-Kafka); (9) <strong>Bloom filters:</strong> Probabilistic membership testing (RedisBloom module).</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q9: How does Redis persistence work and what are the trade-offs?</div>
+            <div class="a"><strong>Answer:</strong> Two mechanisms: <strong>RDB (snapshots):</strong> Point-in-time snapshots at intervals. Fast restart, compact files. Risk: lose data between snapshots. <strong>AOF (Append-Only File):</strong> Logs every write command. Options: <code>appendfsync always</code> (safest, slowest), <code>everysec</code> (good balance, lose ~1s), <code>no</code> (OS decides, fastest). Best practice: use both - AOF for durability, RDB for fast restarts and backups. AOF rewrite compacts the file periodically. In Redis 7+, Multi-Part AOF improves reliability.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q10: How would you handle a database that has grown too large for a single instance?</div>
+            <div class="a"><strong>Answer:</strong> Progressive approach: (1) <strong>Optimize first:</strong> Better indexes, query optimization, connection pooling; (2) <strong>Read replicas:</strong> Offload reads (reporting, analytics) to replicas; (3) <strong>Caching layer:</strong> Redis for hot data, reducing DB load; (4) <strong>Vertical scaling:</strong> Bigger instance (quick but has limits); (5) <strong>Archival:</strong> Move old data to cold storage (S3, data warehouse); (6) <strong>Functional partitioning:</strong> Separate databases per domain (orders, users, inventory); (7) <strong>Sharding:</strong> Last resort - horizontal partitioning with shard key. Each step adds complexity, so only escalate when the simpler approach is insufficient.</div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 11. Scenarios -->
+        <!-- ============================================ -->
+        <h2>11. Troubleshooting Scenarios</h2>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!</span>
+                <span class="title">Scenario: Database Connection Exhaustion</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> Application throwing "too many connections" errors. New requests failing. <code>pg_stat_activity</code> shows max_connections reached.</p>
+                <div class="scenario-step"><span class="step-num">1.</span> <strong>Immediate:</strong> Identify and terminate idle connections: <code>SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'idle' AND query_start < now() - interval '10 min'</code></div>
+                <div class="scenario-step"><span class="step-num">2.</span> <strong>Investigate:</strong> Check for connection leaks: <code>SELECT client_addr, count(*) FROM pg_stat_activity GROUP BY client_addr ORDER BY count DESC</code></div>
+                <div class="scenario-step"><span class="step-num">3.</span> <strong>Root cause:</strong> Common causes: missing connection pool, pool misconfigured (too large), connection leaks in app code (connections not returned to pool), long-running transactions holding connections.</div>
+                <div class="scenario-step"><span class="step-num">4.</span> <strong>Fix:</strong> Deploy PgBouncer in transaction mode. Set <code>default_pool_size</code> to ~25 per database. Configure app connection timeout and idle timeout. Add connection leak detection to app framework.</div>
+                <div class="scenario-step"><span class="step-num">5.</span> <strong>Prevention:</strong> Alert on <code>pg_stat_activity</code> count approaching max_connections (80% threshold). Monitor connection pool utilization metrics.</div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!</span>
+                <span class="title">Scenario: Replication Lag Growing</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> Read replicas returning stale data. Users see inconsistent reads. <code>pg_stat_replication</code> shows increasing <code>replay_lag</code>.</p>
+                <div class="scenario-step"><span class="step-num">1.</span> <strong>Measure:</strong> Check lag: <code>SELECT client_addr, state, sent_lsn, write_lsn, flush_lsn, replay_lsn, replay_lag FROM pg_stat_replication</code></div>
+                <div class="scenario-step"><span class="step-num">2.</span> <strong>Identify cause:</strong> (a) Heavy write load on primary; (b) Replica under-resourced (CPU/IO); (c) Long-running queries on replica blocking replay; (d) Network bottleneck between primary and replica.</div>
+                <div class="scenario-step"><span class="step-num">3.</span> <strong>Mitigate:</strong> Kill long queries on replica (<code>hot_standby_feedback = on</code> to prevent conflicts). Scale up replica instance. Check network throughput.</div>
+                <div class="scenario-step"><span class="step-num">4.</span> <strong>Application fix:</strong> Route critical reads (read-your-writes) to primary. Use session affinity for recently-written data. Set <code>max_standby_streaming_delay</code> appropriately.</div>
+                <div class="scenario-step"><span class="step-num">5.</span> <strong>Long-term:</strong> If lag is persistent, add more replicas to distribute read load, or consider synchronous replication for critical replicas.</div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!</span>
+                <span class="title">Scenario: Split-Brain During Failover</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> After network partition heals, two nodes both believe they are primary. Conflicting writes detected. Data divergence.</p>
+                <div class="scenario-step"><span class="step-num">1.</span> <strong>Detection:</strong> Monitor for multiple nodes reporting as primary. Patroni/etcd leader check. Fencing alerts.</div>
+                <div class="scenario-step"><span class="step-num">2.</span> <strong>Immediate:</strong> Fence (STONITH) the old primary - shut it down forcefully to prevent further writes. This is why fencing mechanisms exist.</div>
+                <div class="scenario-step"><span class="step-num">3.</span> <strong>Assess damage:</strong> Compare WAL positions of both nodes. Identify divergent transactions using <code>pg_rewind</code> or WAL analysis.</div>
+                <div class="scenario-step"><span class="step-num">4.</span> <strong>Recovery:</strong> Use <code>pg_rewind</code> to rewind old primary to the fork point, then replay as replica. Or restore old primary from backup and resync. Manually reconcile conflicting writes if needed.</div>
+                <div class="scenario-step"><span class="step-num">5.</span> <strong>Prevention:</strong> Use consensus-based failover (Patroni + etcd with 3+ nodes). Configure fencing (STONITH). Set <code>synchronous_commit = on</code> to prevent unacknowledged writes from being lost.</div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!</span>
+                <span class="title">Scenario: Slow Queries Degrading Performance</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> Application response times increasing. CPU on database at 90%+. <code>pg_stat_statements</code> shows queries taking seconds instead of milliseconds.</p>
+                <div class="scenario-step"><span class="step-num">1.</span> <strong>Identify:</strong> Find top slow queries: <code>SELECT query, mean_exec_time, calls FROM pg_stat_statements ORDER BY total_exec_time DESC LIMIT 10</code></div>
+                <div class="scenario-step"><span class="step-num">2.</span> <strong>Analyze:</strong> Run <code>EXPLAIN (ANALYZE, BUFFERS)</code> on slow queries. Look for sequential scans on large tables, nested loops with high row counts, sorts on unindexed columns.</div>
+                <div class="scenario-step"><span class="step-num">3.</span> <strong>Quick wins:</strong> Add missing indexes (use <code>CREATE INDEX CONCURRENTLY</code>). Rewrite <code>NOT IN</code> as <code>NOT EXISTS</code>. Add <code>LIMIT</code> to unbounded queries. Update table statistics: <code>ANALYZE tablename</code>.</div>
+                <div class="scenario-step"><span class="step-num">4.</span> <strong>Medium-term:</strong> Implement query result caching for hot paths. Denormalize frequently-joined data. Consider materialized views for complex aggregations. Move analytics queries to read replicas.</div>
+                <div class="scenario-step"><span class="step-num">5.</span> <strong>Monitor:</strong> Set <code>log_min_duration_statement = 1000</code> to log slow queries. Alert on <code>pg_stat_statements</code> mean_exec_time regression. Track index hit ratio: should be >99%.</div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        <p>Databases Reference - DevOps/SRE Study Notes</p>
+    </footer>
+
+</body>
+</html>

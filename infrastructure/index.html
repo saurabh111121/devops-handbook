@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infrastructure - K8s/DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+    <nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html" class="active">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+        </nav>
+
+        <h1>Infrastructure</h1>
+        <p class="subtitle">Core infrastructure knowledge spanning Linux internals, cloud services on AWS, TLS and certificate management, database technologies, message queues, cloud cost optimization, and disaster recovery planning.</p>
+
+        <div class="toc-grid">
+
+            <a href="linux-networking.html" class="toc-card">
+                <span class="priority priority-critical">Must Know</span>
+                <h3>Linux & Networking</h3>
+                <p>Process management, systemd, namespaces, cgroups, iptables, TCP/IP, DNS resolution, and troubleshooting tools.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">Namespaces</span>
+                    <span class="tag tag-green">cgroups</span>
+                    <span class="tag tag-orange">iptables</span>
+                    <span class="tag tag-purple">TCP/IP</span>
+                </div>
+            </a>
+
+            <a href="aws-cloud.html" class="toc-card">
+                <span class="priority priority-critical">Must Know</span>
+                <h3>AWS & Cloud</h3>
+                <p>EC2, EKS, VPC, IAM, S3, RDS, Lambda, CloudFormation, and cloud architecture patterns for production workloads.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">EC2/EKS</span>
+                    <span class="tag tag-green">VPC</span>
+                    <span class="tag tag-orange">IAM</span>
+                    <span class="tag tag-purple">Lambda</span>
+                </div>
+            </a>
+
+            <a href="tls-certificates.html" class="toc-card">
+                <span class="priority priority-high">High</span>
+                <h3>TLS & Certificates</h3>
+                <p>TLS handshake, certificate chains, cert-manager, Let's Encrypt, mTLS, and PKI infrastructure for Kubernetes.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">TLS Handshake</span>
+                    <span class="tag tag-green">cert-manager</span>
+                    <span class="tag tag-orange">mTLS</span>
+                    <span class="tag tag-purple">PKI</span>
+                </div>
+            </a>
+
+            <a href="databases.html" class="toc-card">
+                <span class="priority priority-high">High</span>
+                <h3>Databases</h3>
+                <p>SQL vs NoSQL, PostgreSQL, MongoDB, Redis, replication, sharding, connection pooling, and database operations in K8s.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">PostgreSQL</span>
+                    <span class="tag tag-green">MongoDB</span>
+                    <span class="tag tag-orange">Redis</span>
+                    <span class="tag tag-purple">Replication</span>
+                </div>
+            </a>
+
+            <a href="message-queues.html" class="toc-card">
+                <span class="priority priority-medium">Medium</span>
+                <h3>Message Queues</h3>
+                <p>Kafka, RabbitMQ, SQS, event-driven architecture, pub/sub patterns, dead letter queues, and message ordering.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">Kafka</span>
+                    <span class="tag tag-green">RabbitMQ</span>
+                    <span class="tag tag-orange">SQS</span>
+                    <span class="tag tag-purple">Event-Driven</span>
+                </div>
+            </a>
+
+            <a href="cost-finops.html" class="toc-card">
+                <span class="priority priority-medium">Medium</span>
+                <h3>Cost & FinOps</h3>
+                <p>Cloud cost optimization, resource right-sizing, spot instances, reserved capacity, tagging strategies, and FinOps practices.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">Right-Sizing</span>
+                    <span class="tag tag-green">Spot Instances</span>
+                    <span class="tag tag-orange">Tagging</span>
+                    <span class="tag tag-purple">Budgets</span>
+                </div>
+            </a>
+
+            <a href="disaster-recovery.html" class="toc-card">
+                <span class="priority priority-high">High</span>
+                <h3>Disaster Recovery</h3>
+                <p>RPO/RTO, backup strategies, multi-region architectures, failover patterns, chaos engineering, and business continuity.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">RPO/RTO</span>
+                    <span class="tag tag-green">Multi-Region</span>
+                    <span class="tag tag-orange">Failover</span>
+                    <span class="tag tag-red">Chaos Engineering</span>
+                </div>
+            </a>
+
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            Complete Kubernetes, DevOps & SRE Reference | Built for study & interview preparation | 2026
+        </footer>
+
+    </div>
+
+</body>
+</html>

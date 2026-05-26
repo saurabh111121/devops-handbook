@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API & REST - K8s/DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html" class="active">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; <a href="../application/index.html" class="active">Application</a> &gt; <span>API & REST</span>
+        </nav>
+
+        <h1>API & REST</h1>
+        <p class="subtitle">HTTP fundamentals, RESTful design principles, authentication, security, gRPC, GraphQL, and API documentation best practices.</p>
+
+        <!-- ============================================ -->
+        <!-- Section 1: HTTP Fundamentals -->
+        <!-- ============================================ -->
+        <h2>1. HTTP Fundamentals</h2>
+
+        <h3>Request/Response Structure</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">HTTP Request</span><span class="tag tag-blue">Request</span></div>
+<pre>
+GET /api/v1/users/123 HTTP/1.1
+Host: api.example.com
+Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
+Accept: application/json
+Cache-Control: no-cache
+X-Request-ID: uuid-here-1234
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="filename">HTTP Response</span><span class="tag tag-green">Response</span></div>
+<pre>
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Cache-Control: max-age=3600
+X-RateLimit-Remaining: 98
+X-Request-ID: uuid-here-1234
+
+{
+  "id": "123",
+  "name": "John Doe",
+  "email": "john@example.com",
+  "created_at": "2026-01-15T10:30:00Z"
+}
+</pre>
+        </div>
+
+        <h3>HTTP Methods</h3>
+        <table>
+            <tr>
+                <th>Method</th>
+                <th>Purpose</th>
+                <th>Idempotent</th>
+                <th>Safe</th>
+                <th>Request Body</th>
+                <th>Example</th>
+            </tr>
+            <tr>
+                <td><strong>GET</strong></td>
+                <td>Retrieve resource</td>
+                <td>Yes</td>
+                <td>Yes</td>
+                <td>No</td>
+                <td>GET /users/123</td>
+            </tr>
+            <tr>
+                <td><strong>POST</strong></td>
+                <td>Create resource</td>
+                <td>No</td>
+                <td>No</td>
+                <td>Yes</td>
+                <td>POST /users</td>
+            </tr>
+            <tr>
+                <td><strong>PUT</strong></td>
+                <td>Replace entire resource</td>
+                <td>Yes</td>
+                <td>No</td>
+                <td>Yes</td>
+                <td>PUT /users/123</td>
+            </tr>
+            <tr>
+                <td><strong>PATCH</strong></td>
+                <td>Partial update</td>
+                <td>No*</td>
+                <td>No</td>
+                <td>Yes</td>
+                <td>PATCH /users/123</td>
+            </tr>
+            <tr>
+                <td><strong>DELETE</strong></td>
+                <td>Remove resource</td>
+                <td>Yes</td>
+                <td>No</td>
+                <td>Optional</td>
+                <td>DELETE /users/123</td>
+            </tr>
+            <tr>
+                <td><strong>HEAD</strong></td>
+                <td>GET without body (headers only)</td>
+                <td>Yes</td>
+                <td>Yes</td>
+                <td>No</td>
+                <td>HEAD /users/123</td>
+            </tr>
+            <tr>
+                <td><strong>OPTIONS</strong></td>
+                <td>Describe communication options</td>
+                <td>Yes</td>
+                <td>Yes</td>
+                <td>No</td>
+                <td>OPTIONS /users</td>
+            </tr>
+        </table>
+        <p><em>*PATCH can be idempotent if using JSON Merge Patch; non-idempotent with JSON Patch (operations like "increment").</em></p>
+
+        <p><strong>Idempotent:</strong> Multiple identical requests produce the same result (safe to retry).<br>
+        <strong>Safe:</strong> Does not modify server state (read-only).</p>
+
+        <h3>Important Headers</h3>
+        <table>
+            <tr>
+                <th>Header</th>
+                <th>Direction</th>
+                <th>Purpose</th>
+                <th>Example</th>
+            </tr>
+            <tr>
+                <td>Content-Type</td>
+                <td>Request/Response</td>
+                <td>Media type of body</td>
+                <td><code>application/json</code></td>
+            </tr>
+            <tr>
+                <td>Authorization</td>
+                <td>Request</td>
+                <td>Authentication credentials</td>
+                <td><code>Bearer &lt;token&gt;</code></td>
+            </tr>
+            <tr>
+                <td>Cache-Control</td>
+                <td>Both</td>
+                <td>Caching directives</td>
+                <td><code>max-age=3600, must-revalidate</code></td>
+            </tr>
+            <tr>
+                <td>Accept</td>
+                <td>Request</td>
+                <td>Acceptable response types</td>
+                <td><code>application/json</code></td>
+            </tr>
+            <tr>
+                <td>ETag</td>
+                <td>Response</td>
+                <td>Resource version identifier</td>
+                <td><code>"33a64df5"</code></td>
+            </tr>
+            <tr>
+                <td>If-None-Match</td>
+                <td>Request</td>
+                <td>Conditional request (caching)</td>
+                <td><code>"33a64df5"</code></td>
+            </tr>
+            <tr>
+                <td>X-Request-ID</td>
+                <td>Both</td>
+                <td>Correlation ID for tracing</td>
+                <td><code>uuid-value</code></td>
+            </tr>
+            <tr>
+                <td>Retry-After</td>
+                <td>Response</td>
+                <td>When to retry (429/503)</td>
+                <td><code>120</code> (seconds)</td>
+            </tr>
+        </table>
+
+        <!-- ============================================ -->
+        <!-- Section 2: HTTP Status Codes -->
+        <!-- ============================================ -->
+        <h2>2. HTTP Status Codes</h2>
+
+        <h3>1xx - Informational</h3>
+        <table>
+            <tr><th>Code</th><th>Name</th><th>Description</th></tr>
+            <tr><td>100</td><td>Continue</td><td>Initial part of request received, client should continue</td></tr>
+            <tr><td>101</td><td>Switching Protocols</td><td>Server switching to protocol requested (e.g., WebSocket)</td></tr>
+        </table>
+
+        <h3>2xx - Success</h3>
+        <table>
+            <tr><th>Code</th><th>Name</th><th>When to Use</th></tr>
+            <tr><td><strong>200</strong></td><td>OK</td><td>Successful GET, PUT, PATCH, DELETE</td></tr>
+            <tr><td><strong>201</strong></td><td>Created</td><td>Successful POST that creates a resource. Include Location header.</td></tr>
+            <tr><td><strong>202</strong></td><td>Accepted</td><td>Request accepted for async processing (not yet completed)</td></tr>
+            <tr><td>204</td><td>No Content</td><td>Successful DELETE or PUT with no response body</td></tr>
+        </table>
+
+        <h3>3xx - Redirection</h3>
+        <table>
+            <tr><th>Code</th><th>Name</th><th>When to Use</th></tr>
+            <tr><td>301</td><td>Moved Permanently</td><td>Resource URL changed permanently. Clients should update bookmarks.</td></tr>
+            <tr><td>302</td><td>Found</td><td>Temporary redirect (original URL still valid)</td></tr>
+            <tr><td><strong>304</strong></td><td>Not Modified</td><td>Resource unchanged since last request (caching with ETag/If-None-Match)</td></tr>
+            <tr><td>307</td><td>Temporary Redirect</td><td>Like 302 but MUST keep original HTTP method</td></tr>
+            <tr><td>308</td><td>Permanent Redirect</td><td>Like 301 but MUST keep original HTTP method</td></tr>
+        </table>
+
+        <h3>4xx - Client Error</h3>
+        <table>
+            <tr><th>Code</th><th>Name</th><th>When to Use</th></tr>
+            <tr><td><strong>400</strong></td><td>Bad Request</td><td>Malformed request, invalid JSON, validation failure</td></tr>
+            <tr><td><strong>401</strong></td><td>Unauthorized</td><td>Missing or invalid authentication (who are you?)</td></tr>
+            <tr><td><strong>403</strong></td><td>Forbidden</td><td>Authenticated but not authorized (you cannot do this)</td></tr>
+            <tr><td><strong>404</strong></td><td>Not Found</td><td>Resource does not exist</td></tr>
+            <tr><td>405</td><td>Method Not Allowed</td><td>HTTP method not supported for this endpoint</td></tr>
+            <tr><td><strong>409</strong></td><td>Conflict</td><td>Request conflicts with current state (duplicate, version conflict)</td></tr>
+            <tr><td>415</td><td>Unsupported Media Type</td><td>Content-Type not supported</td></tr>
+            <tr><td>422</td><td>Unprocessable Entity</td><td>Syntactically correct but semantically invalid</td></tr>
+            <tr><td><strong>429</strong></td><td>Too Many Requests</td><td>Rate limit exceeded. Include Retry-After header.</td></tr>
+        </table>
+
+        <h3>5xx - Server Error</h3>
+        <table>
+            <tr><th>Code</th><th>Name</th><th>When to Use</th></tr>
+            <tr><td><strong>500</strong></td><td>Internal Server Error</td><td>Unexpected server error (catch-all)</td></tr>
+            <tr><td>502</td><td>Bad Gateway</td><td>Upstream server returned invalid response</td></tr>
+            <tr><td><strong>503</strong></td><td>Service Unavailable</td><td>Server temporarily overloaded or in maintenance</td></tr>
+            <tr><td>504</td><td>Gateway Timeout</td><td>Upstream server did not respond in time</td></tr>
+        </table>
+
+        <!-- ============================================ -->
+        <!-- Section 3: REST Principles -->
+        <!-- ============================================ -->
+        <h2>3. REST Principles</h2>
+
+        <div class="point">
+            <span class="point-num">1</span>
+            <div class="point-content">
+                <div class="point-title">Stateless</div>
+                <p>Each request contains ALL information needed to process it. No server-side session state. Authentication via tokens (JWT, API keys) sent with every request. Enables horizontal scaling -- any server can handle any request.</p>
+            </div>
+        </div>
+
+        <div class="point">
+            <span class="point-num green">2</span>
+            <div class="point-content">
+                <div class="point-title">Resource-Based URLs</div>
+                <p>URLs represent resources (nouns), not actions (verbs). HTTP methods express the action.</p>
+                <ul>
+                    <li><code>GET /users</code> -- list users (not <code>GET /getUsers</code>)</li>
+                    <li><code>POST /users</code> -- create user (not <code>POST /createUser</code>)</li>
+                    <li><code>GET /users/123/orders</code> -- list orders for user 123</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="point">
+            <span class="point-num purple">3</span>
+            <div class="point-content">
+                <div class="point-title">HATEOAS (Hypermedia As The Engine Of Application State)</div>
+                <p>Responses include links to related resources and available actions. Clients discover APIs by following links rather than hardcoding URLs.</p>
+                <div class="code-block">
+                    <div class="code-header"><span class="filename">HATEOAS Response Example</span></div>
+<pre>
+{
+  "id": "123",
+  "name": "John Doe",
+  "status": "active",
+  "_links": {
+    "self": { "href": "/users/123" },
+    "orders": { "href": "/users/123/orders" },
+    "deactivate": { "href": "/users/123/deactivate", "method": "POST" }
+  }
+}
+</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="point">
+            <span class="point-num orange">4</span>
+            <div class="point-content">
+                <div class="point-title">Richardson Maturity Model</div>
+                <table>
+                    <tr><th>Level</th><th>Name</th><th>Description</th></tr>
+                    <tr><td>0</td><td>Swamp of POX</td><td>Single endpoint, single HTTP method (e.g., SOAP over POST)</td></tr>
+                    <tr><td>1</td><td>Resources</td><td>Multiple endpoints representing resources</td></tr>
+                    <tr><td>2</td><td>HTTP Verbs</td><td>Proper use of GET, POST, PUT, DELETE + status codes</td></tr>
+                    <tr><td>3</td><td>Hypermedia (HATEOAS)</td><td>Responses include links for discoverability</td></tr>
+                </table>
+                <p>Most production APIs are Level 2. Level 3 is aspirational but rarely fully implemented.</p>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- Section 4: API Design Best Practices -->
+        <!-- ============================================ -->
+        <h2>4. API Design Best Practices</h2>
+
+        <h3>Naming Conventions</h3>
+        <div class="card">
+            <ul>
+                <li>Use <strong>plural nouns</strong> for collections: <code>/users</code>, <code>/orders</code></li>
+                <li>Use <strong>kebab-case</strong> for multi-word: <code>/order-items</code></li>
+                <li>Nest for relationships: <code>/users/123/orders</code> (max 2 levels deep)</li>
+                <li>Use query params for filtering: <code>/orders?status=pending&amp;created_after=2026-01-01</code></li>
+                <li>Avoid verbs in URLs: <code>POST /orders</code> not <code>POST /createOrder</code></li>
+                <li>Exception for actions: <code>POST /orders/123/cancel</code> (non-CRUD operations)</li>
+            </ul>
+        </div>
+
+        <h3>Versioning Strategies</h3>
+        <table>
+            <tr>
+                <th>Strategy</th>
+                <th>Example</th>
+                <th>Pros</th>
+                <th>Cons</th>
+            </tr>
+            <tr>
+                <td>URL Path</td>
+                <td><code>/api/v1/users</code></td>
+                <td>Clear, easy to route, cacheable</td>
+                <td>URL pollution, hard to deprecate</td>
+            </tr>
+            <tr>
+                <td>Header</td>
+                <td><code>Accept: application/vnd.api.v2+json</code></td>
+                <td>Clean URLs, content negotiation</td>
+                <td>Hidden from URL, harder to test in browser</td>
+            </tr>
+            <tr>
+                <td>Query Param</td>
+                <td><code>/users?version=2</code></td>
+                <td>Simple, optional</td>
+                <td>Non-standard, caching issues</td>
+            </tr>
+        </table>
+
+        <h3>Pagination</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">Offset-based Pagination</span></div>
+<pre>
+GET /api/v1/users?page=2&amp;per_page=25
+
+Response:
+{
+  "data": [...],
+  "pagination": {
+    "page": 2,
+    "per_page": 25,
+    "total": 150,
+    "total_pages": 6,
+    "next": "/api/v1/users?page=3&amp;per_page=25",
+    "prev": "/api/v1/users?page=1&amp;per_page=25"
+  }
+}
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="filename">Cursor-based Pagination (preferred for large datasets)</span></div>
+<pre>
+GET /api/v1/users?limit=25&amp;cursor=eyJpZCI6MTAwfQ==
+
+Response:
+{
+  "data": [...],
+  "pagination": {
+    "next_cursor": "eyJpZCI6MTI1fQ==",
+    "has_more": true
+  }
+}
+</pre>
+        </div>
+        <p><strong>Cursor-based</strong> is preferred for large or frequently-changing datasets because it avoids the "missing items" problem of offset pagination when records are inserted/deleted between pages.</p>
+
+        <h3>Error Response Format (RFC 7807)</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">Problem Details (RFC 7807)</span><span class="tag tag-red">Error</span></div>
+<pre>
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{
+  "type": "https://api.example.com/errors/validation",
+  "title": "Validation Error",
+  "status": 422,
+  "detail": "The request body contains invalid fields",
+  "instance": "/api/v1/users",
+  "errors": [
+    {
+      "field": "email",
+      "message": "must be a valid email address",
+      "value": "not-an-email"
+    },
+    {
+      "field": "age",
+      "message": "must be between 18 and 120",
+      "value": -5
+    }
+  ]
+}
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- Section 5: Authentication & Authorization -->
+        <!-- ============================================ -->
+        <h2>5. Authentication & Authorization</h2>
+
+        <h3>Authentication Methods</h3>
+        <table>
+            <tr>
+                <th>Method</th>
+                <th>How It Works</th>
+                <th>Best For</th>
+                <th>Security Level</th>
+            </tr>
+            <tr>
+                <td>Basic Auth</td>
+                <td>Base64(username:password) in header</td>
+                <td>Internal/dev APIs, simple scripts</td>
+                <td>Low (credentials in every request)</td>
+            </tr>
+            <tr>
+                <td>API Keys</td>
+                <td>Static key in header or query param</td>
+                <td>Server-to-server, public APIs</td>
+                <td>Medium (revocable, rate-limitable)</td>
+            </tr>
+            <tr>
+                <td>OAuth 2.0</td>
+                <td>Token-based delegated authorization</td>
+                <td>Third-party access, user consent</td>
+                <td>High (scoped, short-lived tokens)</td>
+            </tr>
+            <tr>
+                <td>JWT</td>
+                <td>Self-contained signed tokens</td>
+                <td>Stateless auth, microservices</td>
+                <td>High (verifiable without DB lookup)</td>
+            </tr>
+        </table>
+
+        <h3>OAuth 2.0 Flows</h3>
+        <div class="diagram">
+            <div class="diagram-label">OAuth 2.0 Authorization Code Flow (with PKCE)</div>
+<pre>
+ +--------+                               +---------------+
+ |        |  1. Auth Request              |               |
+ |  User  |  (browser redirect)          | Authorization |
+ | Agent  | ----------------------------> |    Server     |
+ | (Browser)                              |  (e.g. Auth0) |
+ |        | <---------------------------- |               |
+ |        |  2. Auth Code                 +-------+-------+
+ +---+----+                                       |
+     |                                            |
+     | 3. Auth Code                               |
+     v                                            |
+ +---+----+                                       |
+ |        |  4. Exchange Code + PKCE Verifier     |
+ | Client |  -----------------------------------> |
+ | (App)  |                                       |
+ |        | <------------------------------------ |
+ |        |  5. Access Token + Refresh Token      |
+ +---+----+                                       |
+     |
+     | 6. API Request + Access Token
+     v
+ +---+----+
+ | Resource|
+ | Server  |  (your API)
+ +---------+
+</pre>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">OAuth 2.0 Client Credentials Flow (Machine-to-Machine)</div>
+<pre>
+ +--------+                               +---------------+
+ |        |  1. Client ID + Secret        |               |
+ | Client | ----------------------------> | Authorization |
+ | (Server)|                              |    Server     |
+ |        | <---------------------------- |               |
+ |        |  2. Access Token              +---------------+
+ +---+----+
+     |
+     | 3. API Request + Access Token
+     v
+ +---+----+
+ | Resource|
+ | Server  |
+ +---------+
+
+ No user involved. Used for service-to-service auth.
+</pre>
+        </div>
+
+        <h3>JWT Structure</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">JWT: header.payload.signature</span><span class="tag tag-purple">JWT</span></div>
+<pre>
+eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.    &lt;-- Header (Base64)
+eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6Ik... &lt;-- Payload (Base64)
+SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQ... &lt;-- Signature
+
+--- DECODED ---
+
+Header:
+{
+  "alg": "RS256",     // Algorithm: RSA + SHA-256
+  "typ": "JWT",       // Token type
+  "kid": "key-id-1"   // Key ID for rotation
+}
+
+Payload (Claims):
+{
+  "sub": "user-123",         // Subject (user ID)
+  "iss": "auth.example.com", // Issuer
+  "aud": "api.example.com",  // Audience
+  "exp": 1717200000,         // Expiration (Unix timestamp)
+  "iat": 1717196400,         // Issued at
+  "scope": "read:users write:orders",  // Permissions
+  "roles": ["admin"]
+}
+
+Signature:
+  RSASHA256(base64(header) + "." + base64(payload), private_key)
+</pre>
+        </div>
+
+        <h3>Token Refresh Flow</h3>
+        <div class="card">
+            <ul>
+                <li><strong>Access Token:</strong> Short-lived (15 min to 1 hour). Sent with every API request.</li>
+                <li><strong>Refresh Token:</strong> Long-lived (days to weeks). Used only to get new access tokens.</li>
+                <li>When access token expires, client sends refresh token to auth server for a new access token.</li>
+                <li>Refresh tokens should be stored securely (HTTP-only cookie, secure storage).</li>
+                <li><strong>Refresh token rotation:</strong> Issue new refresh token with each use; invalidate old one (prevents replay).</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- Section 6: API Security -->
+        <!-- ============================================ -->
+        <h2>6. API Security</h2>
+
+        <h3>Rate Limiting</h3>
+        <div class="diagram">
+            <div class="diagram-label">Token Bucket Algorithm</div>
+<pre>
+ +------------------+
+ |   Token Bucket   |     Capacity: 100 tokens
+ |                  |     Refill rate: 10 tokens/second
+ |  [####........]  |
+ |   40 tokens left |
+ +--------+---------+
+          |
+   Each request consumes 1 token
+          |
+  +-------+-------+
+  |               |
+  v               v
+Token available  Bucket empty
+  |               |
+  v               v
+ALLOW (200)     REJECT (429)
+                  |
+                  v
+            Retry-After: 6  (seconds until enough tokens)
+
+ Advantages:
+ - Allows bursts up to bucket capacity
+ - Smooth rate over time
+ - Simple to implement (Redis INCR + EXPIRE)
+</pre>
+        </div>
+
+        <table>
+            <tr>
+                <th>Algorithm</th>
+                <th>How It Works</th>
+                <th>Best For</th>
+            </tr>
+            <tr>
+                <td>Token Bucket</td>
+                <td>Fixed capacity, refills at constant rate</td>
+                <td>Allowing bursts within limit</td>
+            </tr>
+            <tr>
+                <td>Leaky Bucket</td>
+                <td>Requests processed at fixed rate, excess queued/dropped</td>
+                <td>Smoothing traffic</td>
+            </tr>
+            <tr>
+                <td>Fixed Window</td>
+                <td>Count requests per time window (e.g., 100/min)</td>
+                <td>Simple implementation</td>
+            </tr>
+            <tr>
+                <td>Sliding Window</td>
+                <td>Weighted count across current and previous window</td>
+                <td>Avoiding boundary spikes</td>
+            </tr>
+        </table>
+
+        <h3>CORS (Cross-Origin Resource Sharing)</h3>
+        <div class="card">
+            <p>Browsers enforce Same-Origin Policy. CORS headers allow controlled cross-origin access.</p>
+            <div class="code-block">
+                <div class="code-header"><span class="filename">CORS Response Headers</span></div>
+<pre>
+Access-Control-Allow-Origin: https://app.example.com
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE
+Access-Control-Allow-Headers: Authorization, Content-Type
+Access-Control-Max-Age: 86400
+Access-Control-Allow-Credentials: true
+</pre>
+            </div>
+            <p><strong>Preflight request:</strong> Browser sends OPTIONS request first for non-simple requests (custom headers, PUT/DELETE). Server responds with allowed methods/headers.</p>
+            <p><strong>Security:</strong> Never use <code>Access-Control-Allow-Origin: *</code> with credentials. Allowlist specific origins.</p>
+        </div>
+
+        <h3>Input Validation</h3>
+        <div class="card card-warning">
+            <ul>
+                <li>Validate ALL input on the server (never trust client-side validation)</li>
+                <li>Validate data types, ranges, lengths, and patterns</li>
+                <li>Sanitize against injection (SQL, NoSQL, LDAP, OS command)</li>
+                <li>Use parameterized queries (never string concatenation for SQL)</li>
+                <li>Limit request body size (e.g., 1MB max)</li>
+                <li>Validate Content-Type header matches actual body</li>
+            </ul>
+        </div>
+
+        <h3>OWASP Top 10 API Security Risks (2023)</h3>
+        <table>
+            <tr><th>#</th><th>Risk</th><th>Description</th><th>Mitigation</th></tr>
+            <tr><td>1</td><td>Broken Object-Level Auth</td><td>Accessing other users' data via ID manipulation</td><td>Check ownership on every request</td></tr>
+            <tr><td>2</td><td>Broken Authentication</td><td>Weak auth mechanisms</td><td>Use OAuth 2.0, MFA, strong passwords</td></tr>
+            <tr><td>3</td><td>Broken Object Property-Level Auth</td><td>Exposing sensitive fields</td><td>Explicit allowlists for response fields</td></tr>
+            <tr><td>4</td><td>Unrestricted Resource Consumption</td><td>No rate limits, unbounded queries</td><td>Rate limiting, pagination, timeouts</td></tr>
+            <tr><td>5</td><td>Broken Function-Level Auth</td><td>Accessing admin endpoints</td><td>RBAC, deny by default</td></tr>
+            <tr><td>6</td><td>Unrestricted Access to Sensitive Flows</td><td>Automated abuse of business flows</td><td>CAPTCHA, bot detection, flow limits</td></tr>
+            <tr><td>7</td><td>Server-Side Request Forgery</td><td>Server makes requests to attacker URLs</td><td>Allowlist URLs, validate input</td></tr>
+            <tr><td>8</td><td>Security Misconfiguration</td><td>Default configs, verbose errors</td><td>Hardening, security headers, no debug in prod</td></tr>
+            <tr><td>9</td><td>Improper Inventory Management</td><td>Exposed old/undocumented endpoints</td><td>API catalog, deprecation process</td></tr>
+            <tr><td>10</td><td>Unsafe Consumption of APIs</td><td>Trusting third-party API responses</td><td>Validate all external data</td></tr>
+        </table>
+
+        <!-- ============================================ -->
+        <!-- Section 7: gRPC -->
+        <!-- ============================================ -->
+        <h2>7. gRPC</h2>
+
+        <h3>Protocol Buffers (.proto)</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">user_service.proto</span><span class="tag tag-blue">protobuf</span></div>
+<pre>
+syntax = "proto3";
+
+package user;
+
+option go_package = "github.com/example/user/pb";
+
+// Service definition
+service UserService {
+  // Unary RPC
+  rpc GetUser (GetUserRequest) returns (User);
+
+  // Server streaming
+  rpc ListUsers (ListUsersRequest) returns (stream User);
+
+  // Client streaming
+  rpc UploadUsers (stream User) returns (UploadResponse);
+
+  // Bidirectional streaming
+  rpc Chat (stream ChatMessage) returns (stream ChatMessage);
+}
+
+message GetUserRequest {
+  string id = 1;
+}
+
+message ListUsersRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  string filter = 3;  // e.g., "status=active"
+}
+
+message User {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  UserRole role = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+enum UserRole {
+  USER_ROLE_UNSPECIFIED = 0;
+  USER_ROLE_ADMIN = 1;
+  USER_ROLE_MEMBER = 2;
+}
+
+message UploadResponse {
+  int32 count = 1;
+}
+
+message ChatMessage {
+  string sender = 1;
+  string content = 2;
+}
+</pre>
+        </div>
+
+        <h3>gRPC Streaming Types</h3>
+        <table>
+            <tr>
+                <th>Type</th>
+                <th>Client</th>
+                <th>Server</th>
+                <th>Use Case</th>
+            </tr>
+            <tr>
+                <td>Unary</td>
+                <td>1 request</td>
+                <td>1 response</td>
+                <td>Standard request/response (like REST)</td>
+            </tr>
+            <tr>
+                <td>Server Streaming</td>
+                <td>1 request</td>
+                <td>N responses</td>
+                <td>Large result sets, real-time updates</td>
+            </tr>
+            <tr>
+                <td>Client Streaming</td>
+                <td>N requests</td>
+                <td>1 response</td>
+                <td>File upload, batch processing</td>
+            </tr>
+            <tr>
+                <td>Bidirectional</td>
+                <td>N requests</td>
+                <td>N responses</td>
+                <td>Chat, real-time collaboration</td>
+            </tr>
+        </table>
+
+        <h3>gRPC vs REST</h3>
+        <table>
+            <tr>
+                <th>Feature</th>
+                <th>gRPC</th>
+                <th>REST</th>
+            </tr>
+            <tr>
+                <td>Protocol</td>
+                <td>HTTP/2</td>
+                <td>HTTP/1.1 (can use HTTP/2)</td>
+            </tr>
+            <tr>
+                <td>Serialization</td>
+                <td>Protocol Buffers (binary)</td>
+                <td>JSON (text)</td>
+            </tr>
+            <tr>
+                <td>Performance</td>
+                <td>~10x faster serialization</td>
+                <td>Slower but human-readable</td>
+            </tr>
+            <tr>
+                <td>Streaming</td>
+                <td>Native bidirectional</td>
+                <td>WebSocket (separate protocol)</td>
+            </tr>
+            <tr>
+                <td>Contract</td>
+                <td>.proto files (required)</td>
+                <td>OpenAPI (optional)</td>
+            </tr>
+            <tr>
+                <td>Code Generation</td>
+                <td>Built-in (protoc compiler)</td>
+                <td>Optional (openapi-generator)</td>
+            </tr>
+            <tr>
+                <td>Browser Support</td>
+                <td>Requires gRPC-Web proxy</td>
+                <td>Native</td>
+            </tr>
+            <tr>
+                <td>Tooling</td>
+                <td>grpcurl, BloomRPC</td>
+                <td>curl, Postman, browser</td>
+            </tr>
+            <tr>
+                <td>Best For</td>
+                <td>Internal microservices, high-throughput</td>
+                <td>Public APIs, web clients, CRUD</td>
+            </tr>
+        </table>
+
+        <!-- ============================================ -->
+        <!-- Section 8: GraphQL -->
+        <!-- ============================================ -->
+        <h2>8. GraphQL</h2>
+
+        <h3>Core Concepts</h3>
+        <div class="grid-2">
+            <div class="card">
+                <h4>Query (Read)</h4>
+                <div class="code-block">
+                    <div class="code-header"><span class="filename">query.graphql</span></div>
+<pre>
+query GetUser {
+  user(id: "123") {
+    name
+    email
+    orders(last: 5) {
+      id
+      total
+      status
+      items {
+        product { name }
+        quantity
+      }
+    }
+  }
+}
+</pre>
+                </div>
+            </div>
+            <div class="card">
+                <h4>Mutation (Write)</h4>
+                <div class="code-block">
+                    <div class="code-header"><span class="filename">mutation.graphql</span></div>
+<pre>
+mutation CreateOrder {
+  createOrder(input: {
+    userId: "123"
+    items: [
+      { productId: "abc", qty: 2 }
+      { productId: "def", qty: 1 }
+    ]
+  }) {
+    id
+    status
+    total
+  }
+}
+</pre>
+                </div>
+            </div>
+        </div>
+
+        <h3>Schema Definition</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">schema.graphql</span><span class="tag tag-purple">GraphQL</span></div>
+<pre>
+type Query {
+  user(id: ID!): User
+  users(filter: UserFilter, limit: Int = 25): [User!]!
+}
+
+type Mutation {
+  createUser(input: CreateUserInput!): User!
+  updateUser(id: ID!, input: UpdateUserInput!): User!
+  deleteUser(id: ID!): Boolean!
+}
+
+type Subscription {
+  orderStatusChanged(orderId: ID!): Order!
+}
+
+type User {
+  id: ID!
+  name: String!
+  email: String!
+  orders: [Order!]!
+  createdAt: DateTime!
+}
+
+type Order {
+  id: ID!
+  status: OrderStatus!
+  total: Float!
+  items: [OrderItem!]!
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+}
+
+input CreateUserInput {
+  name: String!
+  email: String!
+}
+</pre>
+        </div>
+
+        <h3>GraphQL vs REST</h3>
+        <table>
+            <tr>
+                <th>Aspect</th>
+                <th>GraphQL</th>
+                <th>REST</th>
+            </tr>
+            <tr>
+                <td>Data Fetching</td>
+                <td>Client specifies exact fields needed</td>
+                <td>Server defines response shape</td>
+            </tr>
+            <tr>
+                <td>Over/Under-fetching</td>
+                <td>Eliminated (get exactly what you need)</td>
+                <td>Common problem (fixed responses)</td>
+            </tr>
+            <tr>
+                <td>Endpoints</td>
+                <td>Single endpoint (/graphql)</td>
+                <td>Multiple endpoints per resource</td>
+            </tr>
+            <tr>
+                <td>Versioning</td>
+                <td>Not needed (additive schema evolution)</td>
+                <td>Required for breaking changes</td>
+            </tr>
+            <tr>
+                <td>Caching</td>
+                <td>Complex (POST requests, custom caching)</td>
+                <td>Simple (HTTP caching, CDNs)</td>
+            </tr>
+            <tr>
+                <td>Best For</td>
+                <td>Complex UIs, mobile (bandwidth), BFF</td>
+                <td>Simple CRUD, public APIs, caching-heavy</td>
+            </tr>
+        </table>
+
+        <!-- ============================================ -->
+        <!-- Section 9: API Documentation -->
+        <!-- ============================================ -->
+        <h2>9. API Documentation</h2>
+
+        <h3>OpenAPI / Swagger Specification</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">openapi.yaml</span><span class="tag tag-green">OpenAPI 3.0</span></div>
+<pre>
+openapi: "3.0.3"
+info:
+  title: User Service API
+  description: Manages user accounts and profiles
+  version: "1.2.0"
+  contact:
+    name: Platform Team
+    email: platform@example.com
+
+servers:
+  - url: https://api.example.com/v1
+    description: Production
+  - url: https://api-staging.example.com/v1
+    description: Staging
+
+paths:
+  /users:
+    get:
+      summary: List users
+      operationId: listUsers
+      tags: [Users]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 25
+            maximum: 100
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, suspended]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      summary: Create a user
+      operationId: createUser
+      tags: [Users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URL of created user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /users/{id}:
+    get:
+      summary: Get user by ID
+      operationId: getUser
+      tags: [Users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "usr_abc123"
+        name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+        status:
+          type: string
+          enum: [active, inactive, suspended]
+        created_at:
+          type: string
+          format: date-time
+    CreateUserRequest:
+      type: object
+      required: [name, email]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Resource not found
+    ValidationError:
+      description: Validation failed
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []
+</pre>
+        </div>
+
+        <h3>Postman Collections</h3>
+        <div class="card">
+            <p>Postman collections are JSON files that define a set of API requests for testing and documentation:</p>
+            <ul>
+                <li><strong>Organized into folders</strong> by resource or workflow</li>
+                <li><strong>Environment variables</strong> for base URL, tokens (dev/staging/prod)</li>
+                <li><strong>Pre-request scripts</strong> for generating auth tokens or dynamic data</li>
+                <li><strong>Test scripts</strong> for assertions on response status, body, headers</li>
+                <li><strong>Newman CLI</strong> for running collections in CI/CD pipelines</li>
+            </ul>
+            <div class="cmd">newman run collection.json -e production.postman_environment.json --reporters cli,junit</div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- Section 10: Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>10. Interview Q&A</h2>
+
+        <div class="qa">
+            <div class="q">Q1: What are the core principles of REST?</div>
+            <div class="a">
+                <p><strong>Six constraints of REST (Roy Fielding, 2000):</strong></p>
+                <ol>
+                    <li><strong>Client-Server:</strong> Separation of concerns between UI and data storage</li>
+                    <li><strong>Stateless:</strong> Each request contains all necessary information (no server-side sessions)</li>
+                    <li><strong>Cacheable:</strong> Responses must indicate if they are cacheable or not</li>
+                    <li><strong>Uniform Interface:</strong> Resource identification via URLs, manipulation through representations, self-descriptive messages, HATEOAS</li>
+                    <li><strong>Layered System:</strong> Client cannot tell if connected directly to server or through intermediary</li>
+                    <li><strong>Code on Demand (optional):</strong> Server can extend client functionality by transferring code</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q2: Explain idempotency in HTTP methods. Why does it matter?</div>
+            <div class="a">
+                <p><strong>Idempotent</strong> means making the same request N times produces the same result as making it once.</p>
+                <ul>
+                    <li><strong>GET:</strong> Idempotent -- reading data N times does not change it</li>
+                    <li><strong>PUT:</strong> Idempotent -- replacing a resource with the same data N times gives same result</li>
+                    <li><strong>DELETE:</strong> Idempotent -- deleting something already deleted is still "deleted"</li>
+                    <li><strong>POST:</strong> NOT idempotent -- creating a resource N times creates N resources</li>
+                    <li><strong>PATCH:</strong> Depends on implementation (JSON Merge Patch is idempotent; "increment" operations are not)</li>
+                </ul>
+                <p><strong>Why it matters:</strong> In distributed systems, network failures cause retries. If an operation is idempotent, retries are safe. This is why payment APIs use idempotency keys -- submitting the same payment request twice should only charge once.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q3: What is the difference between PUT and PATCH?</div>
+            <div class="a">
+                <ul>
+                    <li><strong>PUT:</strong> Replaces the ENTIRE resource. Client must send the complete representation. Missing fields are set to null/default. Idempotent.</li>
+                    <li><strong>PATCH:</strong> Partial update. Client sends only the fields to change. Other fields remain unchanged. May or may not be idempotent.</li>
+                </ul>
+                <p><strong>Example:</strong> User has name, email, phone. To update just email:</p>
+                <ul>
+                    <li><code>PUT /users/123</code> -- must send {name, email, phone} (otherwise name and phone become null)</li>
+                    <li><code>PATCH /users/123</code> -- send only {email: "new@email.com"} (name and phone preserved)</li>
+                </ul>
+                <p><strong>When to use PUT:</strong> Replace entire configuration, upload a file. <strong>When to use PATCH:</strong> Update a single field on a large resource.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q4: What status code would you return for these scenarios?</div>
+            <div class="a">
+                <ul>
+                    <li>User tries to create an account with an existing email: <strong>409 Conflict</strong></li>
+                    <li>Request body JSON is malformed: <strong>400 Bad Request</strong></li>
+                    <li>Valid JSON but email field is invalid: <strong>422 Unprocessable Entity</strong></li>
+                    <li>User authenticated but tries to access admin endpoint: <strong>403 Forbidden</strong></li>
+                    <li>Request accepted for background processing: <strong>202 Accepted</strong></li>
+                    <li>Successful DELETE with no response body: <strong>204 No Content</strong></li>
+                    <li>Rate limit exceeded: <strong>429 Too Many Requests</strong></li>
+                    <li>Server's database is down: <strong>503 Service Unavailable</strong></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q5: Walk through the OAuth 2.0 Authorization Code flow.</div>
+            <div class="a">
+                <ol>
+                    <li>User clicks "Login with Google" -- app redirects browser to Google's auth server with client_id, redirect_uri, scope, state, and code_challenge (PKCE)</li>
+                    <li>User authenticates with Google and grants consent for requested scopes</li>
+                    <li>Google redirects back to app's redirect_uri with an authorization code (short-lived, single-use)</li>
+                    <li>App's backend exchanges the code + client_secret + code_verifier for tokens (access_token + refresh_token)</li>
+                    <li>App uses access_token to call APIs on behalf of the user</li>
+                    <li>When access_token expires, app uses refresh_token to get a new one without user interaction</li>
+                </ol>
+                <p><strong>PKCE (Proof Key for Code Exchange):</strong> Prevents authorization code interception attacks. Required for public clients (SPAs, mobile apps). Recommended for all clients.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q6: What are the pros and cons of JWT?</div>
+            <div class="a">
+                <p><strong>Pros:</strong></p>
+                <ul>
+                    <li>Stateless -- no database lookup needed to validate (verify signature locally)</li>
+                    <li>Self-contained -- carries user info and permissions in the payload</li>
+                    <li>Scalable -- any server with the public key can validate</li>
+                    <li>Cross-domain -- works across microservices without shared session store</li>
+                </ul>
+                <p><strong>Cons:</strong></p>
+                <ul>
+                    <li>Cannot be revoked individually (until expiration) without a denylist</li>
+                    <li>Payload is only Base64-encoded, NOT encrypted (do not store secrets in it)</li>
+                    <li>Token size grows with claims (larger than session cookies)</li>
+                    <li>Clock skew between servers can cause validation issues</li>
+                    <li>If signing key is compromised, ALL tokens are compromised</li>
+                </ul>
+                <p><strong>Mitigations:</strong> Short expiry (15 min), refresh tokens, token denylist for critical revocations, use RS256 (asymmetric) so only auth server has private key.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q7: Explain the common rate limiting algorithms.</div>
+            <div class="a">
+                <ul>
+                    <li><strong>Token Bucket:</strong> Bucket holds N tokens, refills at rate R/sec. Each request takes a token. Allows bursts up to N. Most common (AWS, Stripe).</li>
+                    <li><strong>Leaky Bucket:</strong> Requests enter a queue, processed at constant rate. Excess dropped. Smooths traffic but adds latency.</li>
+                    <li><strong>Fixed Window:</strong> Counter resets every window (e.g., 100 requests per minute). Simple but allows 2x burst at window boundary.</li>
+                    <li><strong>Sliding Window Log:</strong> Store timestamp of each request. Count requests in last N seconds. Accurate but memory-intensive.</li>
+                    <li><strong>Sliding Window Counter:</strong> Hybrid: weighted average of current and previous window. Good balance of accuracy and efficiency.</li>
+                </ul>
+                <p><strong>Implementation:</strong> Typically Redis-based (INCR + TTL for fixed window, sorted sets for sliding window). Return <code>X-RateLimit-Remaining</code> and <code>Retry-After</code> headers.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q8: When would you choose gRPC over REST?</div>
+            <div class="a">
+                <p><strong>Choose gRPC when:</strong></p>
+                <ul>
+                    <li>Internal service-to-service communication (not public-facing)</li>
+                    <li>High performance requirements (binary serialization is ~10x faster)</li>
+                    <li>Streaming needed (real-time data, large datasets)</li>
+                    <li>Strong typing is important (proto files enforce schema)</li>
+                    <li>Polyglot environment (protoc generates clients in any language)</li>
+                </ul>
+                <p><strong>Choose REST when:</strong></p>
+                <ul>
+                    <li>Public-facing API (browser support, curl-friendly)</li>
+                    <li>Simple CRUD operations</li>
+                    <li>HTTP caching is important (CDN, browser cache)</li>
+                    <li>Team is familiar with REST and JSON</li>
+                    <li>Debugging ease (human-readable payloads)</li>
+                </ul>
+                <p><strong>Common pattern:</strong> gRPC for internal services, REST/GraphQL for BFF (Backend for Frontend).</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q9: How would you version a REST API?</div>
+            <div class="a">
+                <p><strong>Recommended approach:</strong> URL path versioning (<code>/api/v1/</code>) for simplicity and visibility.</p>
+                <p><strong>Strategy:</strong></p>
+                <ul>
+                    <li>Avoid breaking changes whenever possible (additive changes are backward-compatible)</li>
+                    <li>Adding new fields, new endpoints, new optional parameters = non-breaking</li>
+                    <li>Removing/renaming fields, changing types, changing behavior = breaking</li>
+                    <li>When breaking change is unavoidable: increment version, support v(N-1) for deprecation period (6-12 months)</li>
+                    <li>Use <code>Sunset</code> header and <code>Deprecation</code> header to signal upcoming removal</li>
+                    <li>Provide migration guide and changelog</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q10: Explain CORS and why it exists.</div>
+            <div class="a">
+                <p><strong>CORS (Cross-Origin Resource Sharing)</strong> is a browser security mechanism that restricts web pages from making requests to a different origin (domain, port, or protocol) than the one serving the page.</p>
+                <p><strong>Why it exists:</strong> Without CORS, a malicious site could make authenticated requests to your bank's API using your cookies (CSRF attack). The Same-Origin Policy prevents this by default.</p>
+                <p><strong>How it works:</strong></p>
+                <ul>
+                    <li><strong>Simple requests</strong> (GET, POST with standard headers): Browser adds Origin header; server responds with Access-Control-Allow-Origin</li>
+                    <li><strong>Preflight requests</strong> (PUT, DELETE, custom headers): Browser sends OPTIONS request first to check if the actual request is allowed</li>
+                    <li>Server responds with allowed origins, methods, and headers</li>
+                    <li><code>Access-Control-Max-Age</code> caches preflight results to reduce OPTIONS requests</li>
+                </ul>
+                <p><strong>Common mistake:</strong> Setting <code>Access-Control-Allow-Origin: *</code> -- this disables credentials and may expose your API. Always allowlist specific trusted origins.</p>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- Section 11: Scenarios -->
+        <!-- ============================================ -->
+        <h2>11. Scenarios</h2>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#9888;</span>
+                <span class="title">Scenario 1: 401 vs 403 -- When to Return Which</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Situation:</strong> Your API has public endpoints, authenticated endpoints, and admin-only endpoints. When should you return 401 vs 403?</p>
+                <div class="scenario-step"><span class="step-num">401</span> <strong>Unauthorized</strong> -- "I do not know who you are"</div>
+                <ul>
+                    <li>No Authorization header provided</li>
+                    <li>Token is expired or malformed</li>
+                    <li>API key is invalid</li>
+                    <li>Include <code>WWW-Authenticate</code> header to indicate expected auth scheme</li>
+                </ul>
+                <div class="scenario-step"><span class="step-num">403</span> <strong>Forbidden</strong> -- "I know who you are, but you cannot do this"</div>
+                <ul>
+                    <li>Valid token, but user lacks required role/permission</li>
+                    <li>Regular user accessing admin endpoint</li>
+                    <li>User trying to access another user's private data</li>
+                    <li>IP not in allowlist</li>
+                </ul>
+                <p><strong>Security note:</strong> Some APIs return 404 instead of 403 to avoid revealing that a resource exists (information leakage). Example: <code>GET /users/123/secret-document</code> -- if the document exists but user has no access, returning 403 confirms its existence. Returning 404 hides this.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#9888;</span>
+                <span class="title">Scenario 2: Designing a Paginated API</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Situation:</strong> You need to build an API endpoint that returns a list of orders. The table has 10 million rows. How do you design it?</p>
+                <div class="scenario-step"><span class="step-num">1.</span> <strong>Choose cursor-based pagination</strong> for large datasets (offset-based breaks at scale -- scanning millions of rows for OFFSET 1000000 is slow)</div>
+                <div class="scenario-step"><span class="step-num">2.</span> Encode cursor as opaque string (Base64 of last seen ID + sort key)</div>
+                <div class="scenario-step"><span class="step-num">3.</span> Use <code>WHERE id > :last_id ORDER BY id LIMIT :page_size</code> (uses index, constant performance)</div>
+                <div class="scenario-step"><span class="step-num">4.</span> Return <code>has_more: true/false</code> and <code>next_cursor</code> in response</div>
+                <div class="scenario-step"><span class="step-num">5.</span> Set maximum page_size (e.g., 100) to prevent abuse</div>
+                <div class="scenario-step"><span class="step-num">6.</span> Add filtering (<code>?status=pending&amp;created_after=2026-01-01</code>) with indexed columns</div>
+                <div class="scenario-step"><span class="step-num">7.</span> Include total count only if explicitly requested (<code>?include_count=true</code>) as COUNT(*) is expensive</div>
+                <p><strong>Trade-off:</strong> Cursor-based cannot "jump to page 5" -- only forward/backward navigation. If random page access is required, use keyset pagination with offset as fallback for small datasets.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#9888;</span>
+                <span class="title">Scenario 3: Handling Breaking Changes</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Situation:</strong> You need to rename a field from <code>userName</code> to <code>display_name</code> in your public API response. Thousands of clients depend on the current format.</p>
+                <div class="scenario-step"><span class="step-num">1.</span> <strong>Add</strong> new field <code>display_name</code> alongside old <code>userName</code> (non-breaking)</div>
+                <div class="scenario-step"><span class="step-num">2.</span> Add <code>Deprecation: true</code> header and document the change</div>
+                <div class="scenario-step"><span class="step-num">3.</span> Notify API consumers via changelog, email, dashboard warning</div>
+                <div class="scenario-step"><span class="step-num">4.</span> Set a sunset date (e.g., 6 months). Add <code>Sunset: Sat, 01 Nov 2026 00:00:00 GMT</code> header</div>
+                <div class="scenario-step"><span class="step-num">5.</span> Monitor usage of deprecated field (log when clients still read it)</div>
+                <div class="scenario-step"><span class="step-num">6.</span> After sunset date: stop returning <code>userName</code> (or create v2 if many breaking changes)</div>
+                <p><strong>Principles:</strong></p>
+                <ul>
+                    <li>Never remove without deprecation period</li>
+                    <li>Additive changes first (return both fields during transition)</li>
+                    <li>Communicate early and repeatedly</li>
+                    <li>Provide SDKs/migration tools if change is complex</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#9888;</span>
+                <span class="title">Scenario 4: API Gateway Throttling</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Situation:</strong> Your API gateway is returning 429 errors to legitimate customers during peak hours. How do you resolve this?</p>
+                <div class="scenario-step"><span class="step-num">1.</span> <strong>Analyze:</strong> Identify which customers/endpoints are hitting limits. Check if limits are per-customer or global.</div>
+                <div class="scenario-step"><span class="step-num">2.</span> <strong>Tiered rate limits:</strong> Different limits per plan (free: 100/min, pro: 1000/min, enterprise: 10000/min)</div>
+                <div class="scenario-step"><span class="step-num">3.</span> <strong>Burst allowance:</strong> Use token bucket algorithm that allows short bursts above steady-state rate</div>
+                <div class="scenario-step"><span class="step-num">4.</span> <strong>Response headers:</strong> Always include <code>X-RateLimit-Limit</code>, <code>X-RateLimit-Remaining</code>, <code>X-RateLimit-Reset</code></div>
+                <div class="scenario-step"><span class="step-num">5.</span> <strong>Client guidance:</strong> Return <code>Retry-After</code> header with 429 so clients know when to retry</div>
+                <div class="scenario-step"><span class="step-num">6.</span> <strong>Backend optimization:</strong> If backend is the bottleneck, add caching (CDN for GET), optimize queries, scale horizontally</div>
+                <div class="scenario-step"><span class="step-num">7.</span> <strong>Priority queuing:</strong> Use request priority (paying customers > free tier) during overload</div>
+                <p><strong>Implementation with Redis:</strong></p>
+                <div class="cmd">redis-cli INCR rate:customer123:minute:202605261430</div>
+                <div class="cmd">redis-cli EXPIRE rate:customer123:minute:202605261430 60</div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            Complete Kubernetes, DevOps & SRE Reference | Built for study & interview preparation | 2026
+        </footer>
+
+    </div>
+
+</body>
+</html>

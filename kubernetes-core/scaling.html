@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes Scaling & Scheduling | K8s Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html" class="active">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <p class="breadcrumb"><a href="../index.html">Home</a> / Kubernetes Scaling & Scheduling</p>
+
+        <h1>Kubernetes Scaling & Scheduling</h1>
+        <p class="subtitle">HPA, VPA, Cluster Autoscaler, KEDA, node affinity, taints, tolerations, topology spread, resource management, and priority</p>
+
+        <!-- ============================================ -->
+        <!-- SECTION 1: HPA -->
+        <!-- ============================================ -->
+        <h2>1. Horizontal Pod Autoscaler (HPA)</h2>
+
+        <h3>How HPA Works</h3>
+
+        <div class="card card-info">
+            <p>The HPA controller runs in a control loop (default 15s) that queries the metrics API, computes desired replicas using a formula, and scales the target workload.</p>
+        </div>
+
+        <div class="point">
+            <span class="point-num">1</span>
+            <div class="point-content">
+                <span class="point-title">Metrics Server</span> - Collects resource metrics (CPU/memory) from kubelets. Required for resource-based autoscaling. Exposes metrics via <code>metrics.k8s.io</code> API.
+            </div>
+        </div>
+        <div class="point">
+            <span class="point-num">2</span>
+            <div class="point-content">
+                <span class="point-title">Scaling Algorithm</span> - <code>desiredReplicas = ceil(currentReplicas * (currentMetricValue / desiredMetricValue))</code>
+            </div>
+        </div>
+        <div class="point">
+            <span class="point-num">3</span>
+            <div class="point-content">
+                <span class="point-title">Cooldown / Stabilization</span> - Prevents flapping. Default: scale-up stabilization = 0s (immediate), scale-down stabilization = 300s (5 min). Configurable via <code>behavior</code> field.
+            </div>
+        </div>
+        <div class="point">
+            <span class="point-num">4</span>
+            <div class="point-content">
+                <span class="point-title">Tolerance</span> - Default tolerance is 10%. If the ratio is within 0.9-1.1, no scaling occurs.
+            </div>
+        </div>
+
+        <h3>HPA Decision Flow</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">HPA Control Loop</div>
+<pre>
+ Every 15 seconds (--horizontal-pod-autoscaler-sync-period)
+ ============================================================
+
+ +-------------------+     +-------------------+     +--------------------+
+ |  Metrics Server   |     | Custom Metrics    |     | External Metrics   |
+ |  (CPU / Memory)   |     | (Prometheus       |     | (Cloud provider    |
+ |                   |     |  Adapter)         |     |  metrics)          |
+ +---------+---------+     +---------+---------+     +----------+---------+
+           |                         |                          |
+           +-------------------------+--------------------------+
+                                     |
+                                     v
+                    +----------------+------------------+
+                    |        HPA Controller             |
+                    |                                   |
+                    |  1. Fetch current metric values   |
+                    |  2. Calculate desired replicas    |
+                    |  3. Apply stabilization window    |
+                    |  4. Apply scaling policies        |
+                    |  5. Clamp to [min, max] replicas  |
+                    +----------------+------------------+
+                                     |
+                              +------+------+
+                              |             |
+                              v             v
+                     +--------+--+   +------+------+
+                     | Scale Up  |   | Scale Down  |
+                     | (fast)    |   | (gradual)   |
+                     | stab: 0s  |   | stab: 300s  |
+                     +-----------+   +-------------+
+                              |             |
+                              v             v
+                    +---------+-------------+----------+
+                    |    Update Deployment/ReplicaSet   |
+                    |    .spec.replicas = desired       |
+                    +----------------------------------+
+</pre>
+        </div>
+
+        <h3>Scaling Formula</h3>
+
+        <div class="card">
+            <p><strong>Formula:</strong></p>
+            <p><code>desiredReplicas = ceil[ currentReplicas * ( currentMetricValue / desiredMetricValue ) ]</code></p>
+            <p><strong>Example:</strong> 3 pods, current CPU = 80%, target = 50%</p>
+            <p><code>desired = ceil(3 * (80/50)) = ceil(4.8) = 5 pods</code></p>
+            <p><strong>Multiple metrics:</strong> HPA calculates desired replicas for each metric independently and takes the maximum.</p>
+        </div>
+
+        <h3>Complete HPA YAML (CPU + Custom Metrics)</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">hpa-advanced.yaml</span>
+                <span class="tag tag-blue">autoscaling/v2</span>
+            </div>
+<pre>
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: web-app-hpa
+  namespace: production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web-app
+  minReplicas: 3
+  maxReplicas: 50
+  metrics:
+  # CPU-based scaling
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 60
+  # Memory-based scaling
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 75
+  # Custom metric - requests per second
+  - type: Pods
+    pods:
+      metric:
+        name: http_requests_per_second
+      target:
+        type: AverageValue
+        averageValue: "1000"
+  # External metric - SQS queue depth
+  - type: External
+    external:
+      metric:
+        name: sqs_queue_length
+        selector:
+          matchLabels:
+            queue: "orders"
+      target:
+        type: Value
+        value: "100"
+  # Scaling behavior configuration
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 4
+        periodSeconds: 15
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+      selectPolicy: Min
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 2: VPA -->
+        <!-- ============================================ -->
+        <h2>2. Vertical Pod Autoscaler (VPA)</h2>
+
+        <h3>VPA Modes</h3>
+
+        <table>
+            <tr><th>Mode</th><th>Behavior</th><th>Use Case</th></tr>
+            <tr><td><code>Off</code></td><td>Only provides recommendations, never applies them</td><td>Observing right-sizing without disruption</td></tr>
+            <tr><td><code>Initial</code></td><td>Sets resources only at pod creation time</td><td>New pods get right-sized; existing pods untouched</td></tr>
+            <tr><td><code>Auto</code></td><td>Evicts and recreates pods to apply new resource values</td><td>Full automatic right-sizing (causes restarts)</td></tr>
+        </table>
+
+        <div class="card card-warning">
+            <p><strong>Important:</strong> VPA and HPA should NOT target the same metric (e.g., CPU). They can coexist if HPA uses custom metrics and VPA manages CPU/memory.</p>
+        </div>
+
+        <h3>VPA YAML Example</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">vpa.yaml</span>
+                <span class="tag tag-green">autoscaling.k8s.io/v1</span>
+            </div>
+<pre>
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: web-app-vpa
+  namespace: production
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web-app
+  updatePolicy:
+    updateMode: "Auto"
+  resourcePolicy:
+    containerPolicies:
+    - containerName: web-container
+      minAllowed:
+        cpu: 100m
+        memory: 128Mi
+      maxAllowed:
+        cpu: 4
+        memory: 8Gi
+      controlledResources: ["cpu", "memory"]
+      controlledValues: RequestsAndLimits
+    - containerName: sidecar
+      mode: "Off"  # Don't touch sidecar resources
+</pre>
+        </div>
+
+        <h3>When to Use VPA vs HPA</h3>
+
+        <div class="grid-2">
+            <div class="card card-info">
+                <h4>Use HPA When:</h4>
+                <ul>
+                    <li>Workload is stateless and horizontally scalable</li>
+                    <li>Traffic patterns vary predictably</li>
+                    <li>You can add more replicas to handle load</li>
+                    <li>Application handles load balancing well</li>
+                </ul>
+            </div>
+            <div class="card card-warning">
+                <h4>Use VPA When:</h4>
+                <ul>
+                    <li>Workload cannot scale horizontally (e.g., single-instance DB)</li>
+                    <li>Resource requests are unknown or change over time</li>
+                    <li>Pods are over/under-provisioned</li>
+                    <li>You want to reduce waste without manual tuning</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 3: Cluster Autoscaler -->
+        <!-- ============================================ -->
+        <h2>3. Cluster Autoscaler</h2>
+
+        <div class="card card-info">
+            <p>The Cluster Autoscaler adjusts the number of nodes in a cluster when pods fail to schedule due to insufficient resources or when nodes are underutilized.</p>
+        </div>
+
+        <h3>How It Works</h3>
+
+        <div class="point">
+            <span class="point-num">1</span>
+            <div class="point-content">
+                <span class="point-title">Scale Up</span> - Triggered when pods are in Pending state due to insufficient resources. CA simulates scheduling against node groups and adds a node from the best-fit group.
+            </div>
+        </div>
+        <div class="point">
+            <span class="point-num">2</span>
+            <div class="point-content">
+                <span class="point-title">Scale Down</span> - Triggered when a node's utilization is below threshold (default 50%) for 10 minutes. CA checks if all pods can be moved to other nodes before removing.
+            </div>
+        </div>
+        <div class="point">
+            <span class="point-num">3</span>
+            <div class="point-content">
+                <span class="point-title">Safe to Remove Checks</span> - Won't remove nodes with: pods with PDBs that would be violated, pods not managed by a controller, pods with local storage (unless configured), system pods.
+            </div>
+        </div>
+
+        <h3>Integration with Cloud ASGs</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Cluster Autoscaler Architecture</div>
+<pre>
+  +---------------------+
+  |  Pending Pods       |  Pods unschedulable due to
+  |  (insufficient      |  resource constraints
+  |   resources)        |
+  +---------+-----------+
+            |
+            v
+  +---------+-----------+
+  |  Cluster Autoscaler |
+  |                     |
+  |  - Checks every 10s |
+  |  - Simulates sched. |
+  |  - Picks best node  |
+  |    group            |
+  +---------+-----------+
+            |
+    +-------+-------+
+    |               |
+    v               v
++---+----+    +-----+----+
+| Scale  |    | Scale    |
+| Up     |    | Down     |
++---+----+    +-----+----+
+    |               |
+    v               v
++---+---------------+----+
+|   Cloud Provider API    |
+|   (AWS ASG / GCP MIG / |
+|    Azure VMSS)          |
++---+---------------+----+
+    |               |
+    v               v
++---+----+    +-----+------+
+| Add    |    | Remove     |
+| Node   |    | Node       |
+| to ASG |    | (cordon +  |
+|        |    |  drain)    |
++--------+    +------------+
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">cluster-autoscaler-deployment.yaml</span>
+                <span class="tag tag-blue">Key flags</span>
+            </div>
+<pre>
+# Key Cluster Autoscaler flags
+containers:
+- name: cluster-autoscaler
+  image: registry.k8s.io/autoscaling/cluster-autoscaler:v1.28.0
+  command:
+  - ./cluster-autoscaler
+  - --v=4
+  - --cloud-provider=aws
+  - --skip-nodes-with-local-storage=false
+  - --expander=least-waste         # Options: random, most-pods, least-waste, priority
+  - --node-group-auto-discovery=asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-autoscaler/my-cluster
+  - --balance-similar-node-groups   # Keeps node groups balanced
+  - --scale-down-utilization-threshold=0.5
+  - --scale-down-delay-after-add=10m
+  - --scale-down-unneeded-time=10m
+  - --max-graceful-termination-sec=600
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 4: KEDA -->
+        <!-- ============================================ -->
+        <h2>4. KEDA (Kubernetes Event-Driven Autoscaling)</h2>
+
+        <div class="card card-info">
+            <p>KEDA extends HPA to support event-driven autoscaling from external sources (message queues, databases, custom endpoints). It can scale to/from zero.</p>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Key Features</h4>
+                <ul>
+                    <li>Scale to zero (and back from zero)</li>
+                    <li>60+ built-in scalers (Kafka, RabbitMQ, AWS SQS, Prometheus, Cron, etc.)</li>
+                    <li>Works alongside native HPA</li>
+                    <li>Supports ScaledObject and ScaledJob</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Architecture</h4>
+                <ul>
+                    <li><strong>Agent</strong> - Activates/deactivates deployments (0 to 1 and 1 to 0)</li>
+                    <li><strong>Metrics Server</strong> - Exposes external metrics to HPA</li>
+                    <li><strong>Admission Webhooks</strong> - Validates ScaledObjects</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">keda-scaledobject.yaml</span>
+                <span class="tag tag-green">KEDA</span>
+            </div>
+<pre>
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: order-processor
+  namespace: production
+spec:
+  scaleTargetRef:
+    name: order-processor
+  pollingInterval: 15
+  cooldownPeriod: 300
+  minReplicaCount: 0          # Scale to zero!
+  maxReplicaCount: 100
+  triggers:
+  - type: aws-sqs-queue
+    metadata:
+      queueURL: https://sqs.us-east-1.amazonaws.com/123456789/orders
+      queueLength: "5"        # Target messages per pod
+      awsRegion: us-east-1
+    authenticationRef:
+      name: aws-credentials
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: http_requests_total
+      threshold: "100"
+      query: sum(rate(http_requests_total{service="orders"}[2m]))
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 5: Node Affinity -->
+        <!-- ============================================ -->
+        <h2>5. Node Affinity</h2>
+
+        <div class="card card-info">
+            <p>Node affinity constrains which nodes a pod can be scheduled on based on node labels. It is more expressive than <code>nodeSelector</code>, supporting soft preferences and set-based operators.</p>
+        </div>
+
+        <h3>Types Comparison</h3>
+
+        <table>
+            <tr><th>Type</th><th>Behavior</th><th>If Not Satisfied</th></tr>
+            <tr>
+                <td><code>requiredDuringSchedulingIgnoredDuringExecution</code></td>
+                <td>Hard requirement - pod MUST be placed on matching node</td>
+                <td>Pod stays Pending</td>
+            </tr>
+            <tr>
+                <td><code>preferredDuringSchedulingIgnoredDuringExecution</code></td>
+                <td>Soft preference - scheduler tries but doesn't guarantee</td>
+                <td>Pod scheduled elsewhere</td>
+            </tr>
+        </table>
+
+        <div class="card card-warning">
+            <p><strong>IgnoredDuringExecution</strong> means if a node's labels change after the pod is scheduled, the pod continues to run. A future <code>RequiredDuringExecution</code> will evict pods when labels no longer match.</p>
+        </div>
+
+        <h3>YAML Examples</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">node-affinity-required.yaml</span>
+                <span class="tag tag-blue">Hard requirement</span>
+            </div>
+<pre>
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-workload
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: node.kubernetes.io/instance-type
+            operator: In
+            values:
+            - p3.2xlarge
+            - p3.8xlarge
+          - key: topology.kubernetes.io/zone
+            operator: In
+            values:
+            - us-east-1a
+            - us-east-1b
+  containers:
+  - name: ml-training
+    image: training:v1
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">node-affinity-preferred.yaml</span>
+                <span class="tag tag-green">Soft preference</span>
+            </div>
+<pre>
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-app
+spec:
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 80
+        preference:
+          matchExpressions:
+          - key: node-type
+            operator: In
+            values:
+            - compute-optimized
+      - weight: 20
+        preference:
+          matchExpressions:
+          - key: topology.kubernetes.io/zone
+            operator: In
+            values:
+            - us-east-1a
+  containers:
+  - name: web
+    image: nginx:1.25
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 6: Taints & Tolerations -->
+        <!-- ============================================ -->
+        <h2>6. Taints & Tolerations</h2>
+
+        <div class="card card-info">
+            <p>Taints are applied to nodes to repel pods. Tolerations are applied to pods to allow scheduling on tainted nodes. Think of taints as "node rejects pods" and tolerations as "pod tolerates the rejection."</p>
+        </div>
+
+        <h3>Taint Effects</h3>
+
+        <table>
+            <tr><th>Effect</th><th>Behavior</th><th>Already Running Pods</th></tr>
+            <tr>
+                <td><code>NoSchedule</code></td>
+                <td>New pods without toleration won't be scheduled</td>
+                <td>Not evicted</td>
+            </tr>
+            <tr>
+                <td><code>PreferNoSchedule</code></td>
+                <td>Scheduler tries to avoid, but not guaranteed</td>
+                <td>Not evicted</td>
+            </tr>
+            <tr>
+                <td><code>NoExecute</code></td>
+                <td>New pods rejected AND existing pods evicted</td>
+                <td>Evicted (unless tolerated with tolerationSeconds)</td>
+            </tr>
+        </table>
+
+        <h3>Applying Taints to Nodes</h3>
+
+        <div class="cmd">kubectl taint nodes node1 dedicated=gpu:NoSchedule</div>
+        <div class="cmd">kubectl taint nodes node1 maintenance=true:NoExecute</div>
+        <div class="cmd">kubectl taint nodes node1 dedicated=gpu:NoSchedule-  # Remove taint</div>
+
+        <h3>Pod Toleration YAML</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">tolerations.yaml</span>
+                <span class="tag tag-orange">Scheduling</span>
+            </div>
+<pre>
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-pod
+spec:
+  tolerations:
+  # Exact match toleration
+  - key: "dedicated"
+    operator: "Equal"
+    value: "gpu"
+    effect: "NoSchedule"
+  # Exists operator (matches any value for the key)
+  - key: "node-role.kubernetes.io/control-plane"
+    operator: "Exists"
+    effect: "NoSchedule"
+  # Tolerate NoExecute with eviction timeout
+  - key: "maintenance"
+    operator: "Equal"
+    value: "true"
+    effect: "NoExecute"
+    tolerationSeconds: 3600   # Stay for 1 hour, then evict
+  # Tolerate ALL taints (use carefully - for DaemonSets)
+  # - operator: "Exists"
+  containers:
+  - name: gpu-workload
+    image: cuda-app:v1
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 7: Topology Spread Constraints -->
+        <!-- ============================================ -->
+        <h2>7. Topology Spread Constraints</h2>
+
+        <div class="card card-info">
+            <p>Topology Spread Constraints control how pods are distributed across topology domains (zones, nodes, racks) for high availability and balanced resource usage.</p>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">topology-spread.yaml</span>
+                <span class="tag tag-blue">HA Spread</span>
+            </div>
+<pre>
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      topologySpreadConstraints:
+      # Spread across zones
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: web
+      # Spread across nodes within each zone
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: web
+      containers:
+      - name: web
+        image: nginx:1.25
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+</pre>
+        </div>
+
+        <div class="card">
+            <h4>Key Fields</h4>
+            <ul>
+                <li><strong>maxSkew</strong> - Maximum difference in pod count between any two topology domains</li>
+                <li><strong>topologyKey</strong> - Node label key that defines the topology domain</li>
+                <li><strong>whenUnsatisfiable</strong> - <code>DoNotSchedule</code> (hard) or <code>ScheduleAnyway</code> (soft)</li>
+                <li><strong>labelSelector</strong> - Which pods to consider for the spread calculation</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 8: Resource Requests & Limits -->
+        <!-- ============================================ -->
+        <h2>8. Resource Requests & Limits</h2>
+
+        <h3>QoS Classes</h3>
+
+        <table>
+            <tr><th>QoS Class</th><th>Condition</th><th>Eviction Priority</th><th>Behavior</th></tr>
+            <tr>
+                <td><code>Guaranteed</code></td>
+                <td>requests == limits (for all containers, both CPU and memory)</td>
+                <td>Last to be evicted</td>
+                <td>Most predictable performance</td>
+            </tr>
+            <tr>
+                <td><code>Burstable</code></td>
+                <td>At least one container has a request or limit set, but doesn't meet Guaranteed criteria</td>
+                <td>Evicted after BestEffort</td>
+                <td>Can burst above requests up to limits</td>
+            </tr>
+            <tr>
+                <td><code>BestEffort</code></td>
+                <td>No requests or limits set for any container</td>
+                <td>First to be evicted</td>
+                <td>Uses whatever is available</td>
+            </tr>
+        </table>
+
+        <h3>CPU Throttling vs OOM Kill</h3>
+
+        <div class="grid-2">
+            <div class="card card-warning">
+                <h4>CPU (Compressible)</h4>
+                <ul>
+                    <li>When a container exceeds its CPU limit, it is <strong>throttled</strong></li>
+                    <li>The process continues but runs slower</li>
+                    <li>No kill or restart occurs</li>
+                    <li>Measured in millicores: <code>1000m = 1 CPU core</code></li>
+                    <li>CFS (Completely Fair Scheduler) enforces limits</li>
+                    <li>CFS period = 100ms; limit of 200m means 20ms per 100ms period</li>
+                </ul>
+            </div>
+            <div class="card card-danger">
+                <h4>Memory (Incompressible)</h4>
+                <ul>
+                    <li>When a container exceeds its memory limit, it is <strong>OOM killed</strong></li>
+                    <li>The container is terminated immediately</li>
+                    <li>Exit code 137 (128 + SIGKILL=9)</li>
+                    <li>kubelet may restart it (based on restartPolicy)</li>
+                    <li>Node-level OOM killer may also act under pressure</li>
+                    <li>BestEffort pods killed first, then Burstable, then Guaranteed</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">resource-qos-guaranteed.yaml</span>
+                <span class="tag tag-green">Guaranteed QoS</span>
+            </div>
+<pre>
+apiVersion: v1
+kind: Pod
+metadata:
+  name: guaranteed-pod
+spec:
+  containers:
+  - name: app
+    image: myapp:v1
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "512Mi"
+      limits:
+        cpu: "500m"        # Same as request = Guaranteed
+        memory: "512Mi"    # Same as request = Guaranteed
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">limitrange.yaml</span>
+                <span class="tag tag-orange">Namespace defaults</span>
+            </div>
+<pre>
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-limits
+  namespace: production
+spec:
+  limits:
+  - type: Container
+    default:          # Default limits if not specified
+      cpu: "500m"
+      memory: "512Mi"
+    defaultRequest:   # Default requests if not specified
+      cpu: "100m"
+      memory: "128Mi"
+    max:              # Maximum allowed
+      cpu: "4"
+      memory: "8Gi"
+    min:              # Minimum allowed
+      cpu: "50m"
+      memory: "64Mi"
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 9: Pod Priority & Preemption -->
+        <!-- ============================================ -->
+        <h2>9. Pod Priority & Preemption</h2>
+
+        <div class="card card-info">
+            <p>Pod Priority allows marking some pods as more important. When the cluster is full, the scheduler can preempt (evict) lower-priority pods to make room for higher-priority ones.</p>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">priority-classes.yaml</span>
+                <span class="tag tag-purple">scheduling.k8s.io/v1</span>
+            </div>
+<pre>
+# Critical system workloads
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: system-critical
+value: 1000000
+globalDefault: false
+preemptionPolicy: PreemptLowerPriority
+description: "Critical system services that must always run"
+---
+# Standard production workloads
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: production-high
+value: 100000
+globalDefault: false
+preemptionPolicy: PreemptLowerPriority
+description: "Production services with high priority"
+---
+# Default workloads
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: default-priority
+value: 1000
+globalDefault: true
+preemptionPolicy: PreemptLowerPriority
+description: "Default priority for all workloads"
+---
+# Batch / preemptible jobs
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: batch-low
+value: 100
+globalDefault: false
+preemptionPolicy: Never    # Won't preempt others, but can be preempted
+description: "Low-priority batch jobs that can be preempted"
+---
+# Using priority in a Pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: critical-service
+spec:
+  priorityClassName: system-critical
+  containers:
+  - name: app
+    image: critical-app:v1
+    resources:
+      requests:
+        cpu: "1"
+        memory: "2Gi"
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 10: Scheduler Diagram -->
+        <!-- ============================================ -->
+        <h2>10. Scheduler Filtering & Scoring</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">Kubernetes Scheduler Decision Process</div>
+<pre>
+ New Pod Created (spec.nodeName is empty)
+ ==========================================
+
+                +------------------+
+                |  Scheduling Queue |
+                |  (priority-sorted)|
+                +--------+---------+
+                         |
+                         v
+          +--------------+---------------+
+          |     FILTERING (Predicates)    |
+          |                              |
+          |  - NodeResourcesFit          |
+          |  - NodeAffinity              |
+          |  - PodTopologySpread         |
+          |  - TaintToleration           |
+          |  - NodePorts                 |
+          |  - VolumeZone                |
+          |  - InterPodAffinity          |
+          +--------------+---------------+
+                         |
+                    Feasible Nodes
+                    (passed all filters)
+                         |
+                         v
+          +--------------+---------------+
+          |       SCORING (Priorities)    |
+          |                              |
+          |  - NodeResourcesBalanced (score 0-100)
+          |  - InterPodAffinity          |
+          |  - NodeAffinity              |
+          |  - TaintToleration           |
+          |  - TopologySpread            |
+          |  - ImageLocality             |
+          +--------------+---------------+
+                         |
+                    Ranked Nodes
+                    (highest score wins)
+                         |
+                         v
+          +--------------+---------------+
+          |         BINDING              |
+          |                              |
+          |  1. Reserve (optimistic)     |
+          |  2. Permit (hold/approve)    |
+          |  3. Bind (set spec.nodeName) |
+          +--------------+---------------+
+                         |
+                         v
+                +--------+---------+
+                | Pod Scheduled on  |
+                | Selected Node     |
+                +-------------------+
+
+ If no feasible nodes exist:
+ +---------------------------+
+ | Pod stays Pending         |
+ | Check: kubectl describe   |
+ | Events show "FailedSched" |
+ | with filter reason        |
+ +---------------------------+
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 11: Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>11. Interview Q&A</h2>
+
+        <div class="qa">
+            <p class="q">Q: What is the difference between HPA and VPA? When would you use each?</p>
+            <div class="a">
+                <p><strong>HPA</strong> scales the number of pod replicas based on metrics (CPU, memory, custom). Use for stateless workloads that handle load by distributing across replicas.</p>
+                <p><strong>VPA</strong> adjusts the CPU/memory requests and limits of individual pods. Use for workloads that cannot scale horizontally (single-instance databases, monoliths) or to right-size resources.</p>
+                <p><strong>Key rule:</strong> Never use both HPA and VPA on the same resource metric (e.g., both targeting CPU). They can coexist if HPA uses custom metrics and VPA handles CPU/memory.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: How does the HPA scaling formula work? What happens with multiple metrics?</p>
+            <div class="a">
+                <p><strong>Formula:</strong> <code>desiredReplicas = ceil(currentReplicas * (currentMetric / targetMetric))</code></p>
+                <p><strong>Multiple metrics:</strong> HPA calculates desired replicas for each metric independently and takes the <strong>maximum</strong> value. This ensures the workload satisfies all scaling criteria.</p>
+                <p><strong>Tolerance:</strong> A 10% tolerance band prevents flapping. If the ratio is between 0.9 and 1.1, no scaling occurs.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: Explain the difference between requiredDuringScheduling and preferredDuringScheduling in node affinity.</p>
+            <div class="a">
+                <p><strong>required</strong> - Hard constraint. The scheduler MUST place the pod on a node matching the criteria. If no matching node exists, the pod remains Pending.</p>
+                <p><strong>preferred</strong> - Soft constraint. The scheduler tries to place the pod on a matching node but will schedule elsewhere if necessary. Weights (1-100) determine preference strength.</p>
+                <p><strong>IgnoredDuringExecution</strong> means if node labels change after scheduling, running pods are not evicted.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: What is the difference between taints/tolerations and node affinity?</p>
+            <div class="a">
+                <p><strong>Node Affinity</strong> - Pod-centric: "I want to run on these nodes." Attracts pods to specific nodes.</p>
+                <p><strong>Taints/Tolerations</strong> - Node-centric: "I reject pods unless they tolerate me." Repels pods from nodes.</p>
+                <p><strong>Together:</strong> Use taints to dedicate nodes (e.g., GPU nodes) and node affinity to direct specific workloads to those nodes. Taints prevent non-GPU pods from landing there; affinity ensures GPU pods prefer those nodes.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: What happens when a pod exceeds its CPU limit vs. its memory limit?</p>
+            <div class="a">
+                <p><strong>CPU (compressible):</strong> The pod is <strong>throttled</strong>. CFS limits its CPU time. The process slows down but is NOT killed. This manifests as increased latency.</p>
+                <p><strong>Memory (incompressible):</strong> The pod is <strong>OOM killed</strong> (exit code 137). The kubelet restarts it according to restartPolicy. If node-level memory pressure occurs, kubelet evicts pods by QoS class: BestEffort first, then Burstable, then Guaranteed.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: How does Cluster Autoscaler decide to remove a node?</p>
+            <div class="a">
+                <p>The CA considers a node for removal when its utilization drops below 50% for 10 minutes. Before removing, it verifies:</p>
+                <ul>
+                    <li>All pods can be rescheduled to other nodes</li>
+                    <li>No pods with restrictive PDBs would be violated</li>
+                    <li>No pods with local storage (unless --skip-nodes-with-local-storage=false)</li>
+                    <li>No pods without a controller (bare pods)</li>
+                    <li>No system-critical pods (kube-system with specific annotations)</li>
+                </ul>
+                <p>It then cordons the node, drains it gracefully, and removes it from the cloud provider's node group.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: What is KEDA and how does it differ from standard HPA?</p>
+            <div class="a">
+                <p><strong>KEDA</strong> extends Kubernetes autoscaling to support event-driven sources. Key differences:</p>
+                <ul>
+                    <li><strong>Scale to zero:</strong> KEDA can scale deployments to 0 replicas (HPA minimum is 1)</li>
+                    <li><strong>Event sources:</strong> 60+ built-in scalers (Kafka, SQS, RabbitMQ, Prometheus, etc.)</li>
+                    <li><strong>Architecture:</strong> KEDA manages 0-to-1 and 1-to-0 transitions; for 1-to-N it creates and manages an HPA</li>
+                    <li><strong>ScaledJobs:</strong> Can also scale Kubernetes Jobs based on queue depth</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: Explain Pod Priority and Preemption. What is the preemptionPolicy field?</p>
+            <div class="a">
+                <p><strong>Priority:</strong> A numeric value assigned via PriorityClass. Higher value = more important. The scheduler queues pods by priority.</p>
+                <p><strong>Preemption:</strong> When a high-priority pod cannot be scheduled, the scheduler identifies lower-priority pods to evict, ensuring PDBs are respected where possible.</p>
+                <p><strong>preemptionPolicy:</strong></p>
+                <ul>
+                    <li><code>PreemptLowerPriority</code> (default) - Can evict lower-priority pods</li>
+                    <li><code>Never</code> - Will not preempt others; waits for resources. Still gets priority in queue.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: What are Topology Spread Constraints and when would you use them over pod anti-affinity?</p>
+            <div class="a">
+                <p><strong>Topology Spread Constraints</strong> ensure even distribution of pods across failure domains (zones, nodes). They control the <strong>maxSkew</strong> (maximum difference in pod count between domains).</p>
+                <p><strong>vs Pod Anti-Affinity:</strong></p>
+                <ul>
+                    <li>Anti-affinity: "Don't put two pods of this type on the same node" (binary)</li>
+                    <li>Topology Spread: "Balance pods evenly across zones/nodes" (numeric skew)</li>
+                </ul>
+                <p>Use topology spread when you need fine-grained distribution control (e.g., "no zone should have more than 1 extra pod compared to another").</p>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 12: Scenarios -->
+        <!-- ============================================ -->
+        <h2>12. Real-World Scenarios</h2>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#9888;</span>
+                <span class="title">Scenario: HPA Not Scaling Up</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> HPA shows <code>TARGETS: &lt;unknown&gt;/60%</code> and replicas stay at minReplicas.</p>
+                <div class="scenario-step"><span class="step-num">1.</span> Check if metrics-server is running: <code>kubectl get pods -n kube-system | grep metrics-server</code></div>
+                <div class="scenario-step"><span class="step-num">2.</span> Verify metrics are available: <code>kubectl top pods</code> (should return data)</div>
+                <div class="scenario-step"><span class="step-num">3.</span> Check HPA events: <code>kubectl describe hpa web-app-hpa</code></div>
+                <div class="scenario-step"><span class="step-num">4.</span> Ensure pods have resource requests set (HPA needs requests for utilization calculation)</div>
+                <div class="scenario-step"><span class="step-num">5.</span> For custom metrics, verify the custom metrics adapter is working: <code>kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1</code></div>
+                <p><strong>Root Cause:</strong> Usually missing metrics-server, pods without resource requests, or misconfigured custom metrics adapter.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#9888;</span>
+                <span class="title">Scenario: Pod Pending Due to Insufficient Resources</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> Pod stuck in Pending state. Events show <code>0/5 nodes are available: 3 Insufficient cpu, 2 Insufficient memory</code>.</p>
+                <div class="scenario-step"><span class="step-num">1.</span> Check node capacity: <code>kubectl describe nodes | grep -A 5 "Allocated resources"</code></div>
+                <div class="scenario-step"><span class="step-num">2.</span> Check if Cluster Autoscaler is active: <code>kubectl get pods -n kube-system | grep cluster-autoscaler</code></div>
+                <div class="scenario-step"><span class="step-num">3.</span> View CA logs: <code>kubectl logs -n kube-system deployment/cluster-autoscaler</code></div>
+                <div class="scenario-step"><span class="step-num">4.</span> Verify node group hasn't hit max size in cloud provider ASG</div>
+                <div class="scenario-step"><span class="step-num">5.</span> Check for taints preventing scheduling: <code>kubectl get nodes -o json | jq '.items[].spec.taints'</code></div>
+                <p><strong>Resolution:</strong> Either reduce resource requests, add node capacity (increase ASG max), or fix scheduling constraints (remove taints, update affinity).</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#9888;</span>
+                <span class="title">Scenario: CPU Throttling Causing Latency Spikes</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> Application response times spike periodically. No OOM kills. Pods show high <code>cpu_cfs_throttled_periods_total</code>.</p>
+                <div class="scenario-step"><span class="step-num">1.</span> Check throttling metrics: <code>kubectl top pods</code> - compare usage vs requests/limits</div>
+                <div class="scenario-step"><span class="step-num">2.</span> Query Prometheus: <code>rate(container_cpu_cfs_throttled_seconds_total[5m])</code></div>
+                <div class="scenario-step"><span class="step-num">3.</span> Review if CPU limits are too restrictive relative to burst needs</div>
+                <div class="scenario-step"><span class="step-num">4.</span> Consider removing CPU limits (set only requests) - Google's recommendation for non-adversarial clusters</div>
+                <div class="scenario-step"><span class="step-num">5.</span> Or increase CPU limits to accommodate burst patterns</div>
+                <p><strong>Resolution:</strong> Either increase CPU limits, remove CPU limits entirely (Burstable QoS), or use VPA to right-size the requests/limits based on actual usage.</p>
+                <div class="card card-warning">
+                    <p><strong>Debate:</strong> Some teams (including Google) recommend setting CPU requests but NOT limits, allowing burst. Others prefer Guaranteed QoS for predictability. Decide based on your cluster's contention levels.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            Kubernetes Scaling & Scheduling Reference | <a href="../index.html">Back to Home</a>
+        </footer>
+
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes Architecture | K8s/DevOps/SRE</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html" class="active">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+<div class="container">
+
+    <div class="breadcrumb">
+        <a href="../index.html">Home</a> &gt; Kubernetes Architecture
+    </div>
+
+    <h1>Kubernetes Architecture</h1>
+    <p class="subtitle">Deep dive into the components, communication patterns, and design decisions that make Kubernetes work as a distributed container orchestration platform.</p>
+
+    <!-- ============================================================ -->
+    <!-- CLUSTER ARCHITECTURE DIAGRAM -->
+    <!-- ============================================================ -->
+
+    <h2>Cluster Architecture Overview</h2>
+
+    <p>A Kubernetes cluster consists of a <strong>Control Plane</strong> (the brain) and one or more <strong>Worker Nodes</strong> (the muscle). The Control Plane makes global decisions about the cluster, while Worker Nodes run the actual application workloads.</p>
+
+    <div class="diagram">
+        <div class="diagram-label">Kubernetes Cluster Architecture</div>
+        <pre>
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                    KUBERNETES CLUSTER                                        │
+│                                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────────────────────┐    │
+│  │                              CONTROL PLANE (Master)                                  │    │
+│  │                                                                                     │    │
+│  │   ┌──────────────┐   ┌──────────────┐   ┌───────────────┐   ┌──────────────────┐   │    │
+│  │   │              │   │              │   │               │   │                  │   │    │
+│  │   │  kube-api-   │   │     etcd     │   │    kube-      │   │  kube-controller │   │    │
+│  │   │   server     │   │              │   │  scheduler    │   │    -manager      │   │    │
+│  │   │              │   │  (key-value  │   │               │   │                  │   │    │
+│  │   │  (REST API)  │   │   store)     │   │  (pod place-  │   │  (control loops) │   │    │
+│  │   │              │   │              │   │    ment)       │   │                  │   │    │
+│  │   └──────┬───────┘   └──────┬───────┘   └───────┬───────┘   └────────┬─────────┘   │    │
+│  │          │                  │                   │                    │              │    │
+│  │          │     ALL COMPONENTS COMMUNICATE VIA API SERVER             │              │    │
+│  │          └──────────────────┴───────────────────┴────────────────────┘              │    │
+│  └───────────────────────────────────────┬─────────────────────────────────────────────┘    │
+│                                          │                                                  │
+│                                          │ HTTPS (port 6443)                                │
+│                                          │                                                  │
+│  ┌───────────────────────────────────────┼─────────────────────────────────────────────┐    │
+│  │                                       │          WORKER NODES                        │    │
+│  │                                       │                                             │    │
+│  │  ┌─────────────────────────────────────────────────────────────────┐                │    │
+│  │  │  WORKER NODE 1                                                  │                │    │
+│  │  │                                                                 │                │    │
+│  │  │  ┌──────────┐  ┌────────────┐  ┌─────────────────────────────┐ │                │    │
+│  │  │  │ kubelet  │  │ kube-proxy │  │  Container Runtime (CRI)    │ │                │    │
+│  │  │  │          │  │            │  │  (containerd / CRI-O)       │ │                │    │
+│  │  │  └────┬─────┘  └─────┬──────┘  └──────────────┬──────────────┘ │                │    │
+│  │  │       │               │                        │                │                │    │
+│  │  │  ┌────┴───────────────┴────────────────────────┴──────────┐     │                │    │
+│  │  │  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  │     │                │    │
+│  │  │  │  │  Pod A  │  │  Pod B  │  │  Pod C  │  │  Pod D  │  │     │                │    │
+│  │  │  │  │┌───┐┌──┐│  │┌───┐   │  │┌───┐┌──┐│  │┌───┐   │  │     │                │    │
+│  │  │  │  ││C1 ││C2││  ││C1 │   │  ││C1 ││C2││  ││C1 │   │  │     │                │    │
+│  │  │  │  │└───┘└──┘│  │└───┘   │  │└───┘└──┘│  │└───┘   │  │     │                │    │
+│  │  │  │  └─────────┘  └─────────┘  └─────────┘  └─────────┘  │     │                │    │
+│  │  │  └────────────────────────────────────────────────────────┘     │                │    │
+│  │  └─────────────────────────────────────────────────────────────────┘                │    │
+│  │                                                                                     │    │
+│  │  ┌─────────────────────────────────────────────────────────────────┐                │    │
+│  │  │  WORKER NODE 2                                                  │                │    │
+│  │  │  ┌──────────┐  ┌────────────┐  ┌─────────────────────────────┐ │                │    │
+│  │  │  │ kubelet  │  │ kube-proxy │  │  Container Runtime (CRI)    │ │                │    │
+│  │  │  └────┬─────┘  └─────┬──────┘  └──────────────┬──────────────┘ │                │    │
+│  │  │       │               │                        │                │                │    │
+│  │  │  ┌────┴───────────────┴────────────────────────┴──────────┐     │                │    │
+│  │  │  │  ┌─────────┐  ┌─────────┐  ┌─────────┐               │     │                │    │
+│  │  │  │  │  Pod E  │  │  Pod F  │  │  Pod G  │               │     │                │    │
+│  │  │  │  │┌───┐   │  │┌───┐   │  │┌───┐┌──┐│               │     │                │    │
+│  │  │  │  ││C1 │   │  ││C1 │   │  ││C1 ││C2││               │     │                │    │
+│  │  │  │  │└───┘   │  │└───┘   │  │└───┘└──┘│               │     │                │    │
+│  │  │  │  └─────────┘  └─────────┘  └─────────┘               │     │                │    │
+│  │  │  └────────────────────────────────────────────────────────┘     │                │    │
+│  │  └─────────────────────────────────────────────────────────────────┘                │    │
+│  └─────────────────────────────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- CONTROL PLANE COMPONENTS -->
+    <!-- ============================================================ -->
+
+    <h2>Control Plane Components</h2>
+
+    <p>The Control Plane is responsible for maintaining the desired state of the cluster. It makes scheduling decisions, detects and responds to cluster events, and provides the API that all other components interact with.</p>
+
+    <h3>kube-apiserver</h3>
+    <div class="card card-info">
+        <p>The API server is the front door to the Kubernetes control plane. Every interaction with the cluster -- whether from kubectl, other control plane components, or kubelets -- goes through the API server.</p>
+    </div>
+
+    <div class="point">
+        <div class="point-num">1</div>
+        <div class="point-content">
+            <span class="point-title">Central Communication Hub:</span> All cluster components communicate exclusively through the API server. No component talks directly to another -- this ensures consistency and enables proper authentication/authorization for every operation.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">2</div>
+        <div class="point-content">
+            <span class="point-title">RESTful API Interface:</span> Exposes a RESTful HTTP API (typically on port 6443 with TLS) that handles CRUD operations for all Kubernetes objects. Supports JSON and Protocol Buffers serialization for efficient communication.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">3</div>
+        <div class="point-content">
+            <span class="point-title">Authentication and Authorization:</span> Implements a pluggable auth chain -- first authenticating the requester (via certificates, tokens, or OIDC), then authorizing the action (via RBAC, ABAC, or webhook), and finally running admission controllers.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">4</div>
+        <div class="point-content">
+            <span class="point-title">Admission Controllers:</span> Intercept requests after authentication/authorization but before persistence. They can mutate (MutatingAdmissionWebhook) or validate (ValidatingAdmissionWebhook) objects, enabling policy enforcement like resource quotas, pod security, and default values.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">5</div>
+        <div class="point-content">
+            <span class="point-title">Watch Mechanism:</span> Supports long-lived watch connections allowing components to subscribe to changes on specific resources. This event-driven model is what makes the entire controller pattern possible without polling.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">6</div>
+        <div class="point-content">
+            <span class="point-title">Horizontal Scalability:</span> Can be scaled horizontally by running multiple instances behind a load balancer. All instances are stateless -- they read/write state from etcd, enabling HA deployments with active-active configuration.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">7</div>
+        <div class="point-content">
+            <span class="point-title">API Versioning and Aggregation:</span> Supports multiple API versions (v1, apps/v1, etc.) simultaneously for backward compatibility. The aggregation layer allows extending the API with custom resources (CRDs) and API services without modifying core code.
+        </div>
+    </div>
+
+    <h3>etcd</h3>
+    <div class="card card-warning">
+        <p>etcd is the single source of truth for the entire cluster. If etcd is lost without backups, the cluster state is irrecoverable. Always maintain etcd backups!</p>
+    </div>
+
+    <div class="point">
+        <div class="point-num green">1</div>
+        <div class="point-content">
+            <span class="point-title">Distributed Key-Value Store:</span> A strongly consistent, distributed key-value store that holds all cluster state -- every pod, service, secret, configmap, and custom resource is stored here. Uses the Raft consensus algorithm for leader election and log replication.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">2</div>
+        <div class="point-content">
+            <span class="point-title">Only Accessed by API Server:</span> In a properly configured cluster, only the kube-apiserver communicates with etcd directly. This isolation simplifies security (only one component needs etcd credentials) and prevents inconsistencies from concurrent writes.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">3</div>
+        <div class="point-content">
+            <span class="point-title">Raft Consensus:</span> Requires a quorum (majority) of nodes to agree on writes. For a 3-node etcd cluster, it tolerates 1 failure; for 5 nodes, it tolerates 2. This is why etcd clusters always run an odd number of members.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">4</div>
+        <div class="point-content">
+            <span class="point-title">Watch Support:</span> Provides efficient watch notifications that the API server leverages to inform controllers of state changes. This event-driven architecture is fundamental to how Kubernetes achieves its declarative, self-healing behavior.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">5</div>
+        <div class="point-content">
+            <span class="point-title">Data Storage Format:</span> Stores data under the <code>/registry</code> prefix with paths like <code>/registry/pods/namespace/name</code>. Data is stored as Protocol Buffers by default (configurable to JSON). Encryption at rest can be enabled for sensitive data like Secrets.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">6</div>
+        <div class="point-content">
+            <span class="point-title">Performance Considerations:</span> Latency-sensitive -- requires fast disk I/O (SSD recommended). The recommended maximum database size is 8GB. Regular compaction and defragmentation are essential maintenance tasks to reclaim storage space.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">7</div>
+        <div class="point-content">
+            <span class="point-title">Backup and Disaster Recovery:</span> Supports snapshot-based backups via <code>etcdctl snapshot save</code>. Point-in-time recovery is possible by restoring from a snapshot. In production, automated periodic backups should be stored off-cluster.
+        </div>
+    </div>
+
+    <h3>kube-scheduler</h3>
+
+    <div class="point">
+        <div class="point-num purple">1</div>
+        <div class="point-content">
+            <span class="point-title">Pod Placement Engine:</span> Watches for newly created pods that have no node assigned (spec.nodeName is empty), then selects the optimal node for each pod. It does NOT actually place the pod -- it just sets the node assignment; the kubelet does the rest.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">2</div>
+        <div class="point-content">
+            <span class="point-title">Two-Phase Scheduling:</span> Uses a filter-then-score approach. First, it filters out nodes that cannot run the pod (insufficient resources, taints, affinity rules). Then, it scores remaining nodes using priority functions to find the best fit.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">3</div>
+        <div class="point-content">
+            <span class="point-title">Filtering (Predicates):</span> Checks hard constraints -- does the node have enough CPU/memory? Does it match required node selectors? Does it tolerate pod tolerations? Is there a matching PersistentVolume in the same zone? Any single filter failure eliminates the node.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">4</div>
+        <div class="point-content">
+            <span class="point-title">Scoring (Priorities):</span> Applies soft preferences to rank feasible nodes. Includes factors like spreading pods across failure domains, preferring nodes with images already cached, balancing resource utilization, and respecting pod topology spread constraints.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">5</div>
+        <div class="point-content">
+            <span class="point-title">Scheduling Framework:</span> Since Kubernetes 1.19, the scheduler uses a plugin-based framework with extension points (PreFilter, Filter, PostFilter, PreScore, Score, Reserve, Permit, PreBind, Bind, PostBind) enabling custom scheduling logic without forking the scheduler.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">6</div>
+        <div class="point-content">
+            <span class="point-title">Preemption:</span> If no node can accommodate a high-priority pod, the scheduler can preempt (evict) lower-priority pods to make room. Priority is determined by PriorityClass objects assigned to pods.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">7</div>
+        <div class="point-content">
+            <span class="point-title">Leader Election:</span> Only one scheduler instance is active at a time (leader). Additional instances run in standby mode. Leader election uses a Lease object in the kube-system namespace with a configurable renewal interval.
+        </div>
+    </div>
+
+    <h3>kube-controller-manager</h3>
+
+    <div class="point">
+        <div class="point-num orange">1</div>
+        <div class="point-content">
+            <span class="point-title">Collection of Controllers:</span> A single binary that runs multiple control loops (controllers). Each controller watches for specific resource types and works to reconcile actual state with desired state. Examples: ReplicaSet controller, Deployment controller, Node controller, Job controller.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num orange">2</div>
+        <div class="point-content">
+            <span class="point-title">Reconciliation Loop Pattern:</span> Each controller follows the same pattern: observe current state (via API server watches), compare with desired state (from resource specs), take action to converge. This "level-triggered" approach means controllers self-heal even if events are missed.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num orange">3</div>
+        <div class="point-content">
+            <span class="point-title">Node Controller:</span> Monitors node health via heartbeats (NodeStatus and Lease objects). If a node stops reporting, it marks the node as NotReady after 40s (default), then begins evicting pods after 5 minutes (pod-eviction-timeout).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num orange">4</div>
+        <div class="point-content">
+            <span class="point-title">ReplicaSet Controller:</span> Ensures the correct number of pod replicas are running at all times. If pods crash or nodes fail, it creates replacements. If there are too many pods (e.g., after scale-down), it deletes extras.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num orange">5</div>
+        <div class="point-content">
+            <span class="point-title">Endpoints/EndpointSlice Controller:</span> Watches Services and Pods to maintain the mapping between service selectors and pod IPs. Updates EndpointSlice objects that kube-proxy uses to configure network rules.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num orange">6</div>
+        <div class="point-content">
+            <span class="point-title">Service Account and Token Controllers:</span> Automatically creates default ServiceAccount in new namespaces and provisions API access tokens for service accounts, enabling pod-to-API-server authentication.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num orange">7</div>
+        <div class="point-content">
+            <span class="point-title">Leader Election:</span> Like the scheduler, only one instance is active. Uses a Lease-based leader election mechanism. Standby instances continuously attempt to acquire the lease, providing automatic failover if the leader crashes.
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- WORKER NODE COMPONENTS -->
+    <!-- ============================================================ -->
+
+    <h2>Worker Node Components</h2>
+
+    <p>Worker nodes are the machines where application containers actually run. Each node runs a set of services that communicate with the control plane and manage the container lifecycle.</p>
+
+    <h3>kubelet</h3>
+
+    <div class="point">
+        <div class="point-num">1</div>
+        <div class="point-content">
+            <span class="point-title">Node Agent:</span> The primary agent running on each node. It registers the node with the API server, reports node capacity/status, and ensures containers described in PodSpecs are running and healthy. It does NOT manage containers not created by Kubernetes.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">2</div>
+        <div class="point-content">
+            <span class="point-title">Pod Lifecycle Management:</span> Receives PodSpecs (primarily from the API server via watch) and drives the container runtime to create, start, stop, and delete containers. Handles init containers sequentially before starting main containers in parallel.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">3</div>
+        <div class="point-content">
+            <span class="point-title">Health Checking:</span> Executes liveness probes (restart container if failed), readiness probes (remove from service endpoints if failed), and startup probes (delay other probes until app is ready). Supports HTTP, TCP, gRPC, and exec probe types.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">4</div>
+        <div class="point-content">
+            <span class="point-title">Resource Management:</span> Enforces resource requests and limits. Works with the Linux cgroup subsystem to allocate CPU shares, set memory limits, and manage device plugins (GPUs, etc.). Reports allocatable resources to the scheduler.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">5</div>
+        <div class="point-content">
+            <span class="point-title">Volume Management:</span> Mounts volumes specified in pod specs. Coordinates with CSI drivers for cloud storage, handles volume attach/detach, and manages local storage like emptyDir and hostPath. Performs volume setup before containers start.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">6</div>
+        <div class="point-content">
+            <span class="point-title">Node Status Reporting:</span> Periodically reports node conditions (Ready, MemoryPressure, DiskPressure, PIDPressure), addresses, capacity, and allocatable resources to the API server via NodeStatus updates and Lease renewals (every 10s by default).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">7</div>
+        <div class="point-content">
+            <span class="point-title">Static Pods:</span> Can manage pods defined in local manifest files (typically /etc/kubernetes/manifests/) without API server involvement. This is how control plane components themselves are bootstrapped in kubeadm-based clusters -- a chicken-and-egg solution.
+        </div>
+    </div>
+
+    <h3>kube-proxy</h3>
+
+    <div class="point">
+        <div class="point-num green">1</div>
+        <div class="point-content">
+            <span class="point-title">Service Networking:</span> Implements the Kubernetes Service abstraction by maintaining network rules on each node. These rules allow network communication to pods from inside or outside the cluster via virtual Service IPs (ClusterIPs).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">2</div>
+        <div class="point-content">
+            <span class="point-title">iptables Mode (Default):</span> Creates iptables rules that capture traffic destined for Service ClusterIPs and redirect to backend pod IPs. Random load balancing is applied across endpoints. Scales well to thousands of services but rule updates become expensive.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">3</div>
+        <div class="point-content">
+            <span class="point-title">IPVS Mode:</span> Uses Linux IPVS (IP Virtual Server) kernel module for load balancing. Supports multiple algorithms (round-robin, least connections, shortest expected delay). Better performance than iptables at scale (O(1) vs O(n) for connection routing).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">4</div>
+        <div class="point-content">
+            <span class="point-title">nftables Mode (Newer):</span> Available from Kubernetes 1.29+, uses nftables as the backend instead of iptables. Offers better performance and maintainability as the Linux networking ecosystem moves away from iptables.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">5</div>
+        <div class="point-content">
+            <span class="point-title">EndpointSlice Watches:</span> Watches the API server for changes to Service and EndpointSlice objects. When endpoints change (pod added/removed, readiness gate changes), kube-proxy updates the local networking rules accordingly on each node.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">6</div>
+        <div class="point-content">
+            <span class="point-title">NodePort and LoadBalancer Support:</span> Handles NodePort services by opening ports on all nodes and forwarding traffic to pods. For LoadBalancer services, it cooperates with cloud controllers to direct external traffic correctly.
+        </div>
+    </div>
+
+    <h3>Container Runtime</h3>
+
+    <div class="point">
+        <div class="point-num purple">1</div>
+        <div class="point-content">
+            <span class="point-title">CRI (Container Runtime Interface):</span> Kubernetes defines a gRPC-based interface (CRI) that any container runtime must implement. This decouples Kubernetes from specific runtimes. The kubelet communicates with the runtime over a Unix socket.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">2</div>
+        <div class="point-content">
+            <span class="point-title">containerd:</span> The most widely used CRI runtime. Originally extracted from Docker, it manages the complete container lifecycle (image pull, container create, start, stop, delete). Uses runc as the default OCI runtime for actually spawning containers.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">3</div>
+        <div class="point-content">
+            <span class="point-title">CRI-O:</span> A lightweight alternative built specifically for Kubernetes. Implements only what CRI requires -- nothing more. Popular in OpenShift/Red Hat ecosystems. Also uses runc under the hood.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">4</div>
+        <div class="point-content">
+            <span class="point-title">Image Management:</span> Handles pulling container images from registries, caching layers locally, and providing images to containers. Supports OCI image format and Docker image format for backward compatibility.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">5</div>
+        <div class="point-content">
+            <span class="point-title">Sandbox (Pause Container):</span> Each pod gets a "pause" container that holds the network namespace. Application containers join this namespace, which is why containers in the same pod share localhost. If the pause container dies, the entire pod is recreated.
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- COMMUNICATION FLOW -->
+    <!-- ============================================================ -->
+
+    <h2>Component Communication Flow</h2>
+
+    <p>Understanding how components communicate is essential for debugging and security hardening. All communication flows through the API server as the central hub.</p>
+
+    <div class="diagram">
+        <div class="diagram-label">Communication Patterns in a Kubernetes Cluster</div>
+        <pre>
+                                    ┌─────────────────┐
+                                    │    kubectl /    │
+                                    │   API clients   │
+                                    └────────┬────────┘
+                                             │
+                                             │ HTTPS (Bearer Token / Client Cert)
+                                             ▼
+┌────────────────────────────────────────────────────────────────────────────────┐
+│                             kube-apiserver (:6443)                              │
+│                                                                                │
+│  ┌────────────┐  ┌───────────┐  ┌──────────────┐  ┌────────────────────────┐  │
+│  │ AuthN      │─▶│ AuthZ     │─▶│  Admission   │─▶│  Validation + Storage  │  │
+│  │ (who)      │  │ (can do?) │  │  Controllers │  │  (persist to etcd)     │  │
+│  └────────────┘  └───────────┘  └──────────────┘  └────────────────────────┘  │
+└──┬─────────────────────┬──────────────────────┬────────────────────────────────┘
+   │                     │                      │
+   │ gRPC (client cert)  │ Watch (HTTPS)        │ Watch (HTTPS)
+   ▼                     ▼                      ▼
+┌──────┐          ┌─────────────┐        ┌────────────────────┐
+│ etcd │          │  scheduler  │        │  controller-manager │
+└──────┘          └──────┬──────┘        └─────────┬──────────┘
+                         │                         │
+                         │ Bind Pod (PATCH)        │ Create/Update Resources
+                         │                         │
+                         └────────┬────────────────┘
+                                  │
+                                  ▼ (via API server)
+                    ┌──────────────────────────┐
+                    │     kubelet (per node)    │
+                    │                          │
+                    │  ◄── Watch assigned pods  │
+                    │  ──► Report node status   │
+                    │  ──► Update pod status    │
+                    │                          │
+                    │  ┌──────────────────────┐ │
+                    │  │  CRI (gRPC socket)   │ │
+                    │  │  containerd/CRI-O    │ │
+                    │  └──────────────────────┘ │
+                    └──────────────────────────┘
+
+Communication Rules:
+─────────────────────
+1. API Server ←→ etcd         : Only API server talks to etcd (mutual TLS)
+2. Scheduler  ──→ API Server  : Watch unscheduled pods, PATCH nodeName
+3. Controller ──→ API Server  : Watch resources, create/update/delete objects
+4. Kubelet    ←→ API Server   : Watch pods for this node, report status
+5. Kube-proxy ──→ API Server  : Watch Services + EndpointSlices
+6. All connections use TLS with certificate-based mutual authentication
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- KUBECTL APPLY FLOW -->
+    <!-- ============================================================ -->
+
+    <h2>What Happens When You Run <code>kubectl apply</code></h2>
+
+    <p>This is one of the most popular interview questions. Understanding the full flow from typing a command to a running container demonstrates mastery of the Kubernetes architecture.</p>
+
+    <div class="diagram">
+        <div class="diagram-label">kubectl apply -f deployment.yaml -- Complete Flow (12 Steps)</div>
+        <pre>
+ User                API Server          etcd        Scheduler      Controller-Mgr     Kubelet        Runtime
+  │                      │                │              │                │              │              │
+  │  1. kubectl apply    │                │              │                │              │              │
+  │─────────────────────▶│                │              │                │              │              │
+  │                      │                │              │                │              │              │
+  │                 2. AuthN/AuthZ/       │              │                │              │              │
+  │                    Admission          │              │                │              │              │
+  │                      │                │              │                │              │              │
+  │                      │ 3. Store       │              │                │              │              │
+  │                      │  Deployment    │              │                │              │              │
+  │                      │───────────────▶│              │                │              │              │
+  │                      │                │              │                │              │              │
+  │                      │ 4. Notify watchers           │                │              │              │
+  │                      │────────────────────────────────────────────────▶              │              │
+  │                      │                │              │                │              │              │
+  │                      │                │              │     5. Deployment controller  │              │
+  │                      │                │              │       creates ReplicaSet      │              │
+  │                      │◀──────────────────────────────────────────────│              │              │
+  │                      │                │              │                │              │              │
+  │                      │ 6. Store RS    │              │                │              │              │
+  │                      │───────────────▶│              │                │              │              │
+  │                      │                │              │                │              │              │
+  │                      │                │              │  7. RS controller creates     │              │
+  │                      │                │              │     Pod objects (no node)     │              │
+  │                      │◀──────────────────────────────────────────────│              │              │
+  │                      │                │              │                │              │              │
+  │                      │ 8. Store Pods  │              │                │              │              │
+  │                      │───────────────▶│              │                │              │              │
+  │                      │                │              │                │              │              │
+  │                      │ 9. Notify      │              │                │              │              │
+  │                      │   scheduler    │              │                │              │              │
+  │                      │───────────────────────────────▶                │              │              │
+  │                      │                │              │                │              │              │
+  │                      │       10. Scheduler binds pod to node          │              │              │
+  │                      │◀─────────────────────────────│                │              │              │
+  │                      │                │              │                │              │              │
+  │                      │ 11. Notify kubelet (pod assigned to this node) │              │              │
+  │                      │──────────────────────────────────────────────────────────────▶│              │
+  │                      │                │              │                │              │              │
+  │                      │                │              │                │              │ 12. Pull     │
+  │                      │                │              │                │              │  image,      │
+  │                      │                │              │                │              │  create      │
+  │                      │                │              │                │              │  container   │
+  │                      │                │              │                │              │─────────────▶│
+  │                      │                │              │                │              │              │
+  │                      │◀─────────────────────────────────────────────────────────────│              │
+  │                      │         kubelet reports pod status = Running                  │              │
+  │                      │                │              │                │              │              │
+  ▼                      ▼                ▼              ▼                ▼              ▼              ▼
+        </pre>
+    </div>
+
+    <h3>Step-by-Step Breakdown</h3>
+
+    <div class="point">
+        <div class="point-num">1</div>
+        <div class="point-content">
+            <span class="point-title">Client-Side Validation and Request:</span> kubectl reads the YAML file, validates it against the OpenAPI schema (client-side), applies any strategic merge patches for existing resources, and sends an HTTP request (POST for create, PATCH for apply) to the API server at the appropriate endpoint (e.g., /apis/apps/v1/namespaces/default/deployments).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">2</div>
+        <div class="point-content">
+            <span class="point-title">Authentication, Authorization, Admission:</span> The API server authenticates the request (client certificate from kubeconfig), checks RBAC policies to verify the user can create/update Deployments in that namespace, then runs the admission controller chain (resource quotas, pod security admission, mutating/validating webhooks).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">3</div>
+        <div class="point-content">
+            <span class="point-title">Persist to etcd:</span> The validated and potentially mutated Deployment object is serialized (Protocol Buffers) and stored in etcd under <code>/registry/deployments/namespace/name</code>. etcd returns confirmation and the API server responds 201 Created (or 200 OK for updates) to kubectl.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">4</div>
+        <div class="point-content">
+            <span class="point-title">Watch Notification:</span> The API server sends a WATCH event (ADDED or MODIFIED) to all controllers watching Deployment resources. The Deployment controller in kube-controller-manager receives this notification through its informer cache.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">5</div>
+        <div class="point-content">
+            <span class="point-title">Deployment Controller Creates ReplicaSet:</span> The Deployment controller computes the desired ReplicaSet spec (applying its rolling update strategy), generates the RS name with a hash suffix (e.g., nginx-6799fc88d8), and sends a CREATE request to the API server for the new ReplicaSet.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">6</div>
+        <div class="point-content">
+            <span class="point-title">ReplicaSet Stored:</span> The new ReplicaSet object goes through the same API server pipeline (auth, admission) and is persisted to etcd. The API server sends WATCH events to ReplicaSet watchers.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">7</div>
+        <div class="point-content">
+            <span class="point-title">ReplicaSet Controller Creates Pods:</span> The ReplicaSet controller notices the RS has 0 ready replicas vs. desired count. It creates Pod objects (with ownerReferences pointing to the RS) by sending CREATE requests to the API server. Crucially, these pods have <code>spec.nodeName</code> empty.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">8</div>
+        <div class="point-content">
+            <span class="point-title">Pods Stored (Unscheduled):</span> Pod objects are persisted to etcd in a Pending state with no node assigned. The API server generates WATCH events, including to the scheduler which specifically watches for pods with empty <code>spec.nodeName</code>.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">9</div>
+        <div class="point-content">
+            <span class="point-title">Scheduler Filtering and Scoring:</span> The scheduler evaluates each unscheduled pod against available nodes. It filters out infeasible nodes (insufficient resources, taints not tolerated, affinity rules violated), then scores remaining nodes to find the best placement.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">10</div>
+        <div class="point-content">
+            <span class="point-title">Scheduler Binds Pod to Node:</span> The scheduler creates a Binding object (or PATCHes the pod's <code>spec.nodeName</code>) via the API server, assigning the pod to the chosen node. This is persisted to etcd and triggers another round of WATCH events.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">11</div>
+        <div class="point-content">
+            <span class="point-title">Kubelet Picks Up the Pod:</span> The kubelet on the target node, which watches for pods assigned to its node, receives the notification. It begins the pod admission process (checking resource availability, applying cgroups, preparing volumes).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">12</div>
+        <div class="point-content">
+            <span class="point-title">Container Creation:</span> The kubelet calls the container runtime via CRI: creates the pod sandbox (pause container + network namespace), calls CNI plugin to configure networking, pulls container images (if not cached), creates and starts containers. Once running, it reports pod status back to the API server.
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- HA ARCHITECTURE -->
+    <!-- ============================================================ -->
+
+    <h2>High Availability (HA) Architecture</h2>
+
+    <p>Production Kubernetes clusters require HA to survive component and node failures. The HA design ensures no single point of failure exists in the control plane.</p>
+
+    <div class="diagram">
+        <div class="diagram-label">Kubernetes HA Control Plane Architecture</div>
+        <pre>
+                            ┌─────────────────────────────┐
+                            │      Load Balancer          │
+                            │   (HAProxy / NLB / DNS)     │
+                            │      VIP: 10.0.0.100       │
+                            └─────┬──────┬──────┬────────┘
+                                  │      │      │
+                 ┌────────────────┘      │      └────────────────┐
+                 │                       │                       │
+                 ▼                       ▼                       ▼
+┌────────────────────────┐ ┌────────────────────────┐ ┌────────────────────────┐
+│   Control Plane Node 1 │ │   Control Plane Node 2 │ │   Control Plane Node 3 │
+│                        │ │                        │ │                        │
+│  ┌──────────────────┐  │ │  ┌──────────────────┐  │ │  ┌──────────────────┐  │
+│  │  kube-apiserver  │  │ │  │  kube-apiserver  │  │ │  │  kube-apiserver  │  │
+│  │   (active)       │  │ │  │   (active)       │  │ │  │   (active)       │  │
+│  └──────────────────┘  │ │  └──────────────────┘  │ │  └──────────────────┘  │
+│                        │ │                        │ │                        │
+│  ┌──────────────────┐  │ │  ┌──────────────────┐  │ │  ┌──────────────────┐  │
+│  │  kube-scheduler  │  │ │  │  kube-scheduler  │  │ │  │  kube-scheduler  │  │
+│  │   (LEADER)       │  │ │  │   (standby)      │  │ │  │   (standby)      │  │
+│  └──────────────────┘  │ │  └──────────────────┘  │ │  └──────────────────┘  │
+│                        │ │                        │ │                        │
+│  ┌──────────────────┐  │ │  ┌──────────────────┐  │ │  ┌──────────────────┐  │
+│  │  controller-mgr  │  │ │  │  controller-mgr  │  │ │  │  controller-mgr  │  │
+│  │   (standby)      │  │ │  │   (LEADER)       │  │ │  │   (standby)      │  │
+│  └──────────────────┘  │ │  └──────────────────┘  │ │  └──────────────────┘  │
+│                        │ │                        │ │                        │
+│  ┌──────────────────┐  │ │  ┌──────────────────┐  │ │  ┌──────────────────┐  │
+│  │      etcd        │  │ │  │      etcd        │  │ │  │      etcd        │  │
+│  │   (follower)     │  │ │  │   (LEADER)       │  │ │  │   (follower)     │  │
+│  └──────────────────┘  │ │  └──────────────────┘  │ │  └──────────────────┘  │
+└────────────────────────┘ └────────────────────────┘ └────────────────────────┘
+
+Key HA Design Decisions:
+────────────────────────
+• API Server: Active-Active (all instances serve requests simultaneously)
+• Scheduler: Active-Passive (leader election via Lease objects)
+• Controller Manager: Active-Passive (leader election via Lease objects)
+• etcd: Raft consensus (one leader, followers replicate)
+• Load Balancer: Distributes API traffic; health-checks /healthz endpoint
+• Minimum 3 control plane nodes to tolerate 1 failure (etcd quorum = 2/3)
+• Leaders for scheduler/controller-manager can be on different nodes
+        </pre>
+    </div>
+
+    <div class="card card-info">
+        <h4>Stacked vs External etcd Topology</h4>
+        <p><strong>Stacked (shown above):</strong> etcd runs on the same nodes as other control plane components. Simpler to set up, fewer machines needed, but a node failure loses both a control plane member and an etcd member simultaneously.</p>
+        <p><strong>External etcd:</strong> etcd runs on a dedicated set of machines. More resilient (control plane and etcd failures are independent), but requires more infrastructure (6+ machines for HA instead of 3).</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- INTERVIEW Q&A -->
+    <!-- ============================================================ -->
+
+    <h2>Interview Questions and Answers</h2>
+
+    <div class="qa">
+        <div class="q">Q1: What happens to running pods if the kube-apiserver goes down?</div>
+        <div class="a">
+            <strong>Running pods continue to run.</strong> The kubelet and container runtime on each node keep existing containers alive. However, no new pods can be scheduled, no scaling can occur, kubectl commands will fail, and controllers cannot reconcile state. The kubelet will continue to restart crashed containers based on the last-known PodSpec. If a node also fails during this window, its pods are lost since the controller-manager cannot reschedule them.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q2: Why does etcd need an odd number of members?</div>
+        <div class="a">
+            <strong>Because of quorum math.</strong> Raft requires a strict majority (n/2 + 1) to commit writes. For 3 members, quorum = 2 (tolerates 1 failure). For 4 members, quorum = 3 (still only tolerates 1 failure). So 4 members gives no fault tolerance benefit over 3 but adds network complexity. The pattern is: 3 nodes = tolerate 1, 5 nodes = tolerate 2, 7 nodes = tolerate 3.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q3: What is the difference between a controller and an operator?</div>
+        <div class="a">
+            <strong>An operator IS a controller, but with domain-specific knowledge.</strong> A controller is any control loop that watches resource state via the API server and reconciles toward desired state. An operator is a controller that encodes human operational knowledge for managing complex applications (databases, message queues) -- it knows how to deploy, scale, backup, upgrade, and heal the application. Operators typically use Custom Resource Definitions (CRDs) to extend the Kubernetes API.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q4: How does the scheduler decide which node gets a pod?</div>
+        <div class="a">
+            <strong>Two-phase: Filter then Score.</strong> First, filtering eliminates nodes that cannot possibly run the pod (not enough CPU/memory, wrong node selector, unmatched taints, volume zone mismatch). Then, scoring ranks the remaining nodes using weighted priority functions: resource balance (LeastRequestedPriority), spreading across zones (InterPodAntiAffinity), image locality, and custom priorities. The highest-scoring node wins. If tied, random selection breaks the tie.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q5: What is the role of the pause container in a pod?</div>
+        <div class="a">
+            <strong>It holds the pod's network namespace.</strong> The pause container (gcr.io/google_containers/pause) is the first container created in every pod. It acquires the network namespace (IP address, port space) and then simply sleeps forever. All other containers in the pod join this namespace via Linux namespace sharing. This ensures the network identity persists even if application containers crash and restart -- the pod IP stays stable.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q6: How does Kubernetes achieve self-healing?</div>
+        <div class="a">
+            <strong>Through the declarative model and reconciliation loops.</strong> You declare desired state (3 replicas of nginx). Controllers continuously compare actual state vs desired state. If a pod crashes, the kubelet restarts it (restart policy). If a node dies, the node controller marks it NotReady, and the ReplicaSet controller creates replacement pods. Liveness probes detect stuck processes and trigger restarts. The level-triggered design means even if events are missed, the next reconciliation cycle will fix drift.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q7: What is the difference between kube-proxy's iptables and IPVS modes?</div>
+        <div class="a">
+            <strong>Performance characteristics and load balancing algorithms differ significantly.</strong> iptables mode uses sequential rule matching (O(n) per connection for n services), supports only random probability-based load balancing, and becomes slow with 10,000+ services. IPVS uses hash tables (O(1) per connection), supports 8 load balancing algorithms (round-robin, least-connections, etc.), and handles large clusters efficiently. However, iptables is simpler to debug with standard Linux tools.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q8: How do control plane components achieve high availability?</div>
+        <div class="a">
+            <strong>Different strategies per component.</strong> API servers run active-active behind a load balancer since they are stateless. The scheduler and controller-manager use leader election (via Lease objects in kube-system) -- only one instance actively reconciles at a time, with standbys ready to take over (typically within 15s lease duration). etcd uses Raft consensus for strong consistency with automatic leader election. All components are typically run as static pods managed by kubelet.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q9: What are static pods and why are they important?</div>
+        <div class="a">
+            <strong>Static pods solve the bootstrap chicken-and-egg problem.</strong> They are pods managed directly by the kubelet daemon on a specific node, without the API server observing them. The kubelet watches a local directory (default: /etc/kubernetes/manifests/) and creates pods for any manifest files found there. This is how kubeadm bootstraps control plane components -- the kubelet starts apiserver, etcd, scheduler, and controller-manager as static pods before the API server even exists. Mirror pods are created in the API server for visibility.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q10: If you have a 3-node etcd cluster and lose 2 nodes, what happens?</div>
+        <div class="a">
+            <strong>The cluster becomes read-only and effectively unavailable for writes.</strong> With only 1 of 3 members alive, quorum (2) cannot be reached. etcd will continue to serve stale reads (if configured with serializable reads) but will reject all write operations. The Kubernetes API server will return errors for any state-changing operations (creating pods, updating deployments). Recovery requires either restoring at least one more member or performing a disaster recovery procedure: restoring from a snapshot to a new single-node cluster using <code>etcdctl snapshot restore --force-new-cluster</code>.
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TROUBLESHOOTING SCENARIOS -->
+    <!-- ============================================================ -->
+
+    <h2>Troubleshooting Scenarios</h2>
+
+    <div class="scenario">
+        <div class="scenario-header">
+            <span class="icon">&#9888;</span>
+            <span class="title">Scenario: Pods Stuck in Pending State</span>
+        </div>
+        <div class="scenario-body">
+            <p><strong>Symptom:</strong> Pods remain in Pending state indefinitely and never get scheduled to a node.</p>
+            <p><strong>Root Causes and Diagnostics:</strong></p>
+            <div class="scenario-step">
+                <span class="step-num">1.</span>
+                <span>Check scheduler events: <code>kubectl describe pod &lt;pod&gt;</code> -- look at the Events section for FailedScheduling messages with reasons like "Insufficient cpu" or "no nodes match pod topology spread constraints".</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">2.</span>
+                <span>Verify node resources: <code>kubectl describe nodes | grep -A5 "Allocated resources"</code> -- compare allocated vs allocatable. If nodes are full, scale the cluster or adjust resource requests.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">3.</span>
+                <span>Check taints and tolerations: <code>kubectl get nodes -o json | jq '.items[].spec.taints'</code> -- ensure your pods tolerate any node taints (especially the master/control-plane taint).</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">4.</span>
+                <span>Verify node selectors/affinity: Ensure the pod's nodeSelector or nodeAffinity matches labels on at least one node. Check with <code>kubectl get nodes --show-labels</code>.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">5.</span>
+                <span>Check PVC binding: If the pod uses a PersistentVolumeClaim, ensure the PVC is Bound. Unbound PVCs will block scheduling. Check with <code>kubectl get pvc</code>.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="scenario">
+        <div class="scenario-header">
+            <span class="icon">&#9888;</span>
+            <span class="title">Scenario: Node NotReady</span>
+        </div>
+        <div class="scenario-body">
+            <p><strong>Symptom:</strong> One or more nodes show NotReady status in <code>kubectl get nodes</code>.</p>
+            <p><strong>Root Causes and Diagnostics:</strong></p>
+            <div class="scenario-step">
+                <span class="step-num">1.</span>
+                <span>Check kubelet status on the node: <code>systemctl status kubelet</code> and <code>journalctl -u kubelet -f</code> -- look for certificate expiry, API server connection failures, or OOM kills.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">2.</span>
+                <span>Check node conditions: <code>kubectl describe node &lt;node&gt;</code> -- look for MemoryPressure, DiskPressure, or PIDPressure conditions set to True, which indicate resource exhaustion.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">3.</span>
+                <span>Verify container runtime: <code>crictl info</code> or <code>systemctl status containerd</code> -- a crashed runtime will prevent the kubelet from managing containers and reporting healthy status.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">4.</span>
+                <span>Network connectivity: Ensure the node can reach the API server on port 6443. Check <code>curl -k https://&lt;api-server&gt;:6443/healthz</code> from the node. DNS resolution issues or firewall rules can break the connection.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">5.</span>
+                <span>Certificate validity: Check if the kubelet client certificate has expired: <code>openssl x509 -in /var/lib/kubelet/pki/kubelet-client-current.pem -noout -dates</code>. Expired certs prevent API server communication.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="scenario">
+        <div class="scenario-header">
+            <span class="icon">&#9888;</span>
+            <span class="title">Scenario: etcd Cluster Degraded</span>
+        </div>
+        <div class="scenario-body">
+            <p><strong>Symptom:</strong> API server responds slowly or returns "etcdserver: request timed out" errors. Cluster operations become unreliable.</p>
+            <p><strong>Root Causes and Diagnostics:</strong></p>
+            <div class="scenario-step">
+                <span class="step-num">1.</span>
+                <span>Check etcd member health: <code>etcdctl endpoint health --cluster</code> -- identifies which members are unhealthy and whether quorum is at risk.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">2.</span>
+                <span>Check disk I/O latency: <code>etcdctl check perf</code> -- etcd requires low-latency disk (p99 fsync < 10ms). Slow disks cause leader election churn and request timeouts. Move etcd to SSD/NVMe storage.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">3.</span>
+                <span>Monitor database size: <code>etcdctl endpoint status --write-out=table</code> -- if DB SIZE approaches the quota (default 2GB, max recommended 8GB), writes will fail. Run compaction and defragmentation.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">4.</span>
+                <span>Check network latency between members: High inter-node latency (>50ms) causes Raft heartbeat timeouts and frequent leader elections. Ensure etcd members are in the same failure domain or increase heartbeat-interval.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">5.</span>
+                <span>Review resource contention: etcd competes with other control plane components for CPU/memory. Monitor with <code>etcdctl endpoint metrics</code> -- look at leader changes, proposal failures, and snapshot duration.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="scenario">
+        <div class="scenario-header">
+            <span class="icon">&#9888;</span>
+            <span class="title">Scenario: kubectl Commands Timeout or Return 403</span>
+        </div>
+        <div class="scenario-body">
+            <p><strong>Symptom:</strong> kubectl commands hang, timeout, or return "forbidden" errors even for admin users.</p>
+            <p><strong>Root Causes and Diagnostics:</strong></p>
+            <div class="scenario-step">
+                <span class="step-num">1.</span>
+                <span>Verify connectivity: <code>kubectl cluster-info</code> -- if this times out, check network path to the API server. Verify kubeconfig has correct server URL and the load balancer (if any) is healthy.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">2.</span>
+                <span>Check certificate validity: <code>kubectl config view --raw -o jsonpath='{.users[0].user.client-certificate-data}' | base64 -d | openssl x509 -noout -dates</code> -- expired client certs cause TLS handshake failures.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">3.</span>
+                <span>Verify RBAC bindings: <code>kubectl auth can-i --list</code> -- if getting 403, check that ClusterRoleBindings/RoleBindings map the correct subject (user/group/SA) to the required role.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">4.</span>
+                <span>Check API server health: If you have node access, run <code>curl -k https://localhost:6443/healthz</code> directly on a control plane node. Check API server logs for webhook timeout issues -- a misconfigured admission webhook can block all requests.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">5.</span>
+                <span>Admission webhook issues: <code>kubectl get validatingwebhookconfigurations,mutatingwebhookconfigurations</code> -- a webhook with failurePolicy: Fail that is unreachable will reject all matching requests. Consider setting <code>failurePolicy: Ignore</code> or adding namespace exclusions.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="scenario">
+        <div class="scenario-header">
+            <span class="icon">&#9888;</span>
+            <span class="title">Scenario: Pods CrashLoopBackOff After Node Restart</span>
+        </div>
+        <div class="scenario-body">
+            <p><strong>Symptom:</strong> After a node reboot, previously running pods enter CrashLoopBackOff. Container logs show connection errors or file permission issues.</p>
+            <p><strong>Root Causes and Diagnostics:</strong></p>
+            <div class="scenario-step">
+                <span class="step-num">1.</span>
+                <span>Check container logs: <code>kubectl logs &lt;pod&gt; --previous</code> -- the --previous flag shows logs from the last crashed instance. Look for connection refused (dependency not ready) or permission denied errors.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">2.</span>
+                <span>Verify volume mounts: <code>kubectl describe pod &lt;pod&gt;</code> -- check for "Unable to attach/mount volumes" events. After a node restart, cloud volumes may need time to reattach. Local storage (emptyDir) is lost on node restart.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">3.</span>
+                <span>Check dependency ordering: If pods depend on other services (database, configmap from init), use init containers or readiness probes to handle startup ordering. Without these, fast-starting pods may crash connecting to slow-starting dependencies.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">4.</span>
+                <span>Examine resource limits: <code>kubectl top pods</code> and check for OOMKilled in <code>kubectl describe pod</code> -- after restart, all pods starting simultaneously may exceed node memory capacity, causing OOM kills and cascading restarts.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">5.</span>
+                <span>Review backoff timing: CrashLoopBackOff exponentially increases restart delay (10s, 20s, 40s, ... up to 5 min). Once the root cause is fixed, delete the pod to reset the backoff counter rather than waiting for the next restart attempt.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- FOOTER -->
+    <!-- ============================================================ -->
+
+    <hr>
+
+    <footer>
+        <p>K8s/DevOps/SRE Reference Notes | Kubernetes Architecture</p>
+        <p>Built for interview prep and daily reference</p>
+    </footer>
+
+</div>
+
+</body>
+</html>

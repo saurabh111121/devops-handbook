@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps - K8s/DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+    <nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html" class="active">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+        </nav>
+
+        <h1>DevOps</h1>
+        <p class="subtitle">DevOps practices and tooling covering version control, continuous integration and delivery pipelines, site reliability engineering principles, observability stacks, and infrastructure as code with Terraform and Ansible.</p>
+
+        <div class="toc-grid">
+
+            <a href="git.html" class="toc-card">
+                <span class="priority priority-critical">Must Know</span>
+                <h3>Git</h3>
+                <p>Branching strategies, merge vs rebase, conflict resolution, Git workflows (GitFlow, trunk-based), hooks, and best practices.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">Branching</span>
+                    <span class="tag tag-green">Merge/Rebase</span>
+                    <span class="tag tag-orange">Workflows</span>
+                    <span class="tag tag-purple">Hooks</span>
+                </div>
+            </a>
+
+            <a href="cicd.html" class="toc-card">
+                <span class="priority priority-critical">Must Know</span>
+                <h3>CI/CD</h3>
+                <p>Pipeline design, GitHub Actions, Jenkins, image promotion strategies, artifact management, and deployment automation.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">Pipelines</span>
+                    <span class="tag tag-green">GitHub Actions</span>
+                    <span class="tag tag-orange">Jenkins</span>
+                    <span class="tag tag-purple">Artifacts</span>
+                </div>
+            </a>
+
+            <a href="sre.html" class="toc-card">
+                <span class="priority priority-critical">Must Know</span>
+                <h3>SRE</h3>
+                <p>SLIs, SLOs, SLAs, error budgets, toil reduction, incident management, postmortems, and on-call practices.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">SLI/SLO</span>
+                    <span class="tag tag-green">Error Budgets</span>
+                    <span class="tag tag-red">Incidents</span>
+                    <span class="tag tag-orange">Postmortems</span>
+                </div>
+            </a>
+
+            <a href="observability.html" class="toc-card">
+                <span class="priority priority-high">High</span>
+                <h3>Observability</h3>
+                <p>Three pillars: metrics, logs, traces. PromQL, Grafana dashboards, ELK/Loki, distributed tracing with Jaeger/Tempo.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">Metrics</span>
+                    <span class="tag tag-green">Logs</span>
+                    <span class="tag tag-orange">Traces</span>
+                    <span class="tag tag-purple">Grafana</span>
+                </div>
+            </a>
+
+            <a href="terraform.html" class="toc-card">
+                <span class="priority priority-critical">Must Know</span>
+                <h3>Terraform</h3>
+                <p>HCL syntax, state management, modules, workspaces, providers, lifecycle rules, and infrastructure patterns.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">HCL</span>
+                    <span class="tag tag-green">State</span>
+                    <span class="tag tag-orange">Modules</span>
+                    <span class="tag tag-purple">Providers</span>
+                </div>
+            </a>
+
+            <a href="ansible.html" class="toc-card">
+                <span class="priority priority-medium">Medium</span>
+                <h3>Ansible</h3>
+                <p>Playbooks, roles, inventory management, modules, templates, handlers, and configuration management patterns.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">Playbooks</span>
+                    <span class="tag tag-green">Roles</span>
+                    <span class="tag tag-orange">Inventory</span>
+                    <span class="tag tag-purple">Templates</span>
+                </div>
+            </a>
+
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            Complete Kubernetes, DevOps & SRE Reference | Built for study & interview preparation | 2026
+        </footer>
+
+    </div>
+
+</body>
+</html>

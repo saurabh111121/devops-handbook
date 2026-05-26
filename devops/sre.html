@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRE Principles - DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html" class="active">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> / SRE Principles
+        </div>
+
+        <h1>SRE Principles</h1>
+        <p class="subtitle">Site Reliability Engineering - Reliability at scale through engineering discipline</p>
+
+        <!-- ============================================ -->
+        <!-- 1. SLIs, SLOs, SLAs -->
+        <!-- ============================================ -->
+        <h2>1. SLIs, SLOs, and SLAs</h2>
+
+        <div class="grid-2">
+            <div class="card card-info">
+                <h4>SLI - Service Level Indicator</h4>
+                <p>A carefully defined quantitative measure of some aspect of the level of service provided. It is the <strong>metric</strong> you measure.</p>
+                <p><strong>Examples:</strong></p>
+                <ul>
+                    <li>Request latency (p50, p95, p99)</li>
+                    <li>Error rate (% of 5xx responses)</li>
+                    <li>Availability (% of successful requests)</li>
+                    <li>Throughput (requests per second)</li>
+                </ul>
+            </div>
+            <div class="card card-success">
+                <h4>SLO - Service Level Objective</h4>
+                <p>A target value or range of values for a service level that is measured by an SLI. It is the <strong>goal</strong> you set.</p>
+                <p><strong>Examples:</strong></p>
+                <ul>
+                    <li>99.9% of requests complete in &lt; 300ms</li>
+                    <li>99.95% availability per month</li>
+                    <li>Error rate &lt; 0.1% over 30 days</li>
+                </ul>
+            </div>
+            <div class="card card-warning">
+                <h4>SLA - Service Level Agreement</h4>
+                <p>A contract with your users that includes consequences of meeting (or missing) the SLOs it contains. It is the <strong>promise</strong> with penalties.</p>
+                <p><strong>Examples:</strong></p>
+                <ul>
+                    <li>99.9% uptime or service credits issued</li>
+                    <li>P1 incidents resolved within 1 hour or penalty applies</li>
+                    <li>SLA is always less strict than SLO (buffer)</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Relationship</h4>
+                <p><code>SLI</code> measures the metric, <code>SLO</code> sets the target, <code>SLA</code> defines the contract.</p>
+                <p>Typical pattern: SLA &lt; SLO &lt; actual performance</p>
+                <p><strong>Example:</strong> SLA promises 99.9%, SLO targets 99.95%, system actually delivers 99.99%</p>
+            </div>
+        </div>
+
+        <h3>SLI Formulas</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">SLI Calculations</span>
+                <span class="tag tag-blue">Formulas</span>
+            </div>
+            <pre>
+Availability SLI = (Successful Requests / Total Requests) x 100%
+
+Latency SLI = (Requests faster than threshold / Total Requests) x 100%
+
+Error Rate SLI = (Failed Requests / Total Requests) x 100%
+
+Throughput SLI = Successful Requests per unit time
+
+Durability SLI = (Stored objects retrievable / Total stored objects) x 100%
+            </pre>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">SLI / SLO / SLA Relationship</div>
+            <pre>
+  Measured Reality         Target/Goal            Legal Contract
+ +---------------+     +---------------+     +------------------+
+ |     SLI       |     |     SLO       |     |      SLA         |
+ |  (Indicator)  |---->|  (Objective)  |---->|   (Agreement)    |
+ |               |     |               |     |                  |
+ | "What we      |     | "What we      |     | "What we         |
+ |  measure"     |     |  aim for"     |     |  promise"        |
+ |               |     |               |     |                  |
+ | e.g., latency |     | e.g., p99     |     | e.g., credits if |
+ |   = 145ms     |     |   < 200ms     |     |   > 500ms        |
+ +---------------+     +---------------+     +------------------+
+         |                     |                       |
+         v                     v                       v
+   Prometheus/            Alert when              Customer-facing
+   Datadog metric         approaching              documentation
+                          threshold
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 2. Error Budgets -->
+        <!-- ============================================ -->
+        <h2>2. Error Budgets</h2>
+
+        <div class="card card-info">
+            <h4>What is an Error Budget?</h4>
+            <p>The error budget is the maximum amount of time or failures your service can have before violating its SLO. It represents the acceptable level of unreliability.</p>
+            <p><strong>Formula:</strong> <code>Error Budget = 1 - SLO</code></p>
+        </div>
+
+        <h3>Error Budget Calculation</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Error Budget Math</span>
+                <span class="tag tag-green">Calculation</span>
+            </div>
+            <pre>
+SLO = 99.9% availability
+
+Error Budget = 1 - 0.999 = 0.001 = 0.1%
+
+Monthly (30 days):
+  Total minutes = 30 x 24 x 60 = 43,200 minutes
+  Allowed downtime = 43,200 x 0.001 = 43.2 minutes/month
+
+Quarterly (90 days):
+  Total minutes = 90 x 24 x 60 = 129,600 minutes
+  Allowed downtime = 129,600 x 0.001 = 129.6 minutes/quarter
+
+Common SLO Downtime Allowances (per month):
+  99%    = 7h 12m
+  99.9%  = 43.2m
+  99.95% = 21.6m
+  99.99% = 4.32m
+            </pre>
+        </div>
+
+        <h3>Error Budget Policy</h3>
+
+        <div class="card">
+            <p>An error budget policy defines what happens when the budget is exhausted:</p>
+            <ul>
+                <li><strong>Budget remaining (&gt;50%):</strong> Normal development velocity, feature work prioritized</li>
+                <li><strong>Budget consumed (25-50%):</strong> Increased focus on reliability, extra review for risky changes</li>
+                <li><strong>Budget nearly exhausted (&lt;25%):</strong> Freeze non-critical deployments, prioritize reliability work</li>
+                <li><strong>Budget exhausted (0%):</strong> Full feature freeze, all engineering effort on reliability</li>
+            </ul>
+        </div>
+
+        <h3>Burn Rate Alerting</h3>
+
+        <div class="card card-warning">
+            <h4>Multi-Window, Multi-Burn-Rate Alerts</h4>
+            <p>Burn rate measures how fast the error budget is being consumed relative to the SLO period.</p>
+            <ul>
+                <li><strong>Burn rate 1x:</strong> Budget consumed exactly over the SLO window (e.g., 30 days)</li>
+                <li><strong>Burn rate 2x:</strong> Budget consumed in half the time (15 days)</li>
+                <li><strong>Burn rate 14.4x:</strong> Budget consumed in ~2 days (page immediately)</li>
+                <li><strong>Burn rate 36x:</strong> Budget consumed in ~20 hours (critical alert)</li>
+            </ul>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Burn Rate Alert Configuration (Prometheus)</span>
+                <span class="tag tag-orange">Alert Rules</span>
+            </div>
+            <pre>
+# Multi-window burn rate alert
+# SLO: 99.9% over 30 days = error budget of 0.1%
+# Burn rate 14.4x = budget exhausted in 2 days
+
+groups:
+  - name: slo-burn-rate
+    rules:
+      # Critical: 14.4x burn rate over 1h AND 5m windows
+      - alert: HighErrorBudgetBurn
+        expr: |
+          (
+            sum(rate(http_requests_total{code=~"5.."}[1h]))
+            / sum(rate(http_requests_total[1h]))
+          ) > (14.4 * 0.001)
+          AND
+          (
+            sum(rate(http_requests_total{code=~"5.."}[5m]))
+            / sum(rate(http_requests_total[5m]))
+          ) > (14.4 * 0.001)
+        labels:
+          severity: critical
+        annotations:
+          summary: "Error budget burning at 14.4x rate"
+
+      # Warning: 6x burn rate over 6h AND 30m windows
+      - alert: ErrorBudgetBurnWarning
+        expr: |
+          (
+            sum(rate(http_requests_total{code=~"5.."}[6h]))
+            / sum(rate(http_requests_total[6h]))
+          ) > (6 * 0.001)
+          AND
+          (
+            sum(rate(http_requests_total{code=~"5.."}[30m]))
+            / sum(rate(http_requests_total[30m]))
+          ) > (6 * 0.001)
+        labels:
+          severity: warning
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 3. Toil -->
+        <!-- ============================================ -->
+        <h2>3. Toil</h2>
+
+        <div class="card card-info">
+            <h4>Definition</h4>
+            <p>Toil is the kind of work tied to running a production service that tends to be manual, repetitive, automatable, tactical, devoid of enduring value, and scales linearly as the service grows.</p>
+        </div>
+
+        <h3>Characteristics of Toil</h3>
+
+        <div class="point">
+            <div class="point-num">1</div>
+            <div class="point-content">
+                <div class="point-title">Manual</div>
+                Running a script manually that could be triggered automatically
+            </div>
+        </div>
+        <div class="point">
+            <div class="point-num">2</div>
+            <div class="point-content">
+                <div class="point-title">Repetitive</div>
+                The same task done over and over (e.g., restarting pods, clearing disk space)
+            </div>
+        </div>
+        <div class="point">
+            <div class="point-num green">3</div>
+            <div class="point-content">
+                <div class="point-title">Automatable</div>
+                If a machine could accomplish the task just as well, it is toil
+            </div>
+        </div>
+        <div class="point">
+            <div class="point-num purple">4</div>
+            <div class="point-content">
+                <div class="point-title">Tactical (Reactive)</div>
+                Interrupt-driven, responding to alerts rather than proactive engineering
+            </div>
+        </div>
+        <div class="point">
+            <div class="point-num orange">5</div>
+            <div class="point-content">
+                <div class="point-title">No Enduring Value</div>
+                After the task is done, the service is in the same state as before (no improvement)
+            </div>
+        </div>
+        <div class="point">
+            <div class="point-num red">6</div>
+            <div class="point-content">
+                <div class="point-title">Scales Linearly with Service Growth</div>
+                O(n) with service size - more traffic means more manual work
+            </div>
+        </div>
+
+        <h3>Toil Measurement</h3>
+
+        <div class="card">
+            <p>Google SRE targets: <strong>no more than 50% of an SRE's time should be spent on toil</strong>. The other 50% should be engineering work (automation, tooling, architecture).</p>
+            <p><strong>Measurement approaches:</strong></p>
+            <ul>
+                <li>Track time spent on operational tasks vs engineering work</li>
+                <li>Count tickets/interrupts per on-call shift</li>
+                <li>Categorize work: toil, engineering, overhead</li>
+                <li>Survey team quarterly on perceived toil burden</li>
+            </ul>
+        </div>
+
+        <h3>Toil Reduction Strategies</h3>
+
+        <table>
+            <tr><th>Strategy</th><th>Example</th><th>Impact</th></tr>
+            <tr><td>Automate repetitive tasks</td><td>Auto-scaling instead of manual capacity adds</td><td>High</td></tr>
+            <tr><td>Self-healing systems</td><td>K8s liveness probes auto-restart failed pods</td><td>High</td></tr>
+            <tr><td>Better monitoring</td><td>Reduce false alerts to cut interrupt-driven work</td><td>Medium</td></tr>
+            <tr><td>Eliminate root causes</td><td>Fix memory leaks instead of restarting weekly</td><td>High</td></tr>
+            <tr><td>Improve documentation</td><td>Runbooks reduce time-to-resolution</td><td>Medium</td></tr>
+            <tr><td>Platform engineering</td><td>Self-service infrastructure provisioning</td><td>High</td></tr>
+        </table>
+
+        <!-- ============================================ -->
+        <!-- 4. Incident Management -->
+        <!-- ============================================ -->
+        <h2>4. Incident Management</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">Incident Lifecycle</div>
+            <pre>
+  Detection          Triage           Response         Resolution        Post-Incident
+ +---------+     +---------+     +------------+     +-----------+     +-------------+
+ |  Alert  |     | Classify|     |  Assemble  |     |  Identify |     |  Postmortem |
+ |  fires  |---->| severity|---->|   team &   |---->|  root     |---->|  & action   |
+ |         |     |  & page |     |  comms     |     |  cause &  |     |  items      |
+ +---------+     +---------+     +------------+     |  fix      |     +-------------+
+      |               |               |             +-----------+           |
+      v               v               v                  |                  v
+  Monitoring     P1/P2/P3/P4     IC assigned         Deploy fix        Improve systems
+  Alerting       Escalation      War room open        Verify             Reduce toil
+  Anomaly        Runbook          Status page          Monitor            Share learnings
+  detection      lookup           updates              Validate
+            </pre>
+        </div>
+
+        <h3>Incident Roles</h3>
+
+        <div class="grid-2">
+            <div class="card card-warning">
+                <h4>Incident Commander (IC)</h4>
+                <ul>
+                    <li>Single point of coordination</li>
+                    <li>Delegates tasks, does NOT debug directly</li>
+                    <li>Makes decisions on mitigation strategy</li>
+                    <li>Calls for escalation when needed</li>
+                    <li>Declares incident resolved</li>
+                    <li>Ensures postmortem is scheduled</li>
+                </ul>
+            </div>
+            <div class="card card-info">
+                <h4>Communications Lead</h4>
+                <ul>
+                    <li>Updates status page</li>
+                    <li>Communicates with stakeholders</li>
+                    <li>Sends periodic updates (every 15-30 min)</li>
+                    <li>Shields responders from external interrupts</li>
+                    <li>Maintains incident timeline</li>
+                    <li>Coordinates customer communication</li>
+                </ul>
+            </div>
+            <div class="card card-success">
+                <h4>Operations Lead</h4>
+                <ul>
+                    <li>Hands-on debugging and mitigation</li>
+                    <li>Applies fixes to production systems</li>
+                    <li>Reports findings to IC</li>
+                    <li>Proposes mitigation options</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Subject Matter Expert (SME)</h4>
+                <ul>
+                    <li>Called in for specific domain knowledge</li>
+                    <li>Advises on system behavior</li>
+                    <li>May provide historical context</li>
+                    <li>Rotated in/out as needed</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>Communication During Incidents</h3>
+
+        <div class="card">
+            <p><strong>Key principles:</strong></p>
+            <ul>
+                <li>Use a dedicated incident channel (e.g., #inc-20260115-payment-failure)</li>
+                <li>Regular cadence updates even if no new info: "Still investigating, no change"</li>
+                <li>Clear, factual language - avoid blame or speculation</li>
+                <li>Announce all major actions before executing them</li>
+                <li>Timestamp everything for the postmortem timeline</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 5. Blameless Postmortems -->
+        <!-- ============================================ -->
+        <h2>5. Blameless Postmortems</h2>
+
+        <div class="card card-info">
+            <h4>Core Philosophy</h4>
+            <p>A blameless postmortem assumes that everyone involved in an incident had good intentions and made the best decisions they could given the information available at the time. The goal is to understand <strong>what happened</strong> and <strong>how to prevent it</strong>, not who to blame.</p>
+        </div>
+
+        <h3>Postmortem Template</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">postmortem-template.md</span>
+                <span class="tag tag-purple">Template</span>
+            </div>
+            <pre>
+# Incident Postmortem: [Title]
+
+## Summary
+- **Date:** YYYY-MM-DD
+- **Duration:** X hours Y minutes
+- **Severity:** P1/P2/P3/P4
+- **Impact:** [Users affected, revenue impact, data loss]
+- **Authors:** [Names]
+- **Status:** [Draft / In Review / Complete]
+
+## Timeline (UTC)
+| Time  | Event                                        |
+|-------|----------------------------------------------|
+| 14:00 | Alert fired: error rate > 5%                 |
+| 14:05 | On-call acknowledged, began investigation    |
+| 14:15 | IC declared, war room opened                 |
+| 14:30 | Root cause identified: bad config push       |
+| 14:35 | Rollback initiated                           |
+| 14:45 | Service recovered, monitoring confirmed      |
+| 15:00 | Incident declared resolved                   |
+
+## Root Cause
+[Detailed technical explanation of what went wrong]
+
+## Impact
+- X% of users affected for Y minutes
+- Z failed transactions
+- Estimated revenue impact: $N
+
+## Detection
+- How was the incident detected?
+- Could we have detected it faster?
+
+## Response
+- What went well in the response?
+- What could be improved?
+
+## Action Items
+| Action                           | Owner    | Priority | Due Date   |
+|----------------------------------|----------|----------|------------|
+| Add config validation pre-deploy | @alice   | P1       | 2026-02-01 |
+| Improve alert sensitivity        | @bob     | P2       | 2026-02-15 |
+| Add runbook for this failure     | @carol   | P2       | 2026-02-10 |
+
+## Lessons Learned
+- What went well
+- What went poorly
+- Where we got lucky
+
+## Supporting Data
+[Links to dashboards, logs, metrics screenshots]
+            </pre>
+        </div>
+
+        <h3>5 Whys Technique</h3>
+
+        <div class="card">
+            <p>A root cause analysis technique that asks "why" repeatedly to drill past symptoms to the underlying cause:</p>
+        </div>
+
+        <div class="point">
+            <div class="point-num">1</div>
+            <div class="point-content">
+                <div class="point-title">Why did the service go down?</div>
+                Because the database ran out of connections.
+            </div>
+        </div>
+        <div class="point">
+            <div class="point-num">2</div>
+            <div class="point-content">
+                <div class="point-title">Why did it run out of connections?</div>
+                Because a new deployment opened connections but never closed them.
+            </div>
+        </div>
+        <div class="point">
+            <div class="point-num green">3</div>
+            <div class="point-content">
+                <div class="point-title">Why were connections not closed?</div>
+                Because the code path for error handling skipped the cleanup function.
+            </div>
+        </div>
+        <div class="point">
+            <div class="point-num purple">4</div>
+            <div class="point-content">
+                <div class="point-title">Why was this not caught in testing?</div>
+                Because integration tests only test the happy path, not error scenarios.
+            </div>
+        </div>
+        <div class="point">
+            <div class="point-num orange">5</div>
+            <div class="point-content">
+                <div class="point-title">Why do integration tests only cover happy paths?</div>
+                Because there is no requirement or checklist for error-path test coverage.
+            </div>
+        </div>
+
+        <div class="card card-success">
+            <p><strong>Root Cause:</strong> Missing error-path test coverage requirement. <strong>Action:</strong> Add error-scenario testing to the Definition of Done and CI pipeline.</p>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 6. Severity Classification -->
+        <!-- ============================================ -->
+        <h2>6. Severity Classification</h2>
+
+        <table>
+            <tr>
+                <th>Severity</th>
+                <th>Impact</th>
+                <th>Response Time</th>
+                <th>Update Cadence</th>
+                <th>Example</th>
+            </tr>
+            <tr>
+                <td><span class="tag tag-red">P1 - Critical</span></td>
+                <td>Complete service outage, data loss, security breach</td>
+                <td>&lt; 5 minutes</td>
+                <td>Every 15 minutes</td>
+                <td>Production database down, payment system offline</td>
+            </tr>
+            <tr>
+                <td><span class="tag tag-orange">P2 - High</span></td>
+                <td>Major feature degraded, significant user impact</td>
+                <td>&lt; 15 minutes</td>
+                <td>Every 30 minutes</td>
+                <td>Search broken for 30% of users, elevated error rates</td>
+            </tr>
+            <tr>
+                <td><span class="tag tag-yellow">P3 - Medium</span></td>
+                <td>Minor feature degraded, workaround available</td>
+                <td>&lt; 4 hours</td>
+                <td>Every 2 hours</td>
+                <td>Email notifications delayed, non-critical API slow</td>
+            </tr>
+            <tr>
+                <td><span class="tag tag-blue">P4 - Low</span></td>
+                <td>Cosmetic issue, minimal user impact</td>
+                <td>Next business day</td>
+                <td>Daily</td>
+                <td>Dashboard chart not rendering, typo in UI</td>
+            </tr>
+        </table>
+
+        <div class="card card-warning">
+            <h4>Escalation Rules</h4>
+            <ul>
+                <li><strong>P1:</strong> Immediately page on-call, IC assigned within 5 min, VP notified within 15 min</li>
+                <li><strong>P2:</strong> Page on-call, IC assigned within 15 min, manager notified within 30 min</li>
+                <li><strong>P3:</strong> Slack alert to team, assigned to next available engineer</li>
+                <li><strong>P4:</strong> Ticket created, handled in normal sprint workflow</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 7. Chaos Engineering -->
+        <!-- ============================================ -->
+        <h2>7. Chaos Engineering</h2>
+
+        <div class="card card-info">
+            <h4>Definition</h4>
+            <p>Chaos Engineering is the discipline of experimenting on a system to build confidence in the system's capability to withstand turbulent conditions in production.</p>
+        </div>
+
+        <h3>Principles of Chaos Engineering</h3>
+
+        <div class="point">
+            <div class="point-num">1</div>
+            <div class="point-content">
+                <div class="point-title">Build a Hypothesis Around Steady State</div>
+                Define what "normal" looks like in terms of measurable output (throughput, error rate, latency)
+            </div>
+        </div>
+        <div class="point">
+            <div class="point-num">2</div>
+            <div class="point-content">
+                <div class="point-title">Vary Real-World Events</div>
+                Inject failures that reflect real-world turbulence: server crashes, network partitions, disk full, clock skew
+            </div>
+        </div>
+        <div class="point">
+            <div class="point-num green">3</div>
+            <div class="point-content">
+                <div class="point-title">Run Experiments in Production</div>
+                Systems behave differently in production vs staging due to traffic patterns, data volume, and configuration
+            </div>
+        </div>
+        <div class="point">
+            <div class="point-num purple">4</div>
+            <div class="point-content">
+                <div class="point-title">Automate Experiments to Run Continuously</div>
+                One-off tests provide less confidence than continuous validation
+            </div>
+        </div>
+        <div class="point">
+            <div class="point-num orange">5</div>
+            <div class="point-content">
+                <div class="point-title">Minimize Blast Radius</div>
+                Start small, contain experiments, have abort mechanisms ready
+            </div>
+        </div>
+
+        <h3>Chaos Engineering Tools</h3>
+
+        <table>
+            <tr><th>Tool</th><th>Platform</th><th>Key Features</th></tr>
+            <tr><td><strong>Litmus Chaos</strong></td><td>Kubernetes-native</td><td>ChaosEngine CRDs, ChaosHub experiment library, Kubernetes-first, CNCF project</td></tr>
+            <tr><td><strong>Gremlin</strong></td><td>Multi-platform</td><td>Enterprise SaaS, state/network/resource attacks, safety controls, team features</td></tr>
+            <tr><td><strong>Chaos Mesh</strong></td><td>Kubernetes</td><td>CNCF project, pod/network/IO/time chaos, dashboard, fine-grained scheduling</td></tr>
+            <tr><td><strong>AWS FIS</strong></td><td>AWS</td><td>Fault Injection Simulator, native AWS integration, EC2/ECS/EKS/RDS targets</td></tr>
+            <tr><td><strong>Toxiproxy</strong></td><td>Any</td><td>Network-level chaos proxy, latency/bandwidth/disconnect simulation</td></tr>
+        </table>
+
+        <h3>Game Days</h3>
+
+        <div class="card">
+            <h4>Running a Game Day</h4>
+            <ol>
+                <li><strong>Plan:</strong> Define hypothesis, scope, abort criteria, participants</li>
+                <li><strong>Communicate:</strong> Notify stakeholders, ensure on-call awareness</li>
+                <li><strong>Execute:</strong> Inject failure, observe system behavior, measure SLIs</li>
+                <li><strong>Observe:</strong> Monitor dashboards, check alerts fire correctly, verify auto-healing</li>
+                <li><strong>Analyze:</strong> Compare observed vs expected behavior, document findings</li>
+                <li><strong>Remediate:</strong> Fix gaps discovered, improve runbooks, update alerts</li>
+            </ol>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">litmus-chaos-experiment.yaml</span>
+                <span class="tag tag-blue">Kubernetes</span>
+            </div>
+            <pre>
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: pod-kill-chaos
+  namespace: production
+spec:
+  appinfo:
+    appns: production
+    applabel: app=payment-service
+    appkind: deployment
+  engineState: active
+  chaosServiceAccount: litmus-admin
+  experiments:
+    - name: pod-delete
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "30"
+            - name: CHAOS_INTERVAL
+              value: "10"
+            - name: FORCE
+              value: "false"
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 8. On-Call Best Practices -->
+        <!-- ============================================ -->
+        <h2>8. On-Call Best Practices</h2>
+
+        <h3>Rotation Design</h3>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Rotation Structure</h4>
+                <ul>
+                    <li>Primary + secondary on-call (backup)</li>
+                    <li>Rotation duration: 1 week typical</li>
+                    <li>Minimum team size: 8 people for sustainable rotation</li>
+                    <li>Follow-the-sun for global teams</li>
+                    <li>Fair compensation for out-of-hours work</li>
+                    <li>Handoff meeting at rotation change</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>On-Call Load Targets</h4>
+                <ul>
+                    <li>&lt; 2 pages per shift (target)</li>
+                    <li>&lt; 25% of on-call time on incidents</li>
+                    <li>Maximum 1 week on-call per month</li>
+                    <li>No more than 2 consecutive on-call shifts</li>
+                    <li>Post-incident recovery time (day off after P1)</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>Escalation Policies</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Escalation Chain</div>
+            <pre>
+  Alert Fires
+      |
+      v
+  +-------------------+   No ACK in 5 min    +-------------------+
+  |  Primary On-Call  |--------------------->|  Secondary On-Call |
+  +-------------------+                      +-------------------+
+                                                      |
+                                              No ACK in 5 min
+                                                      |
+                                                      v
+                                             +-------------------+
+                                             |   Team Lead /     |
+                                             |   Engineering Mgr |
+                                             +-------------------+
+                                                      |
+                                              No ACK in 10 min
+                                                      |
+                                                      v
+                                             +-------------------+
+                                             |   VP / Director   |
+                                             |   (P1 only)       |
+                                             +-------------------+
+            </pre>
+        </div>
+
+        <h3>Runbooks</h3>
+
+        <div class="card card-success">
+            <h4>What Makes a Good Runbook</h4>
+            <ul>
+                <li><strong>Actionable:</strong> Step-by-step commands, not just theory</li>
+                <li><strong>Linked from alerts:</strong> Every alert should link to its runbook</li>
+                <li><strong>Up to date:</strong> Review and update after every incident</li>
+                <li><strong>Scoped:</strong> One runbook per alert/scenario, not monolithic</li>
+                <li><strong>Includes rollback:</strong> How to undo any action taken</li>
+                <li><strong>Has decision trees:</strong> "If X then do Y, else do Z"</li>
+                <li><strong>Contact list:</strong> Who to escalate to for specific subsystems</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 9. DORA Metrics -->
+        <!-- ============================================ -->
+        <h2>9. DORA Metrics</h2>
+
+        <div class="card card-info">
+            <p><strong>DORA</strong> (DevOps Research and Assessment) identified four key metrics that predict software delivery performance and organizational outcomes.</p>
+        </div>
+
+        <table>
+            <tr>
+                <th>Metric</th>
+                <th>Elite</th>
+                <th>High</th>
+                <th>Medium</th>
+                <th>Low</th>
+            </tr>
+            <tr>
+                <td><strong>Deployment Frequency</strong><br><em>How often code deploys to production</em></td>
+                <td>On-demand (multiple/day)</td>
+                <td>Weekly to monthly</td>
+                <td>Monthly to every 6 months</td>
+                <td>Fewer than once per 6 months</td>
+            </tr>
+            <tr>
+                <td><strong>Lead Time for Changes</strong><br><em>Commit to production deploy time</em></td>
+                <td>&lt; 1 hour</td>
+                <td>1 day to 1 week</td>
+                <td>1 week to 1 month</td>
+                <td>&gt; 6 months</td>
+            </tr>
+            <tr>
+                <td><strong>Change Failure Rate</strong><br><em>% of deployments causing failure</em></td>
+                <td>0-15%</td>
+                <td>16-30%</td>
+                <td>16-30%</td>
+                <td>46-60%</td>
+            </tr>
+            <tr>
+                <td><strong>Mean Time to Restore (MTTR)</strong><br><em>Time to recover from failure</em></td>
+                <td>&lt; 1 hour</td>
+                <td>&lt; 1 day</td>
+                <td>1 day to 1 week</td>
+                <td>&gt; 6 months</td>
+            </tr>
+        </table>
+
+        <div class="card">
+            <h4>How to Measure DORA Metrics</h4>
+            <ul>
+                <li><strong>Deployment Frequency:</strong> Count production deployments per time period (CI/CD pipeline data)</li>
+                <li><strong>Lead Time:</strong> Measure from first commit on branch to production deploy timestamp</li>
+                <li><strong>Change Failure Rate:</strong> (Failed deploys + hotfix deploys) / Total deploys</li>
+                <li><strong>MTTR:</strong> Time from incident detection to service restoration (PagerDuty/incident data)</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 10. USE and RED Methods -->
+        <!-- ============================================ -->
+        <h2>10. USE and RED Methods</h2>
+
+        <div class="grid-2">
+            <div class="card card-warning">
+                <h4>USE Method (Infrastructure/Resources)</h4>
+                <p>Created by Brendan Gregg. For every resource (CPU, memory, disk, network):</p>
+                <ul>
+                    <li><strong>U</strong>tilization: % of resource busy (e.g., CPU at 85%)</li>
+                    <li><strong>S</strong>aturation: Queue depth / work waiting (e.g., run queue length)</li>
+                    <li><strong>E</strong>rrors: Error count (e.g., disk I/O errors, network CRC errors)</li>
+                </ul>
+                <p><strong>Best for:</strong> Infrastructure monitoring, hardware resources, system-level troubleshooting</p>
+            </div>
+            <div class="card card-info">
+                <h4>RED Method (Services/Requests)</h4>
+                <p>Created by Tom Wilkie. For every service:</p>
+                <ul>
+                    <li><strong>R</strong>ate: Requests per second</li>
+                    <li><strong>E</strong>rrors: Number of failed requests per second</li>
+                    <li><strong>D</strong>uration: Distribution of request latency (histogram)</li>
+                </ul>
+                <p><strong>Best for:</strong> Microservices monitoring, request-driven systems, user-facing metrics</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h4>When to Use Each</h4>
+            <table>
+                <tr><th>Scenario</th><th>Method</th><th>Why</th></tr>
+                <tr><td>Database server running slow</td><td>USE</td><td>Check CPU, memory, disk I/O saturation</td></tr>
+                <tr><td>API response times increasing</td><td>RED</td><td>Track rate, errors, latency distribution</td></tr>
+                <tr><td>Kubernetes node pressure</td><td>USE</td><td>Check node resource utilization and saturation</td></tr>
+                <tr><td>Microservice error spike</td><td>RED</td><td>Measure request rate, error rate, duration</td></tr>
+                <tr><td>Network throughput issues</td><td>USE</td><td>Check bandwidth utilization, packet queuing, errors</td></tr>
+                <tr><td>User-facing latency SLO breach</td><td>RED</td><td>Focus on request duration distribution</td></tr>
+            </table>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 11. 12-Factor App -->
+        <!-- ============================================ -->
+        <h2>11. The 12-Factor App (with Kubernetes Mapping)</h2>
+
+        <table>
+            <tr><th>#</th><th>Factor</th><th>Principle</th><th>Kubernetes Implementation</th></tr>
+            <tr><td>1</td><td><strong>Codebase</strong></td><td>One codebase tracked in revision control, many deploys</td><td>Git repo + container image per service</td></tr>
+            <tr><td>2</td><td><strong>Dependencies</strong></td><td>Explicitly declare and isolate dependencies</td><td>Dockerfile defines all deps, no system-level assumptions</td></tr>
+            <tr><td>3</td><td><strong>Config</strong></td><td>Store config in the environment</td><td>ConfigMaps, Secrets, environment variables in Pod spec</td></tr>
+            <tr><td>4</td><td><strong>Backing Services</strong></td><td>Treat backing services as attached resources</td><td>ExternalName Services, connection strings in ConfigMaps</td></tr>
+            <tr><td>5</td><td><strong>Build, Release, Run</strong></td><td>Strictly separate build and run stages</td><td>CI builds image, CD deploys to K8s, immutable image tags</td></tr>
+            <tr><td>6</td><td><strong>Processes</strong></td><td>Execute app as stateless processes</td><td>Deployments with replicas, no local state, external state stores</td></tr>
+            <tr><td>7</td><td><strong>Port Binding</strong></td><td>Export services via port binding</td><td>containerPort in Pod spec, Service selectors</td></tr>
+            <tr><td>8</td><td><strong>Concurrency</strong></td><td>Scale out via the process model</td><td>HPA scales pod replicas horizontally</td></tr>
+            <tr><td>9</td><td><strong>Disposability</strong></td><td>Maximize robustness with fast startup and graceful shutdown</td><td>preStop hooks, terminationGracePeriodSeconds, readiness probes</td></tr>
+            <tr><td>10</td><td><strong>Dev/Prod Parity</strong></td><td>Keep dev, staging, and production as similar as possible</td><td>Same container images across environments, Kustomize overlays</td></tr>
+            <tr><td>11</td><td><strong>Logs</strong></td><td>Treat logs as event streams</td><td>Write to stdout/stderr, collected by Fluentd/Fluent Bit DaemonSet</td></tr>
+            <tr><td>12</td><td><strong>Admin Processes</strong></td><td>Run admin/management tasks as one-off processes</td><td>Kubernetes Jobs, kubectl exec for one-off commands</td></tr>
+        </table>
+
+        <!-- ============================================ -->
+        <!-- 12. Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>12. Interview Q&A - SRE Concepts</h2>
+
+        <div class="qa">
+            <div class="q">Q: What is the difference between SLI, SLO, and SLA?</div>
+            <div class="a"><strong>SLI</strong> is the metric you measure (e.g., request latency). <strong>SLO</strong> is the target you set for that metric (e.g., p99 latency &lt; 200ms). <strong>SLA</strong> is the contractual agreement with customers that includes consequences for not meeting the SLO. The SLA threshold should always be less strict than the SLO to provide a safety buffer.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: How do you calculate and use error budgets?</div>
+            <div class="a"><strong>Error Budget = 1 - SLO.</strong> For a 99.9% SLO, the error budget is 0.1% (about 43 minutes/month). It represents the acceptable unreliability. Teams use it to balance velocity and reliability: when budget is healthy, ship features faster; when exhausted, freeze deployments and fix reliability. Burn rate alerts warn when budget is being consumed too quickly.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: What is toil and how do you reduce it?</div>
+            <div class="a">Toil is operational work that is <strong>manual, repetitive, automatable, tactical, devoid of enduring value, and scales linearly</strong> with service size. Reduce it by: automating repetitive tasks, building self-healing systems, eliminating root causes rather than treating symptoms, improving monitoring to reduce false alerts, and creating self-service platforms. Google targets &lt;50% toil for SRE teams.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: Explain blameless postmortems. Why are they important?</div>
+            <div class="a">Blameless postmortems focus on <strong>systemic causes rather than individual mistakes</strong>. They assume everyone made the best decisions with available information. This is critical because: (1) it encourages honest reporting, (2) people won't hide mistakes, (3) you find real systemic improvements, (4) it builds psychological safety. The output should be actionable items that prevent recurrence through system improvements, not human process changes.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: What are the DORA metrics and why do they matter?</div>
+            <div class="a">DORA metrics are four measures of software delivery performance: <strong>Deployment Frequency, Lead Time for Changes, Change Failure Rate, and Mean Time to Restore</strong>. They matter because research shows they predict both organizational performance and team wellbeing. Elite performers deploy multiple times/day with &lt;1h lead time, 0-15% failure rate, and &lt;1h MTTR. These metrics help teams identify bottlenecks and measure improvement.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: How would you implement SLOs for a new service?</div>
+            <div class="a">Step-by-step: (1) <strong>Identify critical user journeys</strong> - what matters most to users. (2) <strong>Choose SLIs</strong> - typically availability, latency, and error rate. (3) <strong>Set initial SLO targets</strong> based on current performance (slightly below actual). (4) <strong>Implement measurement</strong> - instrument the service, build dashboards. (5) <strong>Define error budget policy</strong> - what happens when budget is consumed. (6) <strong>Iterate</strong> - review SLOs quarterly, tighten as system matures. Start conservative and get tighter over time.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: What is the difference between USE and RED methods?</div>
+            <div class="a"><strong>USE</strong> (Utilization, Saturation, Errors) is for <strong>infrastructure resources</strong> - CPU, memory, disk, network. <strong>RED</strong> (Rate, Errors, Duration) is for <strong>services/requests</strong> - HTTP endpoints, microservices, APIs. Use USE for system-level troubleshooting (why is the node slow?). Use RED for application-level monitoring (why are users seeing errors?). They complement each other - USE finds resource bottlenecks, RED finds service-level issues.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: How do you approach on-call sustainably?</div>
+            <div class="a">Key practices: (1) <strong>Team size</strong> of at least 8 for weekly rotation. (2) <strong>Target &lt;2 pages per shift</strong>; more means systems need reliability work. (3) <strong>Every alert must be actionable</strong> - if it doesn't require action, delete it. (4) <strong>Runbooks for every alert</strong> - reduce cognitive load at 3am. (5) <strong>Post-incident recovery time</strong> after P1s. (6) <strong>Toil budget</strong> - invest in automation to reduce page frequency. (7) <strong>Fair compensation</strong> for out-of-hours work. (8) <strong>Regular review</strong> of alert frequency and on-call load.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: Describe the incident management lifecycle.</div>
+            <div class="a">Five phases: (1) <strong>Detection</strong> - monitoring/alerts detect anomaly. (2) <strong>Triage</strong> - classify severity, determine if it's a real incident. (3) <strong>Response</strong> - IC assigned, war room opened, roles delegated (ops lead, comms lead, SMEs). (4) <strong>Resolution</strong> - identify root cause, implement fix, verify recovery. (5) <strong>Post-incident</strong> - blameless postmortem within 48h, action items tracked to completion. Communication is critical throughout: regular status updates, clear language, timestamped actions.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: What is chaos engineering and when should you use it?</div>
+            <div class="a">Chaos engineering is <strong>proactively injecting failures to discover weaknesses</strong> before they cause outages. Use it when: (1) your system is complex enough that failures are unpredictable, (2) you need confidence in auto-healing capabilities, (3) you want to validate runbooks/alerts work correctly. Start small (kill one pod), build confidence, then escalate (network partition, AZ failure). Always have a hypothesis, measure SLIs, and have abort criteria. Tools: Litmus Chaos (K8s), Chaos Mesh, Gremlin (enterprise).</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: How do you prevent alert fatigue?</div>
+            <div class="a">Strategies: (1) <strong>Every alert must be actionable</strong> - if no action needed, remove it. (2) <strong>Use burn rate alerts</strong> instead of threshold alerts for SLOs. (3) <strong>Group related alerts</strong> - one page for correlated issues, not five. (4) <strong>Tune thresholds</strong> - review false positive rate monthly. (5) <strong>Route by severity</strong> - page for P1/P2, ticket for P3/P4. (6) <strong>Deduplicate</strong> - suppress repeat notifications for same incident. (7) <strong>Regular hygiene</strong> - delete alerts nobody acts on. Target: &lt;2 pages per on-call shift.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: Explain the 12-Factor App methodology and its relevance to cloud-native.</div>
+            <div class="a">The 12-Factor App defines principles for building scalable, maintainable SaaS: <strong>single codebase, explicit dependencies, config in environment, backing services as resources, separate build/release/run, stateless processes, port binding, scale via processes, fast startup/graceful shutdown, dev/prod parity, logs as streams, admin as one-off processes</strong>. It maps directly to Kubernetes: ConfigMaps for config, Deployments for stateless processes, HPA for concurrency, preStop hooks for disposability, DaemonSet log collectors for logs-as-streams.</div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 13. Real Scenarios -->
+        <!-- ============================================ -->
+        <h2>13. Real-World Scenarios</h2>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!!</span>
+                <span class="title">Scenario: Error Budget Exhausted</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Situation:</strong> Your payment service has a 99.95% availability SLO (21.6 minutes/month budget). It's day 15 of the month and you've already used 20 minutes due to two incidents.</p>
+
+                <h4>Response Plan:</h4>
+                <div class="scenario-step"><span class="step-num">1.</span> Declare feature freeze immediately - no new deployments unless they improve reliability</div>
+                <div class="scenario-step"><span class="step-num">2.</span> Review both incidents - identify common patterns or systemic issues</div>
+                <div class="scenario-step"><span class="step-num">3.</span> Prioritize reliability improvements: add circuit breakers, improve health checks, reduce blast radius</div>
+                <div class="scenario-step"><span class="step-num">4.</span> Tighten deployment process: require additional review, canary all changes, reduce deployment batch size</div>
+                <div class="scenario-step"><span class="step-num">5.</span> Communicate to stakeholders: product team knows feature delivery is paused, leadership understands why</div>
+                <div class="scenario-step"><span class="step-num">6.</span> Set criteria for resuming normal velocity: specific reliability improvements completed, budget recovery in next period</div>
+
+                <div class="card card-warning" style="margin-top: 1rem;">
+                    <p><strong>Key insight:</strong> Error budgets create alignment between development and operations. When the budget is exhausted, everyone agrees: reliability work takes priority. This removes the "move fast vs. be reliable" conflict.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!!</span>
+                <span class="title">Scenario: Cascading Failure</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Situation:</strong> Service A calls Service B, which calls Service C. Service C's database becomes slow, causing timeouts in B, which causes retries from A, which amplifies the load on B and C, eventually bringing down all three services.</p>
+
+                <h4>Immediate Response:</h4>
+                <div class="scenario-step"><span class="step-num">1.</span> Identify the cascade: look at error rates propagating upstream in distributed traces</div>
+                <div class="scenario-step"><span class="step-num">2.</span> Break the cascade: enable circuit breakers on Service A to stop retries to B</div>
+                <div class="scenario-step"><span class="step-num">3.</span> Shed load: rate-limit incoming traffic to Service A to reduce overall system pressure</div>
+                <div class="scenario-step"><span class="step-num">4.</span> Fix the root cause: address Service C's database issue (slow query, connection exhaustion, etc.)</div>
+                <div class="scenario-step"><span class="step-num">5.</span> Gradually restore: remove rate limits, re-enable circuit breakers in controlled fashion</div>
+
+                <h4>Prevention Strategies:</h4>
+                <ul>
+                    <li><strong>Circuit breakers:</strong> Stop calling failing services (Hystrix pattern, Istio)</li>
+                    <li><strong>Timeouts:</strong> Always set timeouts shorter than the caller's timeout</li>
+                    <li><strong>Bulkheads:</strong> Isolate failure domains (separate thread pools, connection pools)</li>
+                    <li><strong>Retry with backoff:</strong> Exponential backoff + jitter, capped retries</li>
+                    <li><strong>Graceful degradation:</strong> Return cached/default data when downstream is down</li>
+                    <li><strong>Load shedding:</strong> Reject excess traffic early rather than processing slowly</li>
+                </ul>
+
+                <div class="diagram">
+                    <div class="diagram-label">Cascade Prevention Pattern</div>
+                    <pre>
+  Service A                  Service B                  Service C
+ +--------+    Circuit     +--------+    Circuit     +--------+
+ |        |    Breaker     |        |    Breaker     |        |
+ | Client |--[CB: OPEN]-->| API    |--[CB: OPEN]-->| DB     |
+ |        |    returns     |        |    returns     |        |
+ |        |    fallback    |        |    cached      |  SLOW  |
+ +--------+                +--------+    response    +--------+
+     |                         |                         |
+     |  Timeout: 2s            |  Timeout: 1s            |  Query: 30s
+     |  Retries: 2             |  Retries: 1             |  (problem!)
+     |  Backoff: exp+jitter    |  Backoff: exp+jitter    |
+                    </pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!!</span>
+                <span class="title">Scenario: Noisy Alert Fatigue</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Situation:</strong> Your team receives 50+ alerts per on-call shift. Engineers are ignoring alerts, real issues get buried, and morale is dropping. Last week a P1 was missed because it looked like another false positive.</p>
+
+                <h4>Diagnosis:</h4>
+                <div class="scenario-step"><span class="step-num">1.</span> Audit all alerts from the past 30 days: categorize as actionable, non-actionable, duplicate, or false positive</div>
+                <div class="scenario-step"><span class="step-num">2.</span> Measure signal-to-noise ratio: what % of alerts required human action?</div>
+                <div class="scenario-step"><span class="step-num">3.</span> Identify top offenders: which alerts fire most frequently?</div>
+
+                <h4>Remediation Plan:</h4>
+                <div class="scenario-step"><span class="step-num">1.</span> <strong>Delete non-actionable alerts:</strong> If no one does anything when it fires, remove it or convert to a dashboard metric</div>
+                <div class="scenario-step"><span class="step-num">2.</span> <strong>Fix the root cause:</strong> If an alert fires daily for the same issue, fix the issue instead of alerting on it</div>
+                <div class="scenario-step"><span class="step-num">3.</span> <strong>Tune thresholds:</strong> Increase thresholds to reduce false positives (accept slightly later detection for much fewer pages)</div>
+                <div class="scenario-step"><span class="step-num">4.</span> <strong>Use burn-rate alerts:</strong> Replace threshold alerts with SLO-based multi-window burn-rate alerts</div>
+                <div class="scenario-step"><span class="step-num">5.</span> <strong>Group correlated alerts:</strong> One incident = one page, not 15 alerts from the same root cause</div>
+                <div class="scenario-step"><span class="step-num">6.</span> <strong>Route appropriately:</strong> P3/P4 to tickets, not pages. Only P1/P2 should page.</div>
+                <div class="scenario-step"><span class="step-num">7.</span> <strong>Set targets:</strong> Aim for &lt;2 pages per shift. Review weekly until achieved.</div>
+
+                <div class="card card-info" style="margin-top: 1rem;">
+                    <p><strong>Success criteria:</strong> Every alert that pages results in an engineer taking a meaningful action. If you achieve this, you will never miss a real incident because trust in the alerting system is restored.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            SRE Principles Reference | Part of the Complete K8s/DevOps/SRE Study Guide | 2026
+        </footer>
+
+    </div>
+
+</body>
+</html>

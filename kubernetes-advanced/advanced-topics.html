@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes Advanced Topics | K8s Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html" class="active">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <p class="breadcrumb"><a href="../index.html">Home</a> / Kubernetes Advanced Topics</p>
+
+        <h1>Kubernetes Advanced Topics</h1>
+        <p class="subtitle">Deployment strategies, CNI/CSI, CRDs, Operators, Helm, cluster administration, service mesh, and Gateway API</p>
+
+        <!-- ============================================ -->
+        <!-- SECTION 1: Deployment Strategies -->
+        <!-- ============================================ -->
+        <h2>1. Deployment Strategies</h2>
+
+        <h3>Rolling Update (Default)</h3>
+
+        <div class="card card-info">
+            <p>Gradually replaces old pods with new ones, ensuring zero downtime. Controlled by <code>maxSurge</code> (extra pods during update) and <code>maxUnavailable</code> (pods that can be down).</p>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">Rolling Update Process (maxSurge=1, maxUnavailable=1, replicas=4)</div>
+<pre>
+ Time 0: All pods running v1
+ +------+------+------+------+
+ | v1   | v1   | v1   | v1   |   Desired: 4, Available: 4
+ +------+------+------+------+
+
+ Time 1: Create new pod, terminate one old
+ +------+------+------+------+------+
+ | v1   | v1   | v1   | (v1) | v2   |   maxSurge=1 (5 total allowed)
+ +------+------+------+------+------+   maxUnavailable=1 (3 min available)
+
+ Time 2: v2 ready, continue rolling
+ +------+------+------+------+
+ | v1   | v1   | v2   | v2   |   2 old, 2 new
+ +------+------+------+------+
+
+ Time 3: Continue...
+ +------+------+------+------+
+ | v1   | v2   | v2   | v2   |   1 old, 3 new
+ +------+------+------+------+
+
+ Time 4: Complete
+ +------+------+------+------+
+ | v2   | v2   | v2   | v2   |   All pods running v2
+ +------+------+------+------+
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">rolling-update.yaml</span>
+                <span class="tag tag-blue">Strategy</span>
+            </div>
+<pre>
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app
+spec:
+  replicas: 4
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1           # Can have 5 pods during update
+      maxUnavailable: 1     # At least 3 must be available
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+      - name: web
+        image: web-app:v2
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      minReadySeconds: 10     # Wait 10s after ready before continuing
+      progressDeadlineSeconds: 600  # Fail if not complete in 10min
+</pre>
+        </div>
+
+        <h3>Blue/Green Deployment</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Blue/Green Deployment</div>
+<pre>
+ PHASE 1: Blue (v1) is live, Green (v2) deploying
+ =====================================================
+
+                  +--Service--+
+                  |  selector:|
+                  |  version: |-----+
+                  |  blue     |     |
+                  +-----------+     |
+                                    v
+ +-Green (v2)----+     +-Blue (v1)--------+
+ | Deployment    |     | Deployment       |
+ | replicas: 4   |     | replicas: 4      |
+ | (testing)     |     | (serving traffic)|
+ +---------------+     +------------------+
+
+ PHASE 2: Switch traffic to Green
+ =====================================================
+
+                  +--Service--+
+                  |  selector:|
+                  |  version: |-----+
+                  |  green    |     |
+                  +-----------+     |
+                                    v
+ +-Green (v2)----+     +-Blue (v1)--------+
+ | Deployment    |     | Deployment       |
+ | replicas: 4   |     | replicas: 4      |
+ | (NOW LIVE)    |     | (standby/delete) |
+ +---------------+     +------------------+
+
+ ROLLBACK: Just switch selector back to "blue"
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">blue-green.yaml</span>
+                <span class="tag tag-green">Blue/Green</span>
+            </div>
+<pre>
+# Service - points to either blue or green via selector
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-app
+spec:
+  selector:
+    app: web-app
+    version: green      # Switch this to "blue" for rollback
+  ports:
+  - port: 80
+    targetPort: 8080
+---
+# Blue deployment (current production)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app-blue
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: web-app
+      version: blue
+  template:
+    metadata:
+      labels:
+        app: web-app
+        version: blue
+    spec:
+      containers:
+      - name: web
+        image: web-app:v1
+---
+# Green deployment (new version)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app-green
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: web-app
+      version: green
+  template:
+    metadata:
+      labels:
+        app: web-app
+        version: green
+    spec:
+      containers:
+      - name: web
+        image: web-app:v2
+</pre>
+        </div>
+
+        <h3>Canary Deployment</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Canary Deployment with Traffic Splitting</div>
+<pre>
+ PHASE 1: 10% traffic to canary
+ =====================================================
+
+                    Ingress Controller / Service Mesh
+                    (Istio, Nginx, Traefik)
+                              |
+                    +---------+---------+
+                    |                   |
+                 90% traffic         10% traffic
+                    |                   |
+                    v                   v
+        +-Stable (v1)-----+   +-Canary (v2)-----+
+        | Deployment       |   | Deployment       |
+        | replicas: 9      |   | replicas: 1      |
+        +-----------------+   +-----------------+
+
+ PHASE 2: Monitor metrics (error rate, latency)
+ =====================================================
+
+        If canary healthy:   increase to 25%, 50%, 100%
+        If canary unhealthy: rollback (scale canary to 0)
+
+ PHASE 3: Promote canary (scale up v2, scale down v1)
+ =====================================================
+
+        +-Stable (v2)-----+   +-Old (v1)--------+
+        | Deployment       |   | Deployment       |
+        | replicas: 10     |   | replicas: 0      |
+        +-----------------+   +-----------------+
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">canary-istio.yaml</span>
+                <span class="tag tag-orange">Istio traffic split</span>
+            </div>
+<pre>
+# Istio VirtualService for traffic splitting
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: web-app
+spec:
+  hosts:
+  - web-app.example.com
+  gateways:
+  - web-gateway
+  http:
+  - match:
+    - headers:
+        x-canary:
+          exact: "true"
+    route:
+    - destination:
+        host: web-app-canary
+        port:
+          number: 80
+  - route:
+    - destination:
+        host: web-app-stable
+        port:
+          number: 80
+      weight: 90
+    - destination:
+        host: web-app-canary
+        port:
+          number: 80
+      weight: 10
+---
+# Canary Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app-canary
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-app
+      track: canary
+  template:
+    metadata:
+      labels:
+        app: web-app
+        track: canary
+    spec:
+      containers:
+      - name: web
+        image: web-app:v2-canary
+---
+# Stable Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app-stable
+spec:
+  replicas: 9
+  selector:
+    matchLabels:
+      app: web-app
+      track: stable
+  template:
+    metadata:
+      labels:
+        app: web-app
+        track: stable
+    spec:
+      containers:
+      - name: web
+        image: web-app:v1
+</pre>
+        </div>
+
+        <h3>A/B Testing</h3>
+
+        <div class="card">
+            <p><strong>A/B Testing</strong> routes traffic based on user attributes (headers, cookies, geographic location) rather than random percentages. It is used for feature experiments, not deployment safety.</p>
+            <ul>
+                <li>Route by header: <code>x-user-group: beta-testers</code></li>
+                <li>Route by cookie: <code>ab-test=variant-b</code></li>
+                <li>Route by geography or user segment</li>
+                <li>Typically implemented via Istio VirtualService match rules or Ingress annotations</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 2: CNI Plugins -->
+        <!-- ============================================ -->
+        <h2>2. CNI Plugins</h2>
+
+        <div class="card card-info">
+            <p>Container Network Interface (CNI) plugins provide pod networking - assigning IPs, creating network namespaces, and configuring routes. The choice of CNI affects performance, features, and network policy capabilities.</p>
+        </div>
+
+        <table>
+            <tr><th>Plugin</th><th>Networking Model</th><th>Network Policy</th><th>Encryption</th><th>Best For</th></tr>
+            <tr>
+                <td><strong>Calico</strong></td>
+                <td>BGP (Layer 3), VXLAN, IPIP</td>
+                <td>Full (own + K8s standard)</td>
+                <td>WireGuard</td>
+                <td>Large clusters, fine-grained policy, hybrid cloud</td>
+            </tr>
+            <tr>
+                <td><strong>Cilium</strong></td>
+                <td>eBPF (Layer 3/4/7)</td>
+                <td>Full (L3-L7, DNS-aware)</td>
+                <td>WireGuard, IPsec</td>
+                <td>High performance, L7 visibility, service mesh replacement</td>
+            </tr>
+            <tr>
+                <td><strong>Flannel</strong></td>
+                <td>VXLAN overlay</td>
+                <td>None (needs Calico for policy)</td>
+                <td>None</td>
+                <td>Simple clusters, learning, minimal requirements</td>
+            </tr>
+            <tr>
+                <td><strong>Weave Net</strong></td>
+                <td>VXLAN mesh overlay</td>
+                <td>Basic K8s NetworkPolicy</td>
+                <td>IPsec (sleeve)</td>
+                <td>Simple setup, multicast support</td>
+            </tr>
+            <tr>
+                <td><strong>AWS VPC CNI</strong></td>
+                <td>Native VPC (ENI-based)</td>
+                <td>Via Calico add-on</td>
+                <td>VPC-level</td>
+                <td>EKS clusters (pods get VPC IPs)</td>
+            </tr>
+            <tr>
+                <td><strong>Azure CNI</strong></td>
+                <td>Native VNET</td>
+                <td>Via Calico/Cilium</td>
+                <td>VNET-level</td>
+                <td>AKS clusters</td>
+            </tr>
+        </table>
+
+        <div class="card card-warning">
+            <p><strong>When choosing a CNI:</strong></p>
+            <ul>
+                <li><strong>Cilium</strong> if you need high performance (eBPF avoids iptables overhead), L7 policy, or plan to replace your service mesh</li>
+                <li><strong>Calico</strong> if you need mature network policies, BGP peering with physical network, or wide ecosystem support</li>
+                <li><strong>Flannel</strong> if you just need basic networking with no policy requirements (simplest to set up)</li>
+                <li><strong>Cloud-native CNI</strong> (AWS VPC, Azure CNI) if you need native cloud integration and pod IPs routable outside the cluster</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 3: CSI Drivers -->
+        <!-- ============================================ -->
+        <h2>3. CSI Drivers</h2>
+
+        <div class="card card-info">
+            <p>Container Storage Interface (CSI) is a standard for exposing storage systems to containerized workloads. CSI drivers run as pods in the cluster and handle volume lifecycle operations.</p>
+        </div>
+
+        <h3>CSI Architecture</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">CSI Driver Architecture</div>
+<pre>
+ +--Control Plane------------------------------------------+
+ |                                                          |
+ |  +--CSI Controller (Deployment)--+                       |
+ |  |                               |                       |
+ |  |  external-provisioner         |  Creates/deletes      |
+ |  |  external-attacher            |  volumes via cloud API |
+ |  |  external-snapshotter         |                       |
+ |  |  external-resizer             |                       |
+ |  |  csi-driver-plugin            |                       |
+ |  +-------------------------------+                       |
+ |                                                          |
+ +----------------------------------------------------------+
+
+ +--Worker Nodes-------------------------------------------+
+ |                                                          |
+ |  +--CSI Node Plugin (DaemonSet)--+                       |
+ |  |                               |                       |
+ |  |  node-driver-registrar        |  Mounts volumes       |
+ |  |  csi-driver-plugin            |  into pods on         |
+ |  |                               |  this node            |
+ |  +-------------------------------+                       |
+ |                                                          |
+ +----------------------------------------------------------+
+
+ Flow:
+ 1. PVC created -> external-provisioner calls CreateVolume
+ 2. Pod scheduled -> external-attacher calls ControllerPublish
+ 3. kubelet -> node plugin calls NodeStage + NodePublish
+ 4. Volume mounted into pod container
+</pre>
+        </div>
+
+        <h3>Common CSI Drivers</h3>
+
+        <table>
+            <tr><th>Driver</th><th>Storage Backend</th><th>Features</th></tr>
+            <tr><td>aws-ebs-csi-driver</td><td>AWS EBS</td><td>Snapshots, resizing, encryption, io2 Block Express</td></tr>
+            <tr><td>aws-efs-csi-driver</td><td>AWS EFS</td><td>ReadWriteMany, dynamic provisioning, access points</td></tr>
+            <tr><td>azuredisk-csi-driver</td><td>Azure Managed Disks</td><td>Snapshots, premium SSD, ultra disks</td></tr>
+            <tr><td>gcp-pd-csi-driver</td><td>GCE Persistent Disks</td><td>Regional PDs, snapshots, resizing</td></tr>
+            <tr><td>csi-driver-nfs</td><td>NFS servers</td><td>ReadWriteMany, simple setup</td></tr>
+            <tr><td>rook-ceph</td><td>Ceph (distributed)</td><td>Block, file, object; self-hosted</td></tr>
+        </table>
+
+        <h3>VolumeSnapshot YAML</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">volume-snapshot.yaml</span>
+                <span class="tag tag-blue">snapshot.storage.k8s.io/v1</span>
+            </div>
+<pre>
+# VolumeSnapshotClass
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: ebs-snapshot-class
+driver: ebs.csi.aws.com
+deletionPolicy: Retain
+parameters:
+  tagSpecification_1: "Department=engineering"
+---
+# Create a snapshot from existing PVC
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: db-snapshot-20240115
+  namespace: production
+spec:
+  volumeSnapshotClassName: ebs-snapshot-class
+  source:
+    persistentVolumeClaimName: postgres-data
+---
+# Restore from snapshot into new PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data-restored
+  namespace: production
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: gp3-encrypted
+  resources:
+    requests:
+      storage: 100Gi
+  dataSource:
+    name: db-snapshot-20240115
+    kind: VolumeSnapshot
+    apiGroup: snapshot.storage.k8s.io
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 4: CRDs -->
+        <!-- ============================================ -->
+        <h2>4. Custom Resource Definitions (CRDs)</h2>
+
+        <div class="card card-info">
+            <p>CRDs extend the Kubernetes API with custom resource types. Once a CRD is created, users can create instances of that resource using <code>kubectl</code> just like native resources. CRDs are the foundation for Operators.</p>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">crd-example.yaml</span>
+                <span class="tag tag-purple">apiextensions.k8s.io/v1</span>
+            </div>
+<pre>
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: databases.mycompany.io
+spec:
+  group: mycompany.io
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            required: ["engine", "version", "storage"]
+            properties:
+              engine:
+                type: string
+                enum: ["postgres", "mysql", "redis"]
+              version:
+                type: string
+              replicas:
+                type: integer
+                minimum: 1
+                maximum: 5
+                default: 1
+              storage:
+                type: string
+                pattern: "^[0-9]+(Gi|Ti)$"
+              backup:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                    default: true
+                  schedule:
+                    type: string
+                    default: "0 2 * * *"
+          status:
+            type: object
+            properties:
+              phase:
+                type: string
+              endpoint:
+                type: string
+              readyReplicas:
+                type: integer
+    subresources:
+      status: {}
+    additionalPrinterColumns:
+    - name: Engine
+      type: string
+      jsonPath: .spec.engine
+    - name: Version
+      type: string
+      jsonPath: .spec.version
+    - name: Status
+      type: string
+      jsonPath: .status.phase
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp
+  scope: Namespaced
+  names:
+    plural: databases
+    singular: database
+    kind: Database
+    shortNames:
+    - db
+---
+# Using the custom resource
+apiVersion: mycompany.io/v1
+kind: Database
+metadata:
+  name: orders-db
+  namespace: production
+spec:
+  engine: postgres
+  version: "15.4"
+  replicas: 3
+  storage: 100Gi
+  backup:
+    enabled: true
+    schedule: "0 */6 * * *"
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 5: Operators -->
+        <!-- ============================================ -->
+        <h2>5. Operators</h2>
+
+        <div class="card card-info">
+            <p>An Operator is a method of packaging, deploying, and managing a Kubernetes application using custom resources and custom controllers. It encodes operational knowledge (day-2 operations) into software.</p>
+        </div>
+
+        <h3>Operator Pattern</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Operator Reconciliation Loop</div>
+<pre>
+                   +--User/Admin--+
+                   |              |
+                   | kubectl apply|
+                   | Database CR  |
+                   +------+-------+
+                          |
+                          v
+                   +------+-------+
+                   |  Kubernetes   |
+                   |  API Server   |
+                   +------+-------+
+                          |
+               Watch for Database CRs
+                          |
+                          v
+            +-------------+---------------+
+            |      Database Operator       |
+            |      (Custom Controller)     |
+            |                             |
+            |  Reconcile Loop:            |
+            |  1. Observe current state   |
+            |  2. Compare to desired spec |
+            |  3. Take action to converge |
+            +--+--------+--------+--------+
+               |        |        |
+               v        v        v
+         +-----+--+ +---+----+ +-+--------+
+         |Create  | |Scale   | |Backup    |
+         |StatefulSet|Replicas| |to S3    |
+         |+ PVCs  | |        | |          |
+         +---------+ +--------+ +----------+
+
+ The Operator automates:
+ - Provisioning (create DB, users, schemas)
+ - Scaling (add replicas, rebalance)
+ - Upgrades (rolling version updates)
+ - Backup/Restore (scheduled snapshots)
+ - Failover (promote replica to primary)
+ - Monitoring (expose metrics, health checks)
+</pre>
+        </div>
+
+        <h3>Popular Operators</h3>
+
+        <table>
+            <tr><th>Operator</th><th>Manages</th><th>Key Features</th></tr>
+            <tr><td>prometheus-operator</td><td>Prometheus, Alertmanager</td><td>ServiceMonitor, PrometheusRule CRDs</td></tr>
+            <tr><td>cert-manager</td><td>TLS certificates</td><td>Auto-issue/renew from Let's Encrypt, Vault</td></tr>
+            <tr><td>postgres-operator (Zalando)</td><td>PostgreSQL clusters</td><td>HA, patroni, connection pooling</td></tr>
+            <tr><td>strimzi-kafka-operator</td><td>Apache Kafka</td><td>Kafka, ZooKeeper, Connect, MirrorMaker</td></tr>
+            <tr><td>external-secrets-operator</td><td>Secrets sync</td><td>AWS SM, HashiCorp Vault, GCP SM</td></tr>
+            <tr><td>ArgoCD</td><td>GitOps deployments</td><td>Application CRD, sync from Git</td></tr>
+        </table>
+
+        <h3>Operator SDK</h3>
+
+        <div class="card">
+            <p>Building operators with the Operator SDK:</p>
+            <ul>
+                <li><strong>Go-based</strong> - Full power of controller-runtime; recommended for complex operators</li>
+                <li><strong>Ansible-based</strong> - Use Ansible playbooks/roles as the reconciliation logic</li>
+                <li><strong>Helm-based</strong> - Wrap a Helm chart as an operator; simplest approach</li>
+            </ul>
+        </div>
+
+        <div class="cmd">operator-sdk init --domain mycompany.io --repo github.com/mycompany/db-operator</div>
+        <div class="cmd">operator-sdk create api --group database --version v1 --kind Database --resource --controller</div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 6: Cluster Administration -->
+        <!-- ============================================ -->
+        <h2>6. Cluster Administration</h2>
+
+        <h3>Upgrade Process</h3>
+
+        <div class="card card-warning">
+            <p><strong>Rules for Kubernetes upgrades:</strong></p>
+            <ul>
+                <li>Only upgrade one minor version at a time (1.27 -> 1.28, not 1.27 -> 1.29)</li>
+                <li>Upgrade control plane first, then worker nodes</li>
+                <li>Check deprecation notices and API changes before upgrading</li>
+                <li>Test in staging environment first</li>
+            </ul>
+        </div>
+
+        <div class="point">
+            <span class="point-num">1</span>
+            <div class="point-content">
+                <span class="point-title">Pre-upgrade</span> - Review changelog, check deprecated APIs (<code>kubectl get --raw /metrics | grep apiserver_requested_deprecated_apis</code>), backup etcd
+            </div>
+        </div>
+        <div class="point">
+            <span class="point-num">2</span>
+            <div class="point-content">
+                <span class="point-title">Control plane upgrade</span> - Upgrade kubeadm, then <code>kubeadm upgrade plan</code> / <code>kubeadm upgrade apply v1.28.0</code>
+            </div>
+        </div>
+        <div class="point">
+            <span class="point-num">3</span>
+            <div class="point-content">
+                <span class="point-title">Worker nodes</span> - Cordon, drain, upgrade kubelet and kubeadm, uncordon (one node at a time)
+            </div>
+        </div>
+
+        <h3>etcd Backup & Restore</h3>
+
+        <div class="cmd">ETCDCTL_API=3 etcdctl snapshot save /backup/etcd-snapshot-$(date +%Y%m%d).db --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key</div>
+
+        <div class="cmd">ETCDCTL_API=3 etcdctl snapshot status /backup/etcd-snapshot.db --write-out=table</div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">etcd-restore.sh</span>
+                <span class="tag tag-red">Restore procedure</span>
+            </div>
+<pre>
+# Stop kube-apiserver (move static pod manifest)
+mv /etc/kubernetes/manifests/kube-apiserver.yaml /tmp/
+
+# Restore the snapshot
+ETCDCTL_API=3 etcdctl snapshot restore /backup/etcd-snapshot.db \
+  --data-dir=/var/lib/etcd-restored \
+  --name=control-plane-1 \
+  --initial-cluster=control-plane-1=https://10.0.0.10:2380 \
+  --initial-advertise-peer-urls=https://10.0.0.10:2380
+
+# Update etcd static pod to use new data directory
+# Edit /etc/kubernetes/manifests/etcd.yaml:
+#   --data-dir=/var/lib/etcd-restored
+#   volumeMounts and volumes updated
+
+# Restart kube-apiserver
+mv /tmp/kube-apiserver.yaml /etc/kubernetes/manifests/
+</pre>
+        </div>
+
+        <h3>Node Maintenance</h3>
+
+        <div class="cmd">kubectl cordon node-3                # Mark unschedulable (no new pods)</div>
+        <div class="cmd">kubectl drain node-3 --ignore-daemonsets --delete-emptydir-data --grace-period=60</div>
+        <div class="cmd">kubectl uncordon node-3              # Mark schedulable again</div>
+
+        <div class="card">
+            <h4>Drain Flags Explained</h4>
+            <ul>
+                <li><code>--ignore-daemonsets</code> - Skip DaemonSet pods (they will be recreated)</li>
+                <li><code>--delete-emptydir-data</code> - Allow deletion of pods using emptyDir volumes</li>
+                <li><code>--force</code> - Delete pods not managed by a controller (bare pods)</li>
+                <li><code>--grace-period=N</code> - Override pod's terminationGracePeriodSeconds</li>
+                <li><code>--pod-selector='app=batch'</code> - Only drain matching pods</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 7: Helm -->
+        <!-- ============================================ -->
+        <h2>7. Helm</h2>
+
+        <div class="card card-info">
+            <p>Helm is the package manager for Kubernetes. Charts are collections of templated manifests with configurable values, enabling reusable, versioned deployments.</p>
+        </div>
+
+        <h3>Chart Structure</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Chart directory layout</span>
+                <span class="tag tag-blue">Structure</span>
+            </div>
+<pre>
+mychart/
+  Chart.yaml          # Chart metadata (name, version, dependencies)
+  values.yaml         # Default configuration values
+  charts/             # Dependency charts
+  templates/          # Kubernetes manifest templates
+    deployment.yaml
+    service.yaml
+    ingress.yaml
+    hpa.yaml
+    _helpers.tpl      # Template helper functions
+    NOTES.txt         # Post-install usage notes
+  .helmignore         # Files to exclude from packaging
+</pre>
+        </div>
+
+        <h3>values.yaml Example</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">values.yaml</span>
+                <span class="tag tag-green">Configuration</span>
+            </div>
+<pre>
+replicaCount: 3
+
+image:
+  repository: myapp
+  tag: "v1.2.3"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+  - host: app.example.com
+    paths:
+    - path: /
+      pathType: Prefix
+  tls:
+  - secretName: app-tls
+    hosts:
+    - app.example.com
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilization: 70
+</pre>
+        </div>
+
+        <h3>Common Helm Commands</h3>
+
+        <div class="cmd">helm repo add bitnami https://charts.bitnami.com/bitnami</div>
+        <div class="cmd">helm repo update</div>
+        <div class="cmd">helm search repo nginx</div>
+        <div class="cmd">helm install my-release bitnami/nginx -f custom-values.yaml -n production</div>
+        <div class="cmd">helm upgrade my-release bitnami/nginx --set replicaCount=5 -n production</div>
+        <div class="cmd">helm rollback my-release 2 -n production    # Roll back to revision 2</div>
+        <div class="cmd">helm history my-release -n production        # View revision history</div>
+        <div class="cmd">helm template my-release ./mychart -f values.yaml    # Render without installing</div>
+        <div class="cmd">helm uninstall my-release -n production</div>
+
+        <h3>Creating a Chart</h3>
+
+        <div class="cmd">helm create mychart                           # Scaffold a new chart</div>
+        <div class="cmd">helm lint mychart                              # Validate chart</div>
+        <div class="cmd">helm package mychart                           # Package into .tgz</div>
+        <div class="cmd">helm push mychart-0.1.0.tgz oci://registry.example.com/charts</div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 8: Init Containers & Sidecars -->
+        <!-- ============================================ -->
+        <h2>8. Init Containers & Sidecars</h2>
+
+        <h3>Init Containers</h3>
+
+        <div class="card card-info">
+            <p>Init containers run <strong>before</strong> app containers start. They run sequentially (one at a time), must complete successfully, and are useful for setup tasks.</p>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">init-containers.yaml</span>
+                <span class="tag tag-blue">Sequential setup</span>
+            </div>
+<pre>
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-app
+spec:
+  initContainers:
+  # Wait for database to be ready
+  - name: wait-for-db
+    image: busybox:1.36
+    command: ['sh', '-c', 'until nc -z postgres-svc 5432; do echo waiting for db; sleep 2; done']
+  # Run database migrations
+  - name: run-migrations
+    image: myapp:v2
+    command: ['./migrate', '--direction=up']
+    env:
+    - name: DB_URL
+      valueFrom:
+        secretKeyRef:
+          name: db-credentials
+          key: url
+  # Download configuration from remote
+  - name: fetch-config
+    image: curlimages/curl:8.4.0
+    command: ['sh', '-c', 'curl -o /config/app.yaml https://config-server/app.yaml']
+    volumeMounts:
+    - name: config-volume
+      mountPath: /config
+  containers:
+  - name: web
+    image: myapp:v2
+    volumeMounts:
+    - name: config-volume
+      mountPath: /app/config
+  volumes:
+  - name: config-volume
+    emptyDir: {}
+</pre>
+        </div>
+
+        <h3>Sidecar Containers</h3>
+
+        <div class="card card-info">
+            <p>Sidecar containers run alongside the main container for the lifetime of the pod. In Kubernetes 1.28+, native sidecar support was added via <code>restartPolicy: Always</code> in initContainers (ensures sidecars start before and stop after main containers).</p>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">sidecar-patterns.yaml</span>
+                <span class="tag tag-green">Common patterns</span>
+            </div>
+<pre>
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-with-sidecars
+spec:
+  # Native sidecar (K8s 1.28+) - starts before main, stops after main
+  initContainers:
+  - name: log-shipper
+    image: fluent-bit:2.2
+    restartPolicy: Always      # Makes it a native sidecar
+    volumeMounts:
+    - name: log-volume
+      mountPath: /var/log/app
+  containers:
+  # Main application
+  - name: app
+    image: myapp:v2
+    ports:
+    - containerPort: 8080
+    volumeMounts:
+    - name: log-volume
+      mountPath: /var/log/app
+  # Traditional sidecar - runs as regular container
+  - name: envoy-proxy
+    image: envoyproxy/envoy:v1.28
+    ports:
+    - containerPort: 9901
+    volumeMounts:
+    - name: envoy-config
+      mountPath: /etc/envoy
+  # Monitoring sidecar
+  - name: metrics-exporter
+    image: prom/statsd-exporter:v0.26
+    ports:
+    - containerPort: 9102
+  volumes:
+  - name: log-volume
+    emptyDir: {}
+  - name: envoy-config
+    configMap:
+      name: envoy-config
+</pre>
+        </div>
+
+        <h3>Common Sidecar Patterns</h3>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Ambassador / Proxy</h4>
+                <p>Proxy that simplifies access to external services (Envoy, nginx, HAProxy). Handles TLS, retries, circuit breaking.</p>
+            </div>
+            <div class="card">
+                <h4>Adapter</h4>
+                <p>Transforms output of the main container (log format conversion, metrics format conversion for Prometheus).</p>
+            </div>
+            <div class="card">
+                <h4>Log Shipper</h4>
+                <p>Reads logs from shared volume and ships to centralized logging (Fluent Bit, Filebeat).</p>
+            </div>
+            <div class="card">
+                <h4>Config Watcher</h4>
+                <p>Watches for ConfigMap changes and signals the main container to reload (via shared file or HTTP endpoint).</p>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 9: Pod Disruption Budgets -->
+        <!-- ============================================ -->
+        <h2>9. Pod Disruption Budgets (PDB)</h2>
+
+        <div class="card card-info">
+            <p>PDBs limit the number of pods that can be voluntarily disrupted at any time. They protect availability during node drains, cluster upgrades, and autoscaler scale-downs.</p>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">pdb.yaml</span>
+                <span class="tag tag-orange">policy/v1</span>
+            </div>
+<pre>
+# Option 1: Minimum available pods
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: web-app-pdb
+  namespace: production
+spec:
+  minAvailable: 2            # At least 2 pods must always be running
+  selector:
+    matchLabels:
+      app: web-app
+---
+# Option 2: Maximum unavailable pods
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-pdb
+  namespace: production
+spec:
+  maxUnavailable: 1          # At most 1 pod can be down at a time
+  selector:
+    matchLabels:
+      app: api-server
+---
+# Option 3: Percentage-based
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: workers-pdb
+  namespace: production
+spec:
+  maxUnavailable: "25%"      # Allow 25% of pods to be disrupted
+  selector:
+    matchLabels:
+      app: worker
+  # K8s 1.27+: Unhealthy pod eviction policy
+  unhealthyPodEvictionPolicy: AlwaysAllow  # Allow evicting unhealthy pods
+</pre>
+        </div>
+
+        <div class="card card-warning">
+            <p><strong>How PDBs interact with drains:</strong></p>
+            <ul>
+                <li><code>kubectl drain</code> respects PDBs - it will wait if evicting a pod would violate the budget</li>
+                <li>If PDB cannot be satisfied, drain hangs (use <code>--timeout</code> to limit waiting)</li>
+                <li>PDBs do NOT protect against involuntary disruptions (node crash, OOM kill)</li>
+                <li>Cluster Autoscaler also respects PDBs before removing a node</li>
+                <li>Common mistake: setting <code>minAvailable</code> equal to <code>replicas</code> - makes draining impossible</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 10: Finalizers -->
+        <!-- ============================================ -->
+        <h2>10. Finalizers</h2>
+
+        <div class="card card-info">
+            <p>Finalizers are keys on resources that signal pre-delete hooks. When a resource with finalizers is deleted, it enters a "Terminating" state and waits until all finalizers are removed by their controllers before actual deletion.</p>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">finalizer-example.yaml</span>
+                <span class="tag tag-purple">Cleanup hook</span>
+            </div>
+<pre>
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  finalizers:
+  - kubernetes    # Standard namespace finalizer - cleans up all resources
+---
+# Custom finalizer on a CRD instance
+apiVersion: mycompany.io/v1
+kind: Database
+metadata:
+  name: orders-db
+  finalizers:
+  - databases.mycompany.io/cleanup   # Operator removes after cleanup
+spec:
+  engine: postgres
+  storage: 100Gi
+</pre>
+        </div>
+
+        <h3>Fixing Stuck Deletion (Finalizer Issues)</h3>
+
+        <div class="card card-warning">
+            <p><strong>Symptom:</strong> Resource stuck in "Terminating" state indefinitely. Usually because the controller responsible for removing the finalizer is not running or has a bug.</p>
+        </div>
+
+        <div class="cmd">kubectl get namespace stuck-namespace -o json | jq '.spec.finalizers'</div>
+        <div class="cmd">kubectl get namespace stuck-namespace -o json | jq '.spec.finalizers = []' | kubectl replace --raw "/api/v1/namespaces/stuck-namespace/finalize" -f -</div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">remove-finalizer.sh</span>
+                <span class="tag tag-red">Emergency fix</span>
+            </div>
+<pre>
+# For non-namespace resources stuck in Terminating
+kubectl patch database orders-db \
+  --type='json' \
+  -p='[{"op": "remove", "path": "/metadata/finalizers"}]'
+
+# For namespaces stuck in Terminating
+kubectl get namespace stuck-ns -o json > /tmp/ns.json
+# Edit /tmp/ns.json - remove finalizers from spec.finalizers[]
+kubectl replace --raw "/api/v1/namespaces/stuck-ns/finalize" -f /tmp/ns.json
+</pre>
+        </div>
+
+        <div class="card card-danger">
+            <p><strong>Warning:</strong> Removing finalizers bypasses cleanup logic. Only do this after verifying the associated resources have been manually cleaned up, or the controller responsible is permanently gone.</p>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 11: Gateway API -->
+        <!-- ============================================ -->
+        <h2>11. Gateway API</h2>
+
+        <div class="card card-info">
+            <p>The Gateway API is the next-generation replacement for Ingress. It provides more expressive, extensible, and role-oriented traffic routing with better separation of concerns.</p>
+        </div>
+
+        <h3>Gateway API vs Ingress</h3>
+
+        <table>
+            <tr><th>Aspect</th><th>Ingress</th><th>Gateway API</th></tr>
+            <tr><td>Role separation</td><td>Single resource for all concerns</td><td>Split: GatewayClass (infra), Gateway (cluster-ops), HTTPRoute (devs)</td></tr>
+            <tr><td>Protocols</td><td>HTTP/HTTPS only</td><td>HTTP, HTTPS, TCP, UDP, gRPC, TLS</td></tr>
+            <tr><td>Traffic splitting</td><td>Requires annotations (non-standard)</td><td>Native weight-based routing</td></tr>
+            <tr><td>Header matching</td><td>Not supported (use annotations)</td><td>Native header/query param matching</td></tr>
+            <tr><td>Cross-namespace</td><td>Not supported</td><td>Routes can reference Gateways in other namespaces</td></tr>
+            <tr><td>Extensibility</td><td>Annotations (non-portable)</td><td>Policy attachment (standardized)</td></tr>
+            <tr><td>Status</td><td>Limited status reporting</td><td>Rich status conditions per route</td></tr>
+        </table>
+
+        <h3>Gateway API Resources</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Gateway API Resource Model</div>
+<pre>
+ +--Infrastructure Provider--+     +--Cluster Operator--------+
+ |                           |     |                          |
+ |  GatewayClass             |     |  Gateway                 |
+ |  (defines implementation) |     |  (deploys load balancer) |
+ |  e.g., "istio", "nginx"  |     |  - listeners (ports,TLS) |
+ |                           |     |  - addresses             |
+ +---------------------------+     +------------+-------------+
+                                                |
+                              Attached by routes |
+                                                |
+         +--------------------------------------+---------------------+
+         |                        |                                   |
+         v                        v                                   v
+ +-------+--------+     +--------+--------+              +-----------+---------+
+ | HTTPRoute      |     | GRPCRoute       |              | TCPRoute / TLSRoute |
+ | (app developers)     | (gRPC traffic)  |              | (L4 routing)        |
+ |                |     |                 |              |                     |
+ | - hostnames    |     | - method match  |              | - backend refs      |
+ | - path match   |     | - service match |              |                     |
+ | - header match |     |                 |              |                     |
+ | - weight split |     |                 |              |                     |
+ | - filters      |     |                 |              |                     |
+ +----------------+     +-----------------+              +---------------------+
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">gateway-api.yaml</span>
+                <span class="tag tag-blue">gateway.networking.k8s.io/v1</span>
+            </div>
+<pre>
+# GatewayClass - provided by infra team
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: istio
+spec:
+  controllerName: istio.io/gateway-controller
+---
+# Gateway - managed by cluster operators
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: production-gateway
+  namespace: gateway-system
+spec:
+  gatewayClassName: istio
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: https
+    protocol: HTTPS
+    port: 443
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - name: wildcard-tls
+        kind: Secret
+    allowedRoutes:
+      namespaces:
+        from: Selector
+        selector:
+          matchLabels:
+            gateway-access: "true"
+---
+# HTTPRoute - managed by application developers
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: web-app-route
+  namespace: production
+spec:
+  parentRefs:
+  - name: production-gateway
+    namespace: gateway-system
+  hostnames:
+  - "app.example.com"
+  rules:
+  # Canary: 10% to v2
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api
+    backendRefs:
+    - name: web-app-stable
+      port: 80
+      weight: 90
+    - name: web-app-canary
+      port: 80
+      weight: 10
+  # Header-based routing (A/B test)
+  - matches:
+    - headers:
+      - name: x-beta-user
+        value: "true"
+    backendRefs:
+    - name: web-app-beta
+      port: 80
+  # Default route
+  - backendRefs:
+    - name: web-app-stable
+      port: 80
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 12: Service Mesh -->
+        <!-- ============================================ -->
+        <h2>12. Service Mesh</h2>
+
+        <div class="card card-info">
+            <p>A service mesh is a dedicated infrastructure layer for managing service-to-service communication. It provides traffic management, security (mTLS), and observability without application code changes.</p>
+        </div>
+
+        <h3>Istio Architecture</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Istio Service Mesh Architecture</div>
+<pre>
+ +--Control Plane (istiod)--------------------------------------------+
+ |                                                                     |
+ |  +--Pilot---------+  +--Citadel------+  +--Galley---------+        |
+ |  | Config &amp;       |  | Certificate   |  | Config           |        |
+ |  | Service        |  | Authority     |  | Validation       |        |
+ |  | Discovery      |  | (mTLS certs)  |  | &amp; Distribution  |        |
+ |  +-------+--------+  +-------+-------+  +--------+---------+       |
+ |          |                    |                   |                  |
+ +----------|--------------------|--------------------|------------------+
+            |                    |                   |
+            |  xDS (config push) |                   |
+            |                    |                   |
+ +--Data Plane (per-pod sidecars)-----------------------------------+
+ |                                                                   |
+ |  +--Pod A--------------------------+   +--Pod B-----------------+ |
+ |  |                                 |   |                        | |
+ |  |  +---App---+  +---Envoy----+   |   |  +--App--+ +--Envoy-+ | |
+ |  |  |Container|  |Sidecar     |   |   |  |       | |Sidecar | | |
+ |  |  |         |&lt;-&gt;|Proxy      |&lt;--+---+-&gt;|       |&lt;-&gt;|       | | |
+ |  |  |         |  |            |   |   |  |       | |        | | |
+ |  |  +---------+  +---+--------+   |   |  +-------+ +---+----+ | |
+ |  |                    |            |   |                |       | |
+ |  +--------------------+------------+   +----------------+-------+ |
+ |                       |                                 |         |
+ +----------------------------------------------------------+--------+
+                         |                                 |
+                    Telemetry (metrics, traces, access logs)
+                         |                                 |
+                         v                                 v
+              +----------+-----------+       +-------------+--------+
+              | Prometheus / Grafana |       | Jaeger / Zipkin       |
+              +----------------------+       +-----------------------+
+
+ What the sidecar provides:
+ - mTLS encryption between all services (automatic)
+ - Traffic routing (canary, blue/green, fault injection)
+ - Retries, timeouts, circuit breaking
+ - Rate limiting
+ - Distributed tracing (injects headers)
+ - Access logging and metrics
+</pre>
+        </div>
+
+        <h3>Istio vs Linkerd Comparison</h3>
+
+        <table>
+            <tr><th>Aspect</th><th>Istio</th><th>Linkerd</th></tr>
+            <tr><td>Proxy</td><td>Envoy (C++, feature-rich)</td><td>linkerd2-proxy (Rust, lightweight)</td></tr>
+            <tr><td>Performance overhead</td><td>Higher (~3-5ms p99 latency)</td><td>Lower (~1ms p99 latency)</td></tr>
+            <tr><td>Resource usage</td><td>~50MB per sidecar</td><td>~10MB per sidecar</td></tr>
+            <tr><td>Complexity</td><td>High (many CRDs, steep learning curve)</td><td>Low (simple, opinionated)</td></tr>
+            <tr><td>Features</td><td>Extensive (L7 routing, Wasm extensibility)</td><td>Core features (mTLS, retries, observability)</td></tr>
+            <tr><td>Multi-cluster</td><td>Full support</td><td>Supported</td></tr>
+            <tr><td>mTLS</td><td>Automatic (permissive or strict)</td><td>Automatic (on by default)</td></tr>
+            <tr><td>Best for</td><td>Complex requirements, advanced traffic mgmt</td><td>Simplicity, performance-sensitive</td></tr>
+        </table>
+
+        <div class="card">
+            <h4>Alternatives to Sidecars</h4>
+            <ul>
+                <li><strong>Cilium Service Mesh</strong> - Uses eBPF instead of sidecars. No extra pods, lower resource overhead, kernel-level networking.</li>
+                <li><strong>Istio Ambient Mode</strong> - Sidecar-less Istio using per-node ztunnel (L4) and optional waypoint proxies (L7).</li>
+                <li><strong>Gateway API</strong> - For teams that only need traffic routing without full mesh features.</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 13: Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>13. Interview Q&A</h2>
+
+        <div class="qa">
+            <p class="q">Q: Compare rolling update, blue/green, and canary deployment strategies. When would you use each?</p>
+            <div class="a">
+                <p><strong>Rolling Update:</strong> Default K8s strategy. Gradually replaces pods. Pros: zero downtime, simple, built-in. Cons: both versions serve traffic simultaneously, slow rollback (must re-roll).</p>
+                <p><strong>Blue/Green:</strong> Two full environments, switch traffic instantly. Pros: instant rollback (switch back), no mixed versions. Cons: 2x resources during deployment, requires external switching mechanism.</p>
+                <p><strong>Canary:</strong> Route small % of traffic to new version, gradually increase. Pros: catch issues with minimal blast radius, data-driven promotion. Cons: complex (needs traffic splitting), longer deployment time.</p>
+                <p><strong>When to use:</strong></p>
+                <ul>
+                    <li>Rolling update: most stateless services, simple apps</li>
+                    <li>Blue/Green: critical services needing instant rollback, database migrations that are hard to roll back</li>
+                    <li>Canary: high-traffic services where you need to validate with real traffic before full rollout</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: What is a CRD and how does it differ from an Operator?</p>
+            <div class="a">
+                <p><strong>CRD (Custom Resource Definition):</strong> Extends the Kubernetes API with a new resource type. It only defines the schema - what the resource looks like. By itself, a CRD does nothing when you create instances of it.</p>
+                <p><strong>Operator:</strong> A CRD + a custom controller that watches for instances of that CRD and takes action. The controller implements the reconciliation logic (the "operational knowledge").</p>
+                <p><strong>Analogy:</strong> A CRD is like a form template. An Operator is the form template + the person who processes submitted forms and takes action.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: How would you back up and restore an etcd cluster?</p>
+            <div class="a">
+                <p><strong>Backup:</strong></p>
+                <ol>
+                    <li>Use <code>etcdctl snapshot save</code> with TLS certificates</li>
+                    <li>Schedule regular backups (CronJob or external tool)</li>
+                    <li>Store snapshots in remote storage (S3, GCS) with retention</li>
+                    <li>Verify snapshots with <code>etcdctl snapshot status</code></li>
+                </ol>
+                <p><strong>Restore:</strong></p>
+                <ol>
+                    <li>Stop API server (move static pod manifest)</li>
+                    <li><code>etcdctl snapshot restore</code> to a new data directory</li>
+                    <li>Update etcd pod to use new data directory</li>
+                    <li>Restart API server</li>
+                    <li>Verify cluster health</li>
+                </ol>
+                <p><strong>Important:</strong> For multi-node etcd, all members must restore from the same snapshot simultaneously.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: What is a Pod Disruption Budget and why is it important?</p>
+            <div class="a">
+                <p>A <strong>PDB</strong> limits voluntary disruptions to ensure minimum availability during:</p>
+                <ul>
+                    <li>Node drains (maintenance, upgrades)</li>
+                    <li>Cluster autoscaler removing underutilized nodes</li>
+                    <li>Voluntary evictions by admission controllers</li>
+                </ul>
+                <p><strong>Key points:</strong></p>
+                <ul>
+                    <li>Use <code>minAvailable</code> or <code>maxUnavailable</code> (not both)</li>
+                    <li>PDBs do NOT protect against involuntary disruptions (node crash, OOM)</li>
+                    <li>Setting minAvailable = replicas makes draining impossible - avoid this</li>
+                    <li>Best practice: <code>maxUnavailable: 1</code> for most services</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: Explain the difference between init containers and sidecar containers.</p>
+            <div class="a">
+                <p><strong>Init containers:</strong></p>
+                <ul>
+                    <li>Run <strong>before</strong> app containers start</li>
+                    <li>Run <strong>sequentially</strong> (one at a time)</li>
+                    <li>Must complete <strong>successfully</strong> (exit 0) before the next starts</li>
+                    <li>Use for: setup, migrations, waiting for dependencies, downloading configs</li>
+                </ul>
+                <p><strong>Sidecar containers:</strong></p>
+                <ul>
+                    <li>Run <strong>alongside</strong> app containers for the pod's lifetime</li>
+                    <li>Run <strong>in parallel</strong> with the main container</li>
+                    <li>Use for: proxies, log shippers, config watchers, metrics exporters</li>
+                    <li>K8s 1.28+ native sidecars: init containers with <code>restartPolicy: Always</code></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: What is the Gateway API and why is it replacing Ingress?</p>
+            <div class="a">
+                <p><strong>Gateway API</strong> is the next-generation Kubernetes traffic routing API that addresses Ingress limitations:</p>
+                <ul>
+                    <li><strong>Role separation:</strong> GatewayClass (infra provider) -> Gateway (cluster operator) -> HTTPRoute (developer). Each role manages their own resources.</li>
+                    <li><strong>Expressiveness:</strong> Native header matching, weight-based splitting, query parameter routing - no vendor-specific annotations.</li>
+                    <li><strong>Protocol support:</strong> HTTP, gRPC, TCP, UDP, TLS - not just HTTP.</li>
+                    <li><strong>Portability:</strong> Standard API means switching implementations (Istio, Envoy Gateway, nginx) without rewriting manifests.</li>
+                    <li><strong>Cross-namespace:</strong> Routes in app namespaces can attach to Gateways in infra namespaces.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: When would you choose Calico vs Cilium as a CNI?</p>
+            <div class="a">
+                <p><strong>Choose Calico when:</strong></p>
+                <ul>
+                    <li>You need BGP peering with physical network infrastructure</li>
+                    <li>You need mature, battle-tested network policies</li>
+                    <li>You run on older kernels (Cilium requires 4.19+)</li>
+                    <li>You need integration with non-K8s workloads (VMs, bare metal)</li>
+                </ul>
+                <p><strong>Choose Cilium when:</strong></p>
+                <ul>
+                    <li>You need high performance (eBPF bypasses iptables overhead)</li>
+                    <li>You need L7 network policies (HTTP method, path, gRPC)</li>
+                    <li>You want to replace your service mesh (Cilium has mTLS, L7 LB)</li>
+                    <li>You need transparent encryption (WireGuard)</li>
+                    <li>You want deep network observability (Hubble)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: What is a Helm chart and how do you handle secrets in Helm?</p>
+            <div class="a">
+                <p><strong>Helm chart:</strong> A package of pre-configured Kubernetes resources with templating (Go templates). Charts have a <code>values.yaml</code> for customization, enabling reuse across environments.</p>
+                <p><strong>Handling secrets:</strong></p>
+                <ul>
+                    <li><strong>helm-secrets plugin</strong> - Encrypts values files with SOPS/age/GPG; decrypts at install time</li>
+                    <li><strong>External Secrets Operator</strong> - Chart deploys ExternalSecret CRD; secrets fetched from Vault/AWS SM at runtime</li>
+                    <li><strong>Sealed Secrets</strong> - Encrypt secrets client-side; only the cluster can decrypt</li>
+                    <li><strong>Never:</strong> Store plaintext secrets in values.yaml committed to Git</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: What are finalizers and how do you debug a resource stuck in Terminating state?</p>
+            <div class="a">
+                <p><strong>Finalizers</strong> are keys in <code>metadata.finalizers</code> that prevent resource deletion until the responsible controller performs cleanup and removes its finalizer.</p>
+                <p><strong>Debugging stuck Terminating:</strong></p>
+                <ol>
+                    <li>Check finalizers: <code>kubectl get &lt;resource&gt; -o jsonpath='{.metadata.finalizers}'</code></li>
+                    <li>Identify which controller owns each finalizer</li>
+                    <li>Check if that controller is running and healthy</li>
+                    <li>Check controller logs for errors during cleanup</li>
+                    <li><strong>Last resort:</strong> Patch to remove finalizers manually (after verifying cleanup is done or not needed)</li>
+                </ol>
+                <p><strong>Common causes:</strong> Deleted CRD before deleting instances, operator uninstalled while resources exist, webhook failure blocking finalizer removal.</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            Kubernetes Advanced Topics Reference | <a href="../index.html">Back to Home</a>
+        </footer>
+
+    </div>
+
+</body>
+</html>

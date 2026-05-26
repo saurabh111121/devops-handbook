@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CI/CD & GitOps - DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html" class="active">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> / CI/CD & GitOps
+        </div>
+
+        <h1>CI/CD & GitOps</h1>
+        <p class="subtitle">Continuous Integration, Continuous Delivery, and GitOps workflows for modern software delivery</p>
+
+        <!-- ============================================ -->
+        <!-- 1. Pipeline Design -->
+        <!-- ============================================ -->
+        <h2>1. Pipeline Design</h2>
+
+        <div class="card card-info">
+            <h4>Core Pipeline Principles</h4>
+            <ul>
+                <li><strong>Fail-Fast:</strong> Run cheapest/fastest checks first (lint before integration tests)</li>
+                <li><strong>Immutable Artifacts:</strong> Build once, deploy the same artifact to every environment</li>
+                <li><strong>Environment Parity:</strong> Dev, staging, and production should be as identical as possible</li>
+                <li><strong>Reproducibility:</strong> Given the same inputs, the pipeline should produce the same outputs</li>
+                <li><strong>Traceability:</strong> Every artifact should be traceable to a specific commit</li>
+            </ul>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">CI/CD Pipeline Stages</div>
+            <pre>
+  Developer Push
+       |
+       v
++------+------+    +------+------+    +------+------+    +------+------+
+|             |    |             |    |             |    |             |
+|    CODE     |--->|    LINT     |--->|    TEST     |--->|    SCAN     |
+|             |    |             |    |             |    |             |
+| - Commit    |    | - Style    |    | - Unit      |    | - SAST      |
+| - PR open   |    | - Format   |    | - Integ     |    | - SCA       |
+| - Webhook   |    | - Syntax   |    | - Coverage  |    | - Secrets   |
++-------------+    +------+------+    +------+------+    +------+------+
+                                                                |
+       +--------------------------------------------------------+
+       |
+       v
++------+------+    +------+------+    +------+------+
+|             |    |             |    |             |
+|    BUILD    |--->|    PUSH     |--->|   DEPLOY    |
+|             |    |             |    |             |
+| - Compile   |    | - Registry  |    | - Dev       |
+| - Docker    |    | - Tag       |    | - Staging   |
+| - Package   |    | - Sign      |    | - Prod      |
++-------------+    +-------------+    +-------------+
+
+FAIL-FAST PRINCIPLE:
+  Lint (seconds) --> Unit Tests (minutes) --> Integration (minutes) --> Security Scan (minutes)
+
+  If lint fails, skip everything else = save time + resources
+            </pre>
+        </div>
+
+        <h3>Pipeline Anti-Patterns</h3>
+
+        <div class="grid-2">
+            <div class="card card-warning">
+                <h4>Anti-Patterns</h4>
+                <ul>
+                    <li>Building different artifacts per environment</li>
+                    <li>Manual steps in the pipeline</li>
+                    <li>No artifact versioning</li>
+                    <li>Running all tests regardless of what changed</li>
+                    <li>Deploying directly from feature branches</li>
+                    <li>Secrets hardcoded in pipeline configs</li>
+                </ul>
+            </div>
+            <div class="card card-success">
+                <h4>Best Practices</h4>
+                <ul>
+                    <li>Build once, promote same artifact</li>
+                    <li>Automate everything</li>
+                    <li>Tag artifacts with commit SHA + semantic version</li>
+                    <li>Use path-based triggers for monorepos</li>
+                    <li>Deploy from main/release branches only</li>
+                    <li>Use external secret managers</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 2. GitOps -->
+        <!-- ============================================ -->
+        <h2>2. GitOps</h2>
+
+        <div class="card card-info">
+            <h4>What is GitOps?</h4>
+            <p>GitOps is a paradigm where <strong>Git is the single source of truth</strong> for declarative infrastructure and applications. All changes are made through Git commits, and an operator ensures the live state matches the desired state in Git.</p>
+        </div>
+
+        <h3>Push vs Pull Model</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Aspect</th>
+                    <th>Push-Based (Traditional CI/CD)</th>
+                    <th>Pull-Based (GitOps)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Trigger</strong></td>
+                    <td>CI system pushes changes to cluster</td>
+                    <td>Agent in cluster pulls desired state from Git</td>
+                </tr>
+                <tr>
+                    <td><strong>Access</strong></td>
+                    <td>CI needs cluster credentials</td>
+                    <td>Agent has cluster access; CI never touches cluster</td>
+                </tr>
+                <tr>
+                    <td><strong>Security</strong></td>
+                    <td>Credentials stored in CI (attack surface)</td>
+                    <td>No external access to cluster needed</td>
+                </tr>
+                <tr>
+                    <td><strong>Drift Detection</strong></td>
+                    <td>Manual or none</td>
+                    <td>Automatic - agent continuously reconciles</td>
+                </tr>
+                <tr>
+                    <td><strong>Rollback</strong></td>
+                    <td>Re-run previous pipeline or manual</td>
+                    <td>git revert - automatic reconciliation</td>
+                </tr>
+                <tr>
+                    <td><strong>Audit Trail</strong></td>
+                    <td>CI logs (may expire)</td>
+                    <td>Full Git history (permanent)</td>
+                </tr>
+                <tr>
+                    <td><strong>Examples</strong></td>
+                    <td>Jenkins, GitHub Actions deploy step</td>
+                    <td>ArgoCD, Flux</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>ArgoCD Architecture</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">ArgoCD Architecture & Flow</div>
+            <pre>
+                    +-------------------+
+                    |   Git Repository  |
+                    | (Source of Truth) |
+                    +--------+----------+
+                             |
+                    Poll every 3m (or webhook)
+                             |
+                             v
++------------------------------------------------------------------+
+|                    ArgoCD (in K8s cluster)                        |
+|                                                                  |
+|  +------------------+    +-----------------+    +--------------+ |
+|  |  Repo Server     |    |  Application    |    |    Redis     | |
+|  |                  |    |  Controller     |    |   (Cache)    | |
+|  | - Clone repos    |    |                 |    +--------------+ |
+|  | - Generate       |    | - Compare Git   |                    |
+|  |   manifests      |--->|   vs Live state |                    |
+|  | - Helm template  |    | - Sync if drift |                    |
+|  | - Kustomize      |    | - Health checks |                    |
+|  +------------------+    +--------+--------+                    |
+|                                   |                              |
+|  +------------------+             |         +------------------+ |
+|  |   API Server     |             |         |    Dex / OIDC    | |
+|  |  (UI + gRPC)     |<------------+         |  (Auth/SSO)      | |
+|  +------------------+                       +------------------+ |
++------------------------------------------------------------------+
+                             |
+                             v
+                    +-------------------+
+                    |  Target Cluster   |
+                    | (Managed by Argo) |
+                    +-------------------+
+            </pre>
+        </div>
+
+        <div class="card">
+            <h4>How ArgoCD Works (5 Key Points)</h4>
+            <ol>
+                <li><strong>Application Definition:</strong> You create an ArgoCD Application CR that points to a Git repo path and a target cluster/namespace</li>
+                <li><strong>Continuous Monitoring:</strong> The Repo Server clones the repo and generates manifests (plain YAML, Helm, Kustomize). The Application Controller compares desired state vs live state</li>
+                <li><strong>Drift Detection:</strong> If live state differs from Git (manual kubectl edit, etc.), ArgoCD marks the app as "OutOfSync"</li>
+                <li><strong>Sync (Reconciliation):</strong> Auto-sync or manual sync applies the Git-defined state to the cluster using kubectl apply semantics</li>
+                <li><strong>Health Assessment:</strong> ArgoCD monitors resource health (Healthy, Degraded, Progressing, Missing) and reports status back</li>
+            </ol>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">argocd-application.yaml</span>
+                <span class="tag tag-blue">ArgoCD</span>
+            </div>
+            <pre>
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: my-app
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/org/k8s-manifests.git
+    targetRevision: main
+    path: apps/my-app/overlays/production
+    # For Helm charts:
+    # helm:
+    #   valueFiles:
+    #     - values-prod.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+
+  syncPolicy:
+    automated:
+      prune: true        # Delete resources removed from Git
+      selfHeal: true     # Revert manual changes in cluster
+      allowEmpty: false  # Don't sync if manifests are empty
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+            </pre>
+        </div>
+
+        <h3>Flux Overview</h3>
+
+        <div class="card">
+            <h4>Flux v2</h4>
+            <p>Flux is a set of continuous delivery solutions for Kubernetes that are open and extensible. It uses GitOps Toolkit components:</p>
+            <ul>
+                <li><strong>Source Controller:</strong> Manages Git repos, Helm repos, S3 buckets as artifact sources</li>
+                <li><strong>Kustomize Controller:</strong> Reconciles Kustomization resources, applies manifests</li>
+                <li><strong>Helm Controller:</strong> Manages Helm chart releases via HelmRelease CRDs</li>
+                <li><strong>Notification Controller:</strong> Handles inbound/outbound events (webhooks, alerts)</li>
+                <li><strong>Image Automation:</strong> Scans container registries, updates Git with new image tags</li>
+            </ul>
+        </div>
+
+        <h3>Drift Detection & Auto-Sync</h3>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Drift Detection</h4>
+                <p>GitOps operators continuously compare:</p>
+                <ul>
+                    <li><strong>Desired State:</strong> Manifests in Git repository</li>
+                    <li><strong>Live State:</strong> Actual resources in the cluster</li>
+                </ul>
+                <p>Drift occurs when someone runs <code>kubectl edit</code>, <code>kubectl scale</code>, or any manual change outside Git.</p>
+            </div>
+            <div class="card">
+                <h4>Auto-Sync Behavior</h4>
+                <ul>
+                    <li><strong>selfHeal: true</strong> - Reverts manual changes back to Git state</li>
+                    <li><strong>prune: true</strong> - Deletes resources removed from Git</li>
+                    <li><strong>Default poll:</strong> Every 3 minutes (or webhook for instant)</li>
+                    <li><strong>Sync Windows:</strong> Restrict when auto-sync can happen</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 3. Helm -->
+        <!-- ============================================ -->
+        <h2>3. Helm</h2>
+
+        <div class="card card-info">
+            <h4>What is Helm?</h4>
+            <p>Helm is the package manager for Kubernetes. It packages K8s manifests into reusable <strong>charts</strong>, allowing templating, versioning, and dependency management of complex applications.</p>
+            <p><strong>Key concepts:</strong></p>
+            <ul>
+                <li><strong>Chart:</strong> A package of pre-configured Kubernetes resources</li>
+                <li><strong>Release:</strong> An instance of a chart running in a cluster</li>
+                <li><strong>Repository:</strong> A place to store and share charts</li>
+                <li><strong>Values:</strong> Configuration that customizes a chart at install time</li>
+            </ul>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">Helm Chart Structure</div>
+            <pre>
+my-chart/
++-- Chart.yaml           # Chart metadata (name, version, dependencies)
++-- Chart.lock           # Locked dependency versions
++-- values.yaml          # Default configuration values
++-- values-prod.yaml     # Environment-specific overrides
++-- charts/              # Dependency charts (subcharts)
++-- templates/           # Kubernetes manifest templates
+|   +-- deployment.yaml
+|   +-- service.yaml
+|   +-- ingress.yaml
+|   +-- hpa.yaml
+|   +-- configmap.yaml
+|   +-- secret.yaml
+|   +-- serviceaccount.yaml
+|   +-- _helpers.tpl     # Template helper functions
+|   +-- NOTES.txt        # Post-install notes shown to user
++-- .helmignore          # Files to exclude from packaging
++-- README.md            # Chart documentation
+            </pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">values.yaml</span>
+                <span class="tag tag-blue">Helm</span>
+            </div>
+            <pre>
+# Default values for my-app
+replicaCount: 3
+
+image:
+  repository: myregistry.io/my-app
+  tag: "1.2.0"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: app.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: app-tls
+      hosts:
+        - app.example.com
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilization: 70
+
+env:
+  LOG_LEVEL: info
+  DB_HOST: postgres.default.svc.cluster.local
+            </pre>
+        </div>
+
+        <h3>Template Syntax</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">templates/deployment.yaml</span>
+                <span class="tag tag-green">Template</span>
+            </div>
+            <pre>
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "my-chart.fullname" . }}
+  labels:
+    {{- include "my-chart.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "my-chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "my-chart.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: {{ .Values.service.targetPort }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            </pre>
+        </div>
+
+        <h3>Common Helm Commands</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Command</th>
+                    <th>Description</th>
+                    <th>Example</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>helm install</code></td>
+                    <td>Install a chart as a new release</td>
+                    <td><code>helm install my-app ./my-chart -f values-prod.yaml</code></td>
+                </tr>
+                <tr>
+                    <td><code>helm upgrade</code></td>
+                    <td>Upgrade an existing release</td>
+                    <td><code>helm upgrade my-app ./my-chart --set image.tag=1.3.0</code></td>
+                </tr>
+                <tr>
+                    <td><code>helm rollback</code></td>
+                    <td>Rollback to a previous revision</td>
+                    <td><code>helm rollback my-app 2</code></td>
+                </tr>
+                <tr>
+                    <td><code>helm list</code></td>
+                    <td>List all releases</td>
+                    <td><code>helm list -n production</code></td>
+                </tr>
+                <tr>
+                    <td><code>helm uninstall</code></td>
+                    <td>Remove a release</td>
+                    <td><code>helm uninstall my-app -n production</code></td>
+                </tr>
+                <tr>
+                    <td><code>helm template</code></td>
+                    <td>Render templates locally (dry-run)</td>
+                    <td><code>helm template my-app ./my-chart -f values.yaml</code></td>
+                </tr>
+                <tr>
+                    <td><code>helm dependency update</code></td>
+                    <td>Download chart dependencies</td>
+                    <td><code>helm dependency update ./my-chart</code></td>
+                </tr>
+                <tr>
+                    <td><code>helm create</code></td>
+                    <td>Scaffold a new chart</td>
+                    <td><code>helm create my-new-chart</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ============================================ -->
+        <!-- 4. GitHub Actions -->
+        <!-- ============================================ -->
+        <h2>4. GitHub Actions</h2>
+
+        <div class="card card-info">
+            <h4>GitHub Actions Concepts</h4>
+            <ul>
+                <li><strong>Workflow:</strong> Automated process defined in YAML, triggered by events</li>
+                <li><strong>Job:</strong> A set of steps that run on the same runner</li>
+                <li><strong>Step:</strong> Individual task (run command or use an action)</li>
+                <li><strong>Action:</strong> Reusable unit of code (marketplace or custom)</li>
+                <li><strong>Runner:</strong> Server that executes workflows (GitHub-hosted or self-hosted)</li>
+            </ul>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">.github/workflows/ci.yaml</span>
+                <span class="tag tag-blue">GitHub Actions</span>
+            </div>
+            <pre>
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ===========================
+  # Job 1: Lint & Test
+  # ===========================
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Run unit tests
+        run: npm test -- --coverage
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+  # ===========================
+  # Job 2: Security Scan
+  # ===========================
+  security:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+
+      - name: Run Gitleaks (secret detection)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ===========================
+  # Job 3: Build & Push Docker
+  # ===========================
+  build:
+    runs-on: ubuntu-latest
+    needs: [test, security]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ===========================
+  # Job 4: Deploy to Kubernetes
+  # ===========================
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment: production
+    steps:
+      - name: Checkout manifests repo
+        uses: actions/checkout@v4
+        with:
+          repository: org/k8s-manifests
+          token: ${{ secrets.DEPLOY_TOKEN }}
+          path: manifests
+
+      - name: Update image tag in manifests
+        run: |
+          cd manifests/apps/my-app/overlays/production
+          kustomize edit set image my-app=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Commit and push manifest change
+        run: |
+          cd manifests
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "deploy: update my-app to ${{ github.sha }}"
+          git push
+
+      # ArgoCD will detect the change and sync automatically
+      - name: Wait for ArgoCD sync
+        run: |
+          argocd app wait my-app --timeout 300 --health
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 5. Artifact Management -->
+        <!-- ============================================ -->
+        <h2>5. Artifact Management</h2>
+
+        <div class="grid-2">
+            <div class="card card-info">
+                <h4>Immutable Tags</h4>
+                <p>Never overwrite image tags. Use unique identifiers:</p>
+                <ul>
+                    <li><code>myapp:abc1234</code> (commit SHA)</li>
+                    <li><code>myapp:1.2.3</code> (semantic version)</li>
+                    <li><code>myapp:1.2.3-abc1234</code> (version + SHA)</li>
+                </ul>
+                <p><strong>Never use:</strong> <code>:latest</code> in production (mutable, non-deterministic)</p>
+            </div>
+            <div class="card card-success">
+                <h4>Semantic Versioning</h4>
+                <p><code>MAJOR.MINOR.PATCH</code></p>
+                <ul>
+                    <li><strong>MAJOR:</strong> Breaking changes</li>
+                    <li><strong>MINOR:</strong> New features (backwards-compatible)</li>
+                    <li><strong>PATCH:</strong> Bug fixes (backwards-compatible)</li>
+                </ul>
+                <p>Example: <code>2.1.0</code> -> <code>2.2.0</code> (new feature)</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h4>Vulnerability Scanning</h4>
+            <p>Scan at multiple stages:</p>
+            <ul>
+                <li><strong>Source code:</strong> SAST (Static Application Security Testing) - SonarQube, Semgrep</li>
+                <li><strong>Dependencies:</strong> SCA (Software Composition Analysis) - Snyk, Dependabot</li>
+                <li><strong>Container images:</strong> Trivy, Grype, Clair</li>
+                <li><strong>Registry:</strong> Continuous scanning of stored images</li>
+                <li><strong>Runtime:</strong> Falco, Sysdig for runtime behavior</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h4>Lifecycle Policies & Image Signing</h4>
+            <ul>
+                <li><strong>Retention policies:</strong> Keep last N tags, delete untagged after X days</li>
+                <li><strong>Image signing:</strong> Use Cosign/Sigstore to cryptographically sign images</li>
+                <li><strong>Admission control:</strong> Only allow signed images (Kyverno, OPA Gatekeeper)</li>
+                <li><strong>SBOM:</strong> Generate Software Bill of Materials for supply chain security</li>
+            </ul>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">ECR Lifecycle Policy</span>
+                <span class="tag tag-green">AWS</span>
+            </div>
+            <pre>
+{
+  "rules": [
+    {
+      "rulePriority": 1,
+      "description": "Keep last 30 production images",
+      "selection": {
+        "tagStatus": "tagged",
+        "tagPrefixList": ["v"],
+        "countType": "imageCountMoreThan",
+        "countNumber": 30
+      },
+      "action": { "type": "expire" }
+    },
+    {
+      "rulePriority": 2,
+      "description": "Delete untagged images older than 7 days",
+      "selection": {
+        "tagStatus": "untagged",
+        "countType": "sinceImagePushed",
+        "countUnit": "days",
+        "countNumber": 7
+      },
+      "action": { "type": "expire" }
+    }
+  ]
+}
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 6. Deployment Strategies in CI/CD -->
+        <!-- ============================================ -->
+        <h2>6. Deployment Strategies in CI/CD</h2>
+
+        <h3>Canary with ArgoCD Rollouts</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">canary-rollout.yaml</span>
+                <span class="tag tag-blue">Argo Rollouts</span>
+            </div>
+            <pre>
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: my-app
+spec:
+  replicas: 10
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: my-app
+          image: myregistry.io/my-app:1.2.0
+          ports:
+            - containerPort: 8080
+  strategy:
+    canary:
+      # Traffic splitting
+      canaryService: my-app-canary
+      stableService: my-app-stable
+      trafficRouting:
+        nginx:
+          stableIngress: my-app-ingress
+
+      # Step-by-step rollout
+      steps:
+        - setWeight: 5           # Send 5% traffic to canary
+        - pause: { duration: 5m } # Wait 5 minutes
+
+        - setWeight: 20          # Increase to 20%
+        - pause: { duration: 5m }
+
+        - setWeight: 50          # Increase to 50%
+        - pause: { duration: 10m }
+
+        - setWeight: 80          # Increase to 80%
+        - pause: { duration: 5m }
+        # Automatically promotes to 100% if no issues
+
+      # Automated analysis
+      analysis:
+        templates:
+          - templateName: success-rate
+        startingStep: 2  # Start analysis at step 2
+        args:
+          - name: service-name
+            value: my-app-canary
+
+      # Auto-rollback on failure
+      abortScaleDownDelaySeconds: 30
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: success-rate
+spec:
+  args:
+    - name: service-name
+  metrics:
+    - name: success-rate
+      interval: 1m
+      count: 5
+      successCondition: result[0] >= 0.95
+      failureLimit: 3
+      provider:
+        prometheus:
+          address: http://prometheus:9090
+          query: |
+            sum(rate(http_requests_total{service="{{args.service-name}}",
+              status=~"2.."}[5m])) /
+            sum(rate(http_requests_total{service="{{args.service-name}}"}[5m]))
+            </pre>
+        </div>
+
+        <h3>Blue/Green with Service Switch</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Blue/Green Deployment Flow</div>
+            <pre>
+  BEFORE SWITCH:                          AFTER SWITCH:
+
+  Users --> Service (selector: v1)        Users --> Service (selector: v2)
+                |                                       |
+                v                                       v
+  +-------------------+                   +-------------------+
+  | Blue (v1) - LIVE  |                   | Green (v2) - LIVE |
+  | 3 replicas        |                   | 3 replicas        |
+  +-------------------+                   +-------------------+
+
+  +-------------------+                   +-------------------+
+  | Green (v2) - IDLE |                   | Blue (v1) - IDLE  |
+  | 3 replicas (test) |                   | (scale down)      |
+  +-------------------+                   +-------------------+
+            </pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">blue-green-rollout.yaml</span>
+                <span class="tag tag-blue">Argo Rollouts</span>
+            </div>
+            <pre>
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: my-app-bluegreen
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: my-app
+          image: myregistry.io/my-app:2.0.0
+          ports:
+            - containerPort: 8080
+  strategy:
+    blueGreen:
+      activeService: my-app-active      # Production traffic
+      previewService: my-app-preview    # Test traffic
+      autoPromotionEnabled: false       # Manual promotion required
+      prePromotionAnalysis:
+        templates:
+          - templateName: smoke-tests
+      scaleDownDelaySeconds: 300        # Keep old version for 5min after switch
+            </pre>
+        </div>
+
+        <h3>Feature Flags</h3>
+
+        <div class="card">
+            <h4>Feature Flags in CI/CD</h4>
+            <p>Decouple deployment from release. Deploy code with features behind flags, enable gradually.</p>
+            <ul>
+                <li><strong>Tools:</strong> LaunchDarkly, Unleash, Flagsmith, ConfigCat</li>
+                <li><strong>Types:</strong> Boolean (on/off), Percentage (gradual rollout), User-based (beta users)</li>
+                <li><strong>Benefits:</strong> Instant rollback (disable flag), A/B testing, trunk-based development</li>
+                <li><strong>Risk:</strong> Technical debt if flags not cleaned up, testing complexity</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 7. Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>7. Interview Q&A</h2>
+
+        <div class="card">
+            <h4>Q1: How would you design a CI/CD pipeline for a microservices architecture?</h4>
+            <p><strong>Answer:</strong> I would implement a pipeline per service with shared pipeline templates. Each service pipeline includes: lint, unit test, build container image with commit SHA tag, security scan (SAST + container scan), push to registry, update GitOps repo with new image tag. For the deployment side, I would use ArgoCD watching the GitOps repo. Shared libraries and base images have their own pipelines that trigger downstream rebuilds. Monorepo? Use path-based triggers. Key: each service is independently deployable.</p>
+        </div>
+
+        <div class="card">
+            <h4>Q2: What is the difference between push-based and pull-based GitOps?</h4>
+            <p><strong>Answer:</strong> Push-based (traditional): CI system has cluster credentials and pushes changes directly (kubectl apply). Pull-based (true GitOps): An agent running inside the cluster (ArgoCD, Flux) continuously polls a Git repo and reconciles the cluster state. Pull-based is more secure because cluster credentials never leave the cluster, provides automatic drift detection, and offers a complete audit trail through Git history. Push-based is simpler to set up but has a larger attack surface.</p>
+        </div>
+
+        <div class="card">
+            <h4>Q3: When would you choose Helm over Kustomize (or vice versa)?</h4>
+            <p><strong>Answer:</strong> <strong>Helm</strong> when: you need to distribute charts to external users, have complex templating logic, need release management (rollback by revision), or want a package ecosystem. <strong>Kustomize</strong> when: you prefer overlay-based customization without templating, want native kubectl integration, need to patch third-party manifests without forking, or have simpler environments (base + overlays). Many teams use both: Helm for third-party charts, Kustomize for in-house apps. ArgoCD supports both natively.</p>
+        </div>
+
+        <div class="card">
+            <h4>Q4: How do you handle rollbacks in a GitOps workflow?</h4>
+            <p><strong>Answer:</strong> In GitOps, rollback = git revert. Revert the commit that introduced the bad change, push to main, and the GitOps operator (ArgoCD/Flux) automatically reconciles to the previous good state. For Argo Rollouts: automated rollback via AnalysisTemplate (metrics-driven). For Helm: <code>helm rollback release-name revision</code>. Key principle: never manually fix the cluster -- always go through Git so the audit trail remains intact and drift detection stays clean.</p>
+        </div>
+
+        <div class="card">
+            <h4>Q5: How do you manage secrets in a CI/CD pipeline?</h4>
+            <p><strong>Answer:</strong> Never store secrets in Git or pipeline YAML. Use: (1) External Secrets Operator to sync from AWS Secrets Manager/Vault into K8s Secrets, (2) Sealed Secrets for encrypted secrets in Git (only the controller can decrypt), (3) SOPS with age/KMS for encrypted values files, (4) GitHub Actions secrets/OIDC for CI runtime secrets. Pipeline credentials should use short-lived tokens (OIDC federation) rather than static credentials.</p>
+        </div>
+
+        <div class="card">
+            <h4>Q6: How do you implement progressive delivery?</h4>
+            <p><strong>Answer:</strong> Progressive delivery extends CI/CD by gradually rolling out changes and validating with real traffic. Implementation: (1) Argo Rollouts with canary strategy - send 5% -> 20% -> 50% -> 100% traffic to new version, (2) At each step, run automated analysis (success rate, latency, error rate via Prometheus), (3) Auto-rollback if metrics degrade, (4) Combine with feature flags for additional control. This reduces blast radius: a bad deploy only affects 5% of users initially.</p>
+        </div>
+
+        <div class="card">
+            <h4>Q7: How would you set up CI/CD for a monorepo?</h4>
+            <p><strong>Answer:</strong> Use path-based triggers: only build/test services whose files changed. GitHub Actions: <code>paths: ['services/api/**']</code>. Implement shared workflow templates (reusable workflows). Dependency graph: if shared-lib changes, rebuild all dependent services. Challenges: build time (use caching aggressively), test isolation (each service has its own tests), and versioning (independent semver per service or repo-wide tags).</p>
+        </div>
+
+        <div class="card">
+            <h4>Q8: What happens when your CI/CD pipeline becomes the bottleneck?</h4>
+            <p><strong>Answer:</strong> Identify where time is spent: (1) Build speed - use multi-stage Docker builds, layer caching, BuildKit. (2) Test speed - parallelize tests, use test splitting, skip unchanged service tests. (3) Queue time - add more runners, use self-hosted runners with auto-scaling. (4) Deploy speed - use parallel deployments for independent services. (5) Approval bottlenecks - auto-approve for staging, require approval only for production. Metrics to track: lead time, deployment frequency, mean time to recovery.</p>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 8. Scenarios -->
+        <!-- ============================================ -->
+        <h2>8. Scenarios</h2>
+
+        <div class="card card-warning">
+            <h4>Scenario 1: Pipeline Failing on Security Scan</h4>
+            <p><strong>Situation:</strong> A developer's PR is blocked because Trivy found a CRITICAL vulnerability in a base image dependency.</p>
+            <p><strong>Investigation:</strong></p>
+            <ol>
+                <li>Check the scan output: which CVE? Which package? Is it in the base image or app dependency?</li>
+                <li>Check if a patched version exists: <code>trivy image --severity CRITICAL myimage:tag</code></li>
+                <li>If in base image: update <code>FROM</code> to latest patched version</li>
+                <li>If in app dependency: update package version in package.json/requirements.txt</li>
+                <li>If no fix available: document risk, add to allowlist with expiry, create tracking ticket</li>
+            </ol>
+            <p><strong>Prevention:</strong> Schedule weekly base image rebuilds, enable Dependabot/Renovate for automated dependency updates, have a process for accepting risk on unfixed CVEs.</p>
+        </div>
+
+        <div class="card card-warning">
+            <h4>Scenario 2: Rollback a Bad Canary Deployment</h4>
+            <p><strong>Situation:</strong> Canary deployment at 20% traffic. Error rate spiked from 0.1% to 5% for canary pods. AnalysisTemplate marked it as Failed.</p>
+            <p><strong>What happens:</strong></p>
+            <ol>
+                <li>Argo Rollouts detects AnalysisRun failure (success rate &lt; 95% threshold)</li>
+                <li>Rollout status changes to "Degraded"</li>
+                <li>Traffic automatically shifts back to 100% stable (old) version</li>
+                <li>Canary pods are scaled down after <code>abortScaleDownDelaySeconds</code></li>
+                <li>Team is notified via webhook (Slack/PagerDuty)</li>
+            </ol>
+            <p><strong>Post-mortem:</strong> Check canary pod logs, compare Prometheus metrics between stable and canary, identify the specific commit that caused the regression, fix, and re-deploy.</p>
+        </div>
+
+        <div class="card card-warning">
+            <h4>Scenario 3: ArgoCD Detects Drift</h4>
+            <p><strong>Situation:</strong> ArgoCD shows application as "OutOfSync". Someone ran <code>kubectl scale deployment my-app --replicas=1</code> directly.</p>
+            <p><strong>Resolution:</strong></p>
+            <ol>
+                <li>If <code>selfHeal: true</code> is configured: ArgoCD automatically reverts the change back to Git-defined state (3 replicas). No action needed.</li>
+                <li>If selfHeal is disabled: ArgoCD shows diff in UI. Team decides whether to sync (revert manual change) or update Git (if the change was intentional).</li>
+                <li>Investigate who made the change and why (audit logs, <code>kubectl get events</code>).</li>
+                <li>If the change was needed: update Git repo with the new replica count, commit, push. ArgoCD syncs and shows "Synced + Healthy".</li>
+            </ol>
+            <p><strong>Prevention:</strong> Enable selfHeal, restrict kubectl access with RBAC, train team on GitOps workflow (all changes through Git PRs).</p>
+        </div>
+
+    </div>
+
+</body>
+</html>

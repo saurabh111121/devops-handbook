@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArgoCD &amp; GitOps - DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html" class="active">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; <a href="../index.html">Kubernetes Advanced</a> &gt; ArgoCD &amp; GitOps
+        </div>
+
+        <h1>ArgoCD &amp; GitOps</h1>
+        <p class="subtitle">Declarative, Git-centric continuous delivery for Kubernetes with automated reconciliation</p>
+
+        <!-- ============================================ -->
+        <!-- 1. GitOps Principles -->
+        <!-- ============================================ -->
+        <h2>1. GitOps Principles</h2>
+
+        <div class="card card-info">
+            <h4>The Four GitOps Principles</h4>
+            <ol>
+                <li><strong>Declarative:</strong> The entire system is described declaratively (YAML manifests, Helm charts, Kustomize).</li>
+                <li><strong>Versioned and Immutable:</strong> The desired state is stored in Git, providing a complete audit trail and single source of truth.</li>
+                <li><strong>Pulled Automatically:</strong> Approved changes are automatically applied to the cluster (no manual <code>kubectl apply</code>).</li>
+                <li><strong>Continuously Reconciled:</strong> Software agents (ArgoCD/Flux) continuously observe and correct drift between desired and actual state.</li>
+            </ol>
+        </div>
+
+        <h3>Push vs Pull Deployment</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Push-Based vs Pull-Based Deployment</div>
+<pre>
+PUSH-BASED (Traditional CI/CD):
++--------+     +--------+     +---------+     +------------+
+| Commit | --> | CI/CD  | --> | kubectl | --> | Kubernetes |
+| (Git)  |     | Server |     |  apply  |     |  Cluster   |
++--------+     +--------+     +---------+     +------------+
+                    |
+                    +-- CI server has cluster credentials (security risk)
+                    +-- No drift detection
+                    +-- Manual or webhook-triggered
+
+PULL-BASED (GitOps with ArgoCD):
++--------+                              +------------+
+| Commit | <--- periodically polls ---  | ArgoCD     |
+| (Git)  |                              | Controller |
++--------+                              +------+-----+
+                                               |
+                                               | reconciles
+                                               v
+                                        +------------+
+                                        | Kubernetes |
+                                        |  Cluster   |
+                                        +------------+
+
+Advantages of Pull-Based:
+  - Cluster credentials never leave the cluster
+  - Automatic drift detection and correction
+  - Git is the single source of truth
+  - Easy rollback (git revert)
+  - Audit trail built into git history
+</pre>
+        </div>
+
+        <div class="grid-2">
+            <div class="card card-success">
+                <h4>GitOps Benefits</h4>
+                <ul>
+                    <li>Complete audit trail in Git history</li>
+                    <li>Easy rollback via <code>git revert</code></li>
+                    <li>Consistent environments (same manifests = same state)</li>
+                    <li>Self-healing (automatic drift correction)</li>
+                    <li>Developer-friendly (PRs for infra changes)</li>
+                    <li>Reduced blast radius (PR review before deploy)</li>
+                </ul>
+            </div>
+            <div class="card card-danger">
+                <h4>GitOps Challenges</h4>
+                <ul>
+                    <li>Secret management (secrets can't live in Git plaintext)</li>
+                    <li>Managing multiple environments</li>
+                    <li>Handling stateful workloads</li>
+                    <li>Initial learning curve</li>
+                    <li>Git repo proliferation</li>
+                    <li>Debugging sync failures</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 2. ArgoCD Architecture -->
+        <!-- ============================================ -->
+        <h2>2. ArgoCD Architecture</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">ArgoCD Internal Architecture</div>
+<pre>
++------------------------------------------------------------------+
+|                        ArgoCD Namespace                            |
+|                                                                    |
+|  +------------------+    +------------------+    +--------------+ |
+|  |   API Server     |    | Repo Server      |    |    Redis     | |
+|  |                  |    |                  |    |              | |
+|  | - REST/gRPC API  |    | - Clones Git     |    | - Cache for  | |
+|  | - Web UI serving |    | - Generates      |    |   manifests  | |
+|  | - Authentication |    |   manifests      |    | - App state  | |
+|  | - RBAC           |    | - Helm template  |    |              | |
+|  | - SSO (Dex/OIDC) |    | - Kustomize      |    +--------------+ |
+|  +-------+----------+    | - Jsonnet        |                     |
+|          |               +--------+---------+                     |
+|          |                        |                               |
+|  +-------v------------------------v------+                        |
+|  |      Application Controller          |                        |
+|  |                                       |                        |
+|  | - Watches Applications (CRD)         |                        |
+|  | - Compares desired vs live state     |                        |
+|  | - Syncs changes to cluster           |                        |
+|  | - Runs health checks                 |                        |
+|  | - Manages sync waves & hooks         |                        |
+|  +---------------------------------------+                        |
+|                                                                    |
+|  +------------------+                                              |
+|  |   Dex Server     |   (Optional - for SSO)                      |
+|  | - OIDC provider  |                                              |
+|  | - LDAP/SAML/     |                                              |
+|  |   GitHub/GitLab  |                                              |
+|  +------------------+                                              |
++------------------------------------------------------------------+
+         |                        |
+         v                        v
++------------------+     +------------------+
+|   Git Repos      |     | Target Clusters  |
+| (Source of truth)|     | (Managed K8s)    |
++------------------+     +------------------+
+
+How It Works (5 Steps):
+  1. Developer pushes manifest changes to Git
+  2. Repo Server detects changes (polls every 3min or webhook)
+  3. Repo Server generates final manifests (Helm/Kustomize/plain)
+  4. Application Controller compares desired state vs live cluster state
+  5. If out-of-sync: auto-sync (if enabled) or manual sync via UI/CLI
+</pre>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>API Server</h4>
+                <ul>
+                    <li>Exposes REST and gRPC API</li>
+                    <li>Serves Web UI</li>
+                    <li>Handles authentication (local users, SSO via Dex)</li>
+                    <li>Enforces RBAC policies</li>
+                    <li>Manages Application CRD lifecycle</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Application Controller</h4>
+                <ul>
+                    <li>Core reconciliation engine</li>
+                    <li>Continuously monitors Application resources</li>
+                    <li>Computes diff between desired and live state</li>
+                    <li>Executes sync operations</li>
+                    <li>Manages sync waves, hooks, and health assessment</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 3. Installation -->
+        <!-- ============================================ -->
+        <h2>3. Installation</h2>
+
+        <div class="card">
+            <h4>Quick Install (Non-HA)</h4>
+            <div class="cmd">kubectl create namespace argocd</div>
+            <div class="cmd">kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml</div>
+        </div>
+
+        <div class="card">
+            <h4>HA Install (Production)</h4>
+            <div class="cmd">kubectl create namespace argocd</div>
+            <div class="cmd">kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/ha/install.yaml</div>
+        </div>
+
+        <h3>CLI Setup</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Install ArgoCD CLI</span>
+                <span class="tag tag-green">Shell</span>
+            </div>
+<pre>
+# macOS
+brew install argocd
+
+# Linux
+curl -sSL -o argocd-linux-amd64 \
+  https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
+
+# Get initial admin password
+argocd admin initial-password -n argocd
+
+# Login
+argocd login localhost:8080 --username admin --password &lt;password&gt;
+
+# Change default password immediately
+argocd account update-password
+</pre>
+        </div>
+
+        <h3>Accessing the UI</h3>
+
+        <div class="card">
+            <div class="cmd">kubectl port-forward svc/argocd-server -n argocd 8080:443</div>
+            <p>Access at <code>https://localhost:8080</code>. Default username: <code>admin</code>.</p>
+            <p>For production, expose via Ingress with TLS termination.</p>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 4. Application YAML -->
+        <!-- ============================================ -->
+        <h2>4. Application Manifest</h2>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">application.yaml (complete example)</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: my-app
+  namespace: argocd
+  labels:
+    team: backend
+    env: production
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io  # Cascade delete on app removal
+  annotations:
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: deployments
+spec:
+  project: default   # ArgoCD project (RBAC boundary)
+
+  # Source: where to find manifests
+  source:
+    repoURL: https://github.com/myorg/k8s-manifests.git
+    targetRevision: main          # Branch, tag, or commit SHA
+    path: apps/my-app/overlays/production  # Path within repo
+
+    # For Helm charts:
+    # chart: my-chart
+    # helm:
+    #   releaseName: my-app
+    #   valueFiles:
+    #     - values-production.yaml
+    #   parameters:
+    #     - name: image.tag
+    #       value: "v1.2.3"
+
+    # For Kustomize:
+    kustomize:
+      images:
+        - myregistry.io/my-app:v1.2.3
+      namePrefix: prod-
+
+  # Destination: where to deploy
+  destination:
+    server: https://kubernetes.default.svc  # In-cluster
+    # server: https://remote-cluster-api:6443  # External cluster
+    namespace: my-app
+
+  # Sync Policy: automation settings
+  syncPolicy:
+    automated:
+      prune: true        # Delete resources removed from Git
+      selfHeal: true     # Auto-correct manual changes (drift)
+      allowEmpty: false  # Don't sync if source produces empty manifests
+    syncOptions:
+      - CreateNamespace=true     # Create namespace if it doesn't exist
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true           # Prune after all other syncs
+      - ApplyOutOfSyncOnly=true  # Only sync changed resources
+      - ServerSideApply=true     # Use server-side apply
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Health checks & status
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas  # Ignore replica count (managed by HPA)
+    - group: ""
+      kind: Service
+      jqPathExpressions:
+        - .spec.clusterIP
+</pre>
+        </div>
+
+        <h3>Key Fields Explained</h3>
+
+        <table>
+            <tr>
+                <th>Field</th>
+                <th>Purpose</th>
+                <th>Common Values</th>
+            </tr>
+            <tr>
+                <td><code>source.repoURL</code></td>
+                <td>Git repository URL</td>
+                <td>HTTPS or SSH URL</td>
+            </tr>
+            <tr>
+                <td><code>source.targetRevision</code></td>
+                <td>Branch, tag, or commit to track</td>
+                <td><code>main</code>, <code>HEAD</code>, <code>v1.2.3</code>, SHA</td>
+            </tr>
+            <tr>
+                <td><code>source.path</code></td>
+                <td>Directory path within the repo</td>
+                <td><code>apps/my-app/production</code></td>
+            </tr>
+            <tr>
+                <td><code>syncPolicy.automated.prune</code></td>
+                <td>Delete resources not in Git</td>
+                <td><code>true</code> / <code>false</code></td>
+            </tr>
+            <tr>
+                <td><code>syncPolicy.automated.selfHeal</code></td>
+                <td>Revert manual cluster changes</td>
+                <td><code>true</code> / <code>false</code></td>
+            </tr>
+            <tr>
+                <td><code>ignoreDifferences</code></td>
+                <td>Ignore specific field diffs</td>
+                <td>HPA-managed replicas, cluster IPs</td>
+            </tr>
+        </table>
+
+        <!-- ============================================ -->
+        <!-- 5. App of Apps Pattern -->
+        <!-- ============================================ -->
+        <h2>5. App of Apps Pattern</h2>
+
+        <div class="card card-info">
+            <h4>What is App of Apps?</h4>
+            <p>A pattern where a "root" ArgoCD Application manages other Application manifests. The root app points to a Git directory containing Application YAML files, enabling declarative management of the entire application fleet from a single entry point.</p>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">App of Apps Structure</div>
+<pre>
+                    +-------------------+
+                    |   Root App        |
+                    | (app-of-apps)     |
+                    | path: apps/       |
+                    +---------+---------+
+                              |
+              +---------------+---------------+
+              |               |               |
+    +---------v---+  +--------v----+  +-------v-----+
+    | App: frontend|  | App: backend|  | App: infra  |
+    | path: frontend/| | path: backend/| | path: infra/ |
+    +-------------+  +-------------+  +-------------+
+         |                  |                 |
+    +----v----+       +----v----+       +----v----+
+    | Deploy  |       | Deploy  |       | Ingress |
+    | Service |       | Service |       | CertMgr |
+    | Ingress |       | HPA     |       | Monitor |
+    +---------+       +---------+       +---------+
+
+Git Repository Layout:
+  k8s-manifests/
+  +-- apps/                     # Root app points here
+  |     +-- frontend.yaml       # Application manifest for frontend
+  |     +-- backend.yaml        # Application manifest for backend
+  |     +-- infra.yaml          # Application manifest for infra
+  +-- frontend/                 # Actual frontend manifests
+  |     +-- deployment.yaml
+  |     +-- service.yaml
+  +-- backend/                  # Actual backend manifests
+  |     +-- deployment.yaml
+  |     +-- service.yaml
+  +-- infra/                    # Infrastructure manifests
+        +-- ingress.yaml
+        +-- cert-manager.yaml
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">apps/root-app.yaml</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app-of-apps
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/myorg/k8s-manifests.git
+    targetRevision: main
+    path: apps    # Directory containing Application YAMLs
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">apps/frontend.yaml (child application)</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: frontend
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/myorg/k8s-manifests.git
+    targetRevision: main
+    path: frontend
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: frontend
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 6. Sync Waves & Hooks -->
+        <!-- ============================================ -->
+        <h2>6. Sync Waves &amp; Hooks</h2>
+
+        <div class="card">
+            <h4>Ordering Deployments</h4>
+            <p>Sync waves allow you to control the order in which resources are applied. Lower wave numbers sync first. Resources within the same wave are synced together. Hooks allow running Jobs at specific phases.</p>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">Sync Wave Execution Order</div>
+<pre>
+Wave -1: PreSync Hooks
+  |  (e.g., database migration Job)
+  v
+Wave 0: Core Resources (default)
+  |  (e.g., ConfigMaps, Secrets, Deployments)
+  v
+Wave 1: Dependent Resources
+  |  (e.g., Services, Ingress)
+  v
+Wave 2: Post-deployment
+  |  (e.g., HPA, monitoring configs)
+  v
+PostSync Hooks
+  |  (e.g., smoke test Job, notification)
+  v
+SyncFail Hooks
+     (e.g., rollback notification)
+
+Hook Phases:
+  PreSync  -> Before any sync operation
+  Sync     -> During sync (with wave ordering)
+  PostSync -> After successful sync
+  SyncFail -> If sync fails
+  Skip     -> Skip this resource during sync
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Sync wave annotations</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+# Wave -1: Namespace (created first)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: my-app
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+---
+# Wave 0: ConfigMap and Secret (default wave)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+data:
+  DATABASE_URL: "postgres://db:5432/app"
+---
+# Wave 1: Deployment (after config is ready)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: app
+          image: myregistry.io/my-app:v1.2.3
+---
+# Wave 2: Service and Ingress (after deployment)
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  selector:
+    app: my-app
+  ports:
+    - port: 80
+      targetPort: 8080
+</pre>
+        </div>
+
+        <h3>Hooks Example</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">db-migration-hook.yaml (PreSync)</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migrate
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  template:
+    spec:
+      containers:
+        - name: migrate
+          image: myregistry.io/my-app:v1.2.3
+          command: ["./migrate", "--direction", "up"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: url
+      restartPolicy: Never
+  backoffLimit: 3
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: smoke-test
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  template:
+    spec:
+      containers:
+        - name: test
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              sleep 10
+              curl -sf http://my-app.my-app.svc/health || exit 1
+              echo "Smoke test passed!"
+      restartPolicy: Never
+  backoffLimit: 1
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 7. Multi-Cluster -->
+        <!-- ============================================ -->
+        <h2>7. Multi-Cluster Management</h2>
+
+        <div class="card">
+            <h4>Adding External Clusters</h4>
+            <p>ArgoCD can manage multiple Kubernetes clusters from a single control plane. Cluster credentials are stored as Secrets in the ArgoCD namespace.</p>
+            <div class="cmd">argocd cluster add my-staging-context --name staging</div>
+            <div class="cmd">argocd cluster add my-production-context --name production</div>
+            <div class="cmd">argocd cluster list</div>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Cluster Secret (declarative)</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+apiVersion: v1
+kind: Secret
+metadata:
+  name: production-cluster
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: cluster
+type: Opaque
+stringData:
+  name: production
+  server: https://production-api.example.com:6443
+  config: |
+    {
+      "bearerToken": "&lt;service-account-token&gt;",
+      "tlsClientConfig": {
+        "insecure": false,
+        "caData": "&lt;base64-encoded-ca-cert&gt;"
+      }
+    }
+</pre>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">Multi-Cluster Deployment Pattern</div>
+<pre>
+                   +------------------+
+                   |  Management      |
+                   |  Cluster         |
+                   |  (ArgoCD lives   |
+                   |   here)          |
+                   +--------+---------+
+                            |
+            +---------------+---------------+
+            |               |               |
+   +--------v-------+ +----v---------+ +---v----------+
+   | Dev Cluster    | | Staging      | | Production   |
+   | (auto-sync)   | | (auto-sync)  | | (manual sync)|
+   +----------------+ +--------------+ +--------------+
+
+Strategy:
+  - ArgoCD in dedicated management cluster
+  - Different sync policies per environment
+  - Production requires manual approval
+  - Same Git repo, different paths/overlays per env
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 8. ApplicationSets -->
+        <!-- ============================================ -->
+        <h2>8. ApplicationSets</h2>
+
+        <div class="card card-info">
+            <h4>What are ApplicationSets?</h4>
+            <p>ApplicationSets automate the generation of ArgoCD Applications using templates and generators. Instead of writing one Application YAML per service/cluster/environment, you define a template that generates many Applications dynamically.</p>
+        </div>
+
+        <h3>Generator Types</h3>
+
+        <table>
+            <tr>
+                <th>Generator</th>
+                <th>Purpose</th>
+                <th>Use Case</th>
+            </tr>
+            <tr>
+                <td><code>list</code></td>
+                <td>Static list of parameters</td>
+                <td>Known set of clusters or environments</td>
+            </tr>
+            <tr>
+                <td><code>cluster</code></td>
+                <td>Generate per registered cluster</td>
+                <td>Deploy same app to all clusters</td>
+            </tr>
+            <tr>
+                <td><code>git</code></td>
+                <td>Generate from Git directories or files</td>
+                <td>Monorepo with one dir per service</td>
+            </tr>
+            <tr>
+                <td><code>matrix</code></td>
+                <td>Combine two generators (cross-product)</td>
+                <td>All apps x all clusters</td>
+            </tr>
+            <tr>
+                <td><code>merge</code></td>
+                <td>Merge multiple generators</td>
+                <td>Override specific params per cluster</td>
+            </tr>
+            <tr>
+                <td><code>pullRequest</code></td>
+                <td>Generate for open PRs</td>
+                <td>Preview environments per PR</td>
+            </tr>
+        </table>
+
+        <h3>List Generator</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">applicationset-list.yaml</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: my-app-environments
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - cluster: dev
+            url: https://dev-api.example.com:6443
+            namespace: my-app-dev
+            replicas: "1"
+          - cluster: staging
+            url: https://staging-api.example.com:6443
+            namespace: my-app-staging
+            replicas: "2"
+          - cluster: production
+            url: https://prod-api.example.com:6443
+            namespace: my-app-prod
+            replicas: "5"
+  template:
+    metadata:
+      name: 'my-app-{{cluster}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/myorg/k8s-manifests.git
+        targetRevision: main
+        path: 'apps/my-app/overlays/{{cluster}}'
+        kustomize:
+          images:
+            - 'myregistry.io/my-app:v1.2.3'
+      destination:
+        server: '{{url}}'
+        namespace: '{{namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+</pre>
+        </div>
+
+        <h3>Git Directory Generator</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">applicationset-git-dirs.yaml</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: microservices
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/myorg/k8s-manifests.git
+        revision: main
+        directories:
+          - path: 'services/*'         # Each subdirectory = one app
+          - path: 'services/legacy'    # Exclude specific directory
+            exclude: true
+  template:
+    metadata:
+      name: '{{path.basename}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/myorg/k8s-manifests.git
+        targetRevision: main
+        path: '{{path}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{path.basename}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+</pre>
+        </div>
+
+        <h3>Cluster Generator</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">applicationset-cluster.yaml</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: monitoring-stack
+  namespace: argocd
+spec:
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            monitoring: enabled   # Only clusters with this label
+  template:
+    metadata:
+      name: 'monitoring-{{name}}'
+    spec:
+      project: infrastructure
+      source:
+        repoURL: https://github.com/myorg/infra.git
+        targetRevision: main
+        path: monitoring
+        helm:
+          valueFiles:
+            - 'values-{{metadata.labels.env}}.yaml'
+      destination:
+        server: '{{server}}'
+        namespace: monitoring
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 9. RBAC in ArgoCD -->
+        <!-- ============================================ -->
+        <h2>9. RBAC in ArgoCD</h2>
+
+        <div class="card">
+            <h4>Projects as RBAC Boundaries</h4>
+            <p>ArgoCD <strong>Projects</strong> restrict what applications can do: which repos they can access, which clusters/namespaces they can deploy to, and which resource kinds are allowed.</p>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">AppProject definition</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: team-backend
+  namespace: argocd
+spec:
+  description: "Backend team project"
+
+  # Allowed source repositories
+  sourceRepos:
+    - 'https://github.com/myorg/backend-*'
+    - 'https://charts.helm.sh/stable'
+
+  # Allowed destination clusters and namespaces
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: 'backend-*'
+    - server: https://staging-api.example.com:6443
+      namespace: 'backend-*'
+
+  # Deny deploying to these namespaces
+  namespaceResourceBlacklist:
+    - group: ''
+      kind: ResourceQuota
+    - group: ''
+      kind: LimitRange
+
+  # Only allow these resource types
+  namespaceResourceWhitelist:
+    - group: 'apps'
+      kind: Deployment
+    - group: 'apps'
+      kind: StatefulSet
+    - group: ''
+      kind: Service
+    - group: ''
+      kind: ConfigMap
+    - group: ''
+      kind: Secret
+    - group: 'networking.k8s.io'
+      kind: Ingress
+
+  # Deny cluster-scoped resources
+  clusterResourceWhitelist: []
+
+  # Role definitions
+  roles:
+    - name: developer
+      description: "Can sync and view applications"
+      policies:
+        - p, proj:team-backend:developer, applications, get, team-backend/*, allow
+        - p, proj:team-backend:developer, applications, sync, team-backend/*, allow
+      groups:
+        - backend-developers   # SSO group mapping
+
+    - name: admin
+      description: "Full access to project"
+      policies:
+        - p, proj:team-backend:admin, applications, *, team-backend/*, allow
+      groups:
+        - backend-leads
+</pre>
+        </div>
+
+        <h3>RBAC Policy ConfigMap</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">argocd-rbac-cm ConfigMap</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argocd
+data:
+  policy.default: role:readonly
+  policy.csv: |
+    # Roles
+    p, role:org-admin, applications, *, */*, allow
+    p, role:org-admin, clusters, *, *, allow
+    p, role:org-admin, repositories, *, *, allow
+    p, role:org-admin, projects, *, *, allow
+
+    p, role:developer, applications, get, */*, allow
+    p, role:developer, applications, sync, */*, allow
+    p, role:developer, logs, get, */*, allow
+
+    p, role:readonly, applications, get, */*, allow
+    p, role:readonly, logs, get, */*, allow
+
+    # Group mappings (SSO groups -> ArgoCD roles)
+    g, platform-team, role:org-admin
+    g, developers, role:developer
+    g, viewers, role:readonly
+  scopes: '[groups]'
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 10. Notifications -->
+        <!-- ============================================ -->
+        <h2>10. Notifications</h2>
+
+        <div class="card">
+            <h4>ArgoCD Notifications</h4>
+            <p>ArgoCD Notifications monitors applications and sends alerts on state changes. Supports Slack, email, webhook, Grafana, GitHub, Teams, and more.</p>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">argocd-notifications-cm ConfigMap</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+data:
+  # Slack service configuration
+  service.slack: |
+    token: $slack-token
+
+  # Triggers - when to send notifications
+  trigger.on-sync-succeeded: |
+    - when: app.status.operationState.phase in ['Succeeded']
+      send: [app-sync-succeeded]
+
+  trigger.on-sync-failed: |
+    - when: app.status.operationState.phase in ['Error', 'Failed']
+      send: [app-sync-failed]
+
+  trigger.on-health-degraded: |
+    - when: app.status.health.status == 'Degraded'
+      send: [app-health-degraded]
+
+  # Templates - what to send
+  template.app-sync-succeeded: |
+    slack:
+      attachments: |
+        [{
+          "color": "#18be52",
+          "title": "{{.app.metadata.name}} synced successfully",
+          "fields": [
+            {"title": "Application", "value": "{{.app.metadata.name}}", "short": true},
+            {"title": "Revision", "value": "{{.app.status.sync.revision | trunc 7}}", "short": true},
+            {"title": "Environment", "value": "{{.app.spec.destination.namespace}}", "short": true}
+          ]
+        }]
+
+  template.app-sync-failed: |
+    slack:
+      attachments: |
+        [{
+          "color": "#E96D76",
+          "title": "{{.app.metadata.name}} sync FAILED",
+          "fields": [
+            {"title": "Application", "value": "{{.app.metadata.name}}", "short": true},
+            {"title": "Error", "value": "{{.app.status.operationState.message}}", "short": false}
+          ]
+        }]
+
+  template.app-health-degraded: |
+    slack:
+      attachments: |
+        [{
+          "color": "#f4c030",
+          "title": "{{.app.metadata.name}} health DEGRADED",
+          "text": "Application health status is degraded. Check pod status.",
+          "fields": [
+            {"title": "Health Status", "value": "{{.app.status.health.status}}", "short": true}
+          ]
+        }]
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Subscribe application to notifications</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: my-app
+  namespace: argocd
+  annotations:
+    # Subscribe to triggers and route to Slack channels
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: deployments
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: deployments-alerts
+    notifications.argoproj.io/subscribe.on-health-degraded.slack: oncall-alerts
+spec:
+  # ... application spec
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 11. ArgoCD vs Flux -->
+        <!-- ============================================ -->
+        <h2>11. ArgoCD vs Flux</h2>
+
+        <table>
+            <tr>
+                <th>Aspect</th>
+                <th>ArgoCD</th>
+                <th>Flux</th>
+            </tr>
+            <tr>
+                <td><strong>UI</strong></td>
+                <td>Rich built-in Web UI with visualization</td>
+                <td>No built-in UI (Weave GitOps optional)</td>
+            </tr>
+            <tr>
+                <td><strong>Architecture</strong></td>
+                <td>Centralized (single ArgoCD instance)</td>
+                <td>Distributed (per-cluster controllers)</td>
+            </tr>
+            <tr>
+                <td><strong>Multi-tenancy</strong></td>
+                <td>Projects + RBAC + SSO</td>
+                <td>Namespace-scoped controllers</td>
+            </tr>
+            <tr>
+                <td><strong>Multi-cluster</strong></td>
+                <td>Single control plane manages many clusters</td>
+                <td>Flux instance per cluster (or remote)</td>
+            </tr>
+            <tr>
+                <td><strong>Sync Method</strong></td>
+                <td>Application CRD (centralized)</td>
+                <td>GitRepository + Kustomization CRDs</td>
+            </tr>
+            <tr>
+                <td><strong>Helm Support</strong></td>
+                <td>Native (renders in repo server)</td>
+                <td>HelmRelease CRD (controller-based)</td>
+            </tr>
+            <tr>
+                <td><strong>Image Automation</strong></td>
+                <td>Requires Argo Image Updater (separate)</td>
+                <td>Built-in (Image Reflector + Automation)</td>
+            </tr>
+            <tr>
+                <td><strong>Notifications</strong></td>
+                <td>Built-in (argocd-notifications)</td>
+                <td>Notification Controller</td>
+            </tr>
+            <tr>
+                <td><strong>Diff/Drift</strong></td>
+                <td>Visual diff in UI, detailed status</td>
+                <td>CLI-based, events/conditions</td>
+            </tr>
+            <tr>
+                <td><strong>CNCF Status</strong></td>
+                <td>Graduated project</td>
+                <td>Graduated project</td>
+            </tr>
+            <tr>
+                <td><strong>Best For</strong></td>
+                <td>Teams wanting UI, centralized control</td>
+                <td>Teams wanting lightweight, distributed</td>
+            </tr>
+        </table>
+
+        <!-- ============================================ -->
+        <!-- 12. Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>12. Interview Q&A</h2>
+
+        <div class="qa">
+            <div class="q">Q1: What are the benefits of GitOps over traditional CI/CD?</div>
+            <div class="a">
+                <p><strong>GitOps</strong> provides: 1) <strong>Audit trail</strong> - every change is a git commit with author, timestamp, and reason. 2) <strong>Easy rollback</strong> - just revert the git commit. 3) <strong>Drift detection</strong> - continuous reconciliation catches unauthorized manual changes. 4) <strong>Security</strong> - cluster credentials don't need to leave the cluster (pull model). 5) <strong>Consistency</strong> - same manifests guarantee same state. 6) <strong>Developer experience</strong> - deploy via PR, not kubectl.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q2: Explain the ArgoCD sync process from commit to deployment.</div>
+            <div class="a">
+                <p>1) Developer pushes to Git (or webhook triggers). 2) ArgoCD Repo Server clones the repo and generates manifests (Helm template, Kustomize build, or plain YAML). 3) Application Controller compares the generated "desired state" against the live cluster state via Kubernetes API. 4) If differences exist, the app is marked "OutOfSync." 5) If auto-sync is enabled (or manual sync triggered), the controller applies the manifests to the cluster. 6) Health checks run to verify the deployment succeeded. 7) Status transitions to "Synced" and "Healthy" (or "Degraded" on failure).</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q3: How does ArgoCD detect drift, and what happens when it does?</div>
+            <div class="a">
+                <p>ArgoCD continuously (every ~3 minutes by default) compares the live cluster state against the desired state from Git. It computes a structured diff of all managed resources. When drift is detected: 1) The application status changes to "OutOfSync." 2) The UI/CLI shows exactly which resources differ and what changed. 3) If <code>selfHeal: true</code> is configured, ArgoCD automatically reverts the drift by reapplying the Git state. 4) If self-heal is disabled, it alerts and waits for manual sync. The <code>ignoreDifferences</code> field allows excluding expected diffs (like HPA-managed replica counts).</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q4: What is the App of Apps pattern and when would you use it?</div>
+            <div class="a">
+                <p>App of Apps is a pattern where a "root" Application manages other Application manifests stored in Git. The root app points to a directory containing Application YAMLs, and ArgoCD recursively manages all child apps. Use it when: 1) You have many microservices to manage declaratively. 2) You want to bootstrap an entire cluster from a single Application. 3) You need consistent sync policies across apps. 4) You want to add/remove apps by simply adding/removing YAML files in Git. Alternative: ApplicationSets for more dynamic generation.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q5: How do sync waves work and why are they important?</div>
+            <div class="a">
+                <p>Sync waves control the order of resource application using annotations (<code>argocd.argoproj.io/sync-wave: "N"</code>). Resources with lower wave numbers deploy first. Within a wave, ArgoCD waits for all resources to be healthy before proceeding. This is critical for: 1) Database migrations before app deployment. 2) CRDs before CRs. 3) Namespaces before workloads. 4) Secrets/ConfigMaps before Deployments that reference them. Combined with hooks (PreSync, PostSync), you can orchestrate complex multi-step deployments.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q6: How would you manage multiple clusters with ArgoCD?</div>
+            <div class="a">
+                <p>Options: 1) <strong>Single ArgoCD + cluster secrets</strong>: One ArgoCD instance registers multiple clusters via <code>argocd cluster add</code>. Applications target different <code>destination.server</code> URLs. 2) <strong>ApplicationSets with cluster generator</strong>: Automatically deploy to all registered clusters matching a label selector. 3) <strong>Separate ArgoCD per cluster</strong>: Each cluster has its own ArgoCD (more isolation, more operational overhead). Best practice: dedicated management cluster running ArgoCD, deploying to workload clusters. Use different sync policies per environment (auto-sync for dev/staging, manual for production).</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q7: How do you handle secrets in a GitOps workflow?</div>
+            <div class="a">
+                <p>Since secrets can't be stored as plaintext in Git, common approaches: 1) <strong>Sealed Secrets</strong>: Encrypt secrets with a cluster-specific public key; only the cluster can decrypt. 2) <strong>SOPS + age/KMS</strong>: Encrypt YAML values in-place; decrypt during ArgoCD sync via a plugin. 3) <strong>External Secrets Operator</strong>: CRD syncs secrets from external stores (AWS Secrets Manager, HashiCorp Vault, GCP Secret Manager) into Kubernetes Secrets. 4) <strong>Vault Agent Injector</strong>: Sidecar injects secrets from HashiCorp Vault at runtime. Best practice: External Secrets Operator for production (secrets stay in a dedicated secrets manager, not in Git at all).</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q8: What is the difference between ArgoCD Applications and ApplicationSets?</div>
+            <div class="a">
+                <p><strong>Application</strong> is a single deployment unit: one source repo/path deployed to one destination cluster/namespace. <strong>ApplicationSet</strong> is a template that generates multiple Applications using generators (list, cluster, git, matrix). Use ApplicationSets when you need to deploy the same app to multiple clusters/environments, or generate one Application per directory in a monorepo. ApplicationSets reduce boilerplate and enable dynamic fleet management. The generated Applications are regular Application resources that ArgoCD manages normally.</p>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 13. Scenarios -->
+        <!-- ============================================ -->
+        <h2>13. Real-World Scenarios</h2>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#9888;</span>
+                <span class="title">Scenario: Application Stuck OutOfSync</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Situation:</strong> An application shows "OutOfSync" in ArgoCD even after syncing, and keeps reverting.</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span><strong>Check the diff</strong> in the ArgoCD UI to see what's different:</span>
+                </div>
+                <div class="cmd">argocd app diff my-app</div>
+
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span><strong>Common causes:</strong></span>
+                </div>
+                <ul>
+                    <li><strong>HPA modifying replicas:</strong> Add to <code>ignoreDifferences</code></li>
+                    <li><strong>Mutating webhooks:</strong> Cluster adds fields (annotations, labels) not in Git</li>
+                    <li><strong>Default values:</strong> Kubernetes API server adds defaults not in your manifest</li>
+                    <li><strong>Resource conflicts:</strong> Another controller (Istio, cert-manager) modifying resources</li>
+                </ul>
+
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span><strong>Fix with ignoreDifferences:</strong></span>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header"><span class="filename">Ignore HPA-managed replicas</span></div>
+<pre>
+spec:
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      jqPathExpressions:
+        - '.webhooks[]?.clientConfig.caBundle'
+</pre>
+                </div>
+
+                <div class="scenario-step">
+                    <span class="step-num">4.</span>
+                    <span><strong>If caused by server-side defaults</strong>, use <code>ServerSideApply=true</code> in syncOptions to only track fields you explicitly set.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#128295;</span>
+                <span class="title">Scenario: Sync Failed - Health Check Timeout</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Situation:</strong> Sync completes but application stays "Progressing" then transitions to "Degraded." Pods are in CrashLoopBackOff.</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span><strong>Check application health details:</strong></span>
+                </div>
+                <div class="cmd">argocd app get my-app</div>
+                <div class="cmd">argocd app resources my-app</div>
+
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span><strong>Check pod logs for the failing deployment:</strong></span>
+                </div>
+                <div class="cmd">kubectl logs -n my-app deployment/my-app --previous</div>
+                <div class="cmd">kubectl describe pod -n my-app -l app=my-app</div>
+
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span><strong>Common causes:</strong> Image tag doesn't exist, misconfigured environment variables, failed health/readiness probes, insufficient resources, missing secrets/configmaps.</span>
+                </div>
+
+                <div class="scenario-step">
+                    <span class="step-num">4.</span>
+                    <span><strong>Rollback via Git:</strong></span>
+                </div>
+                <div class="cmd">git revert HEAD</div>
+                <div class="cmd">git push origin main</div>
+                <p>ArgoCD will automatically sync to the reverted state (if auto-sync enabled).</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">5.</span>
+                    <span><strong>Or rollback via ArgoCD CLI:</strong></span>
+                </div>
+                <div class="cmd">argocd app history my-app</div>
+                <div class="cmd">argocd app rollback my-app &lt;revision-id&gt;</div>
+                <p><em>Note: ArgoCD rollback is temporary - next sync will override. Fix in Git for permanent rollback.</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#128274;</span>
+                <span class="title">Scenario: Managing Secrets in GitOps</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Situation:</strong> You need to deploy applications that require database passwords, API keys, and TLS certificates, but cannot store secrets in plaintext in Git.</p>
+
+                <h4>Option 1: Sealed Secrets</h4>
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span><strong>Install Sealed Secrets controller</strong> in the cluster.</span>
+                </div>
+                <div class="cmd">kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.24.0/controller.yaml</div>
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span><strong>Encrypt the secret locally</strong> (only the cluster can decrypt):</span>
+                </div>
+                <div class="cmd">kubeseal --format yaml &lt; secret.yaml &gt; sealed-secret.yaml</div>
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span><strong>Commit sealed-secret.yaml</strong> to Git. ArgoCD deploys it; the controller decrypts it in-cluster.</span>
+                </div>
+
+                <h4>Option 2: External Secrets Operator (Recommended for Production)</h4>
+
+                <div class="code-block">
+                    <div class="code-header"><span class="filename">external-secret.yaml</span><span class="tag tag-blue">YAML</span></div>
+<pre>
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: app-secrets
+  namespace: my-app
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-secrets-manager
+    kind: ClusterSecretStore
+  target:
+    name: app-secrets           # Kubernetes Secret name to create
+    creationPolicy: Owner
+  data:
+    - secretKey: db-password    # Key in K8s Secret
+      remoteRef:
+        key: production/my-app  # Path in AWS Secrets Manager
+        property: db_password   # JSON key within the secret
+    - secretKey: api-key
+      remoteRef:
+        key: production/my-app
+        property: api_key
+</pre>
+                </div>
+
+                <h4>Option 3: SOPS with ArgoCD</h4>
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span>Configure ArgoCD with a SOPS decryption plugin (via <code>kustomize-sops</code> or Helm Secrets).</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span>Encrypt secrets in-place with SOPS before committing:</span>
+                </div>
+                <div class="cmd">sops --encrypt --age age1... secret.yaml > secret.enc.yaml</div>
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span>ArgoCD decrypts during manifest generation before applying to the cluster.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            ArgoCD &amp; GitOps Reference | K8s/DevOps/SRE Study Guide | 2026
+        </footer>
+
+    </div>
+
+</body>
+</html>

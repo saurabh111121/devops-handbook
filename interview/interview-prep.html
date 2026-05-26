@@ -1,0 +1,2116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Prep | K8s/DevOps/SRE</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html" class="active">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+<div class="container">
+
+    <div class="breadcrumb">
+        <a href="../index.html">Home</a> &gt; Interview Prep
+    </div>
+
+    <h1>Interview Preparation</h1>
+    <p class="subtitle">System design, scenario-based questions, gotcha questions, cloud architecture, behavioral prep, and study strategy. Open this the night before.</p>
+
+    <!-- ============================================================ -->
+    <!-- 1. SYSTEM DESIGN QUESTIONS -->
+    <!-- ============================================================ -->
+
+    <h2>1. System Design Questions</h2>
+
+    <div class="card card-info">
+        <h4>How to Approach System Design</h4>
+        <p>Follow this framework for every question: (1) Clarify requirements and constraints, (2) Define high-level architecture, (3) Deep dive into components, (4) Address scaling and failure modes, (5) Discuss trade-offs and alternatives.</p>
+    </div>
+
+    <!-- Q1: CI/CD Pipeline -->
+    <h3>Design a CI/CD Pipeline for Microservices</h3>
+
+    <div class="card">
+        <h4>Requirements to Clarify</h4>
+        <ul>
+            <li>How many services? (10-50 microservices)</li>
+            <li>Languages? (polyglot - Java, Go, Python, Node)</li>
+            <li>Deploy targets? (Kubernetes on AWS)</li>
+            <li>How fast should deploys be? (commit to production in &lt;30 min)</li>
+            <li>Rollback requirements? (&lt;5 min automated rollback)</li>
+        </ul>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Architecture</span>
+            <span class="tag tag-blue">System Design</span>
+        </div>
+        <pre>
+Pipeline Architecture:
+
+  Developer          Source          Build            Test             Deploy
+  +--------+      +--------+      +--------+      +--------+      +--------+
+  | Git    |----->| GitHub |----->| Build  |----->| Test   |----->| Deploy |
+  | Push   |      | Webhook|      | Stage  |      | Stage  |      | Stage  |
+  +--------+      +--------+      +--------+      +--------+      +--------+
+                       |               |               |               |
+                       v               v               v               v
+                  Branch Policy    Docker Build    Unit Tests      Canary 5%
+                  PR Validation    Lint/SAST       Integration     -> 25% -> 100%
+                  Code Review      Push to ECR     E2E/Contract    Health checks
+                                   Helm Chart      Performance     Auto-rollback
+
+Key Components:
+
+1. Source Control (GitHub/GitLab)
+   - Trunk-based development with short-lived feature branches
+   - Protected main branch: requires PR, 1+ approvals, passing CI
+   - Conventional commits for auto-versioning
+
+2. Build Stage (Jenkins/GitHub Actions/ArgoCD)
+   - Dockerfile per service (multi-stage builds)
+   - Shared CI templates (DRY pipeline definitions)
+   - Artifact: versioned Docker image + Helm chart
+   - SAST scanning (SonarQube, Snyk)
+   - Container image scanning (Trivy)
+
+3. Test Stage
+   - Unit tests (fast, &lt;2 min per service)
+   - Integration tests (service + dependencies via testcontainers)
+   - Contract tests (Pact - verify API compatibility)
+   - E2E tests (subset, &lt;10 min)
+   - Performance baseline tests (detect regressions)
+
+4. Deploy Stage (ArgoCD/Flux - GitOps)
+   - GitOps: update Helm values in config repo -> ArgoCD syncs
+   - Progressive delivery: Canary (5% -> 25% -> 100%)
+   - Automated rollback on: error rate spike, latency increase, failed health checks
+   - Environment promotion: dev -> staging -> production
+
+5. Observability
+   - Each stage emits metrics (build time, test pass rate, deploy duration)
+   - DORA metrics dashboard (deployment frequency, lead time, MTTR, change failure rate)
+   - Slack/PagerDuty alerts on pipeline failures
+
+Trade-offs:
+- Monorepo vs polyrepo: Monorepo = simpler dependencies but slower CI; Polyrepo = independent but harder coordination
+- Push vs Pull deploy: Push (Jenkins deploys) = simpler; Pull (ArgoCD) = more secure, auditable
+- Speed vs Safety: More gates = slower; fewer gates = riskier. Use risk-based approach (critical services get more gates)
+        </pre>
+    </div>
+
+    <!-- Q2: Monitoring and Alerting -->
+    <h3>Design Monitoring and Alerting System</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Architecture</span>
+            <span class="tag tag-green">System Design</span>
+        </div>
+        <pre>
+Monitoring Stack Architecture:
+
+  Applications         Collection         Storage          Visualization      Alerting
+  +-----------+      +-----------+      +---------+      +------------+    +----------+
+  | App       |----->| Prometheus|----->| Thanos/ |----->| Grafana    |--->| Alert    |
+  | Metrics   |      | (scrape)  |      | Cortex  |      | Dashboards |    | Manager  |
+  +-----------+      +-----------+      +---------+      +------------+    +----------+
+  | App Logs  |----->| Fluent Bit|----->| Loki /  |----->| Grafana    |         |
+  |           |      | (ship)    |      | ES/OS   |      | Explore    |         v
+  +-----------+      +-----------+      +---------+      +------------+    +----------+
+  | Traces    |----->| OTel      |----->| Tempo/  |----->| Grafana    |    | PagerDuty|
+  |           |      | Collector |      | Jaeger  |      | Traces     |    | Slack    |
+  +-----------+      +-----------+      +---------+      +------------+    +----------+
+
+Four Pillars:
+
+1. Metrics (Prometheus + Thanos)
+   - RED method for services: Rate, Errors, Duration
+   - USE method for infrastructure: Utilization, Saturation, Errors
+   - Golden signals: latency, traffic, errors, saturation
+   - Retention: 15d local Prometheus, 1yr Thanos/S3
+
+2. Logs (Fluent Bit + Loki)
+   - Structured JSON logs (timestamp, level, service, trace_id, message)
+   - DaemonSet: Fluent Bit on every node, ships to Loki
+   - Log levels: ERROR/WARN alerts, INFO for debugging, DEBUG disabled in prod
+   - Retention: 30 days hot, 90 days cold (S3)
+
+3. Traces (OpenTelemetry + Tempo)
+   - Distributed tracing across microservices
+   - Sample 1% of requests, 100% of errors
+   - Correlate: trace_id in logs + metrics exemplars
+   - Find: slow services, error sources, dependency bottlenecks
+
+4. Alerting (Alertmanager + PagerDuty)
+   - Symptom-based alerts (user-facing impact), NOT cause-based
+   - Severity levels: P1 (page), P2 (notify), P3 (ticket)
+   - Routing: P1 -> PagerDuty on-call, P2 -> Slack, P3 -> Jira
+   - Alert fatigue prevention: group, deduplicate, inhibit, silence
+   - Runbooks linked to every alert
+
+Design Decisions:
+- Pull vs Push metrics: Pull (Prometheus) for reliability; Push (StatsD) for ephemeral jobs
+- Centralized vs Federated: Federated Prometheus per cluster, Thanos for global view
+- Alert thresholds: SLO-based burn rate alerts (multi-window, multi-burn-rate)
+- Cost control: Label cardinality limits, log sampling, trace sampling
+        </pre>
+    </div>
+
+    <!-- Q3: HA Web App -->
+    <h3>Design Highly Available Web Application</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Architecture</span>
+            <span class="tag tag-blue">System Design</span>
+        </div>
+        <pre>
+High Availability Architecture (99.99% uptime = 4.3 min/month downtime):
+
+  Users -> CloudFront CDN -> ALB (multi-AZ) -> EKS (multi-AZ) -> Aurora (multi-AZ)
+                                                     |
+                                              ElastiCache Redis (multi-AZ)
+
+Layer-by-Layer Design:
+
+1. DNS (Route 53)
+   - Health checks on endpoints
+   - Failover routing to DR region
+   - Low TTL (60s) for fast failover
+
+2. CDN (CloudFront)
+   - Static assets cached at edge (JS, CSS, images)
+   - Origin failover to secondary region
+   - WAF integration (DDoS, bot protection)
+
+3. Load Balancer (ALB)
+   - Multi-AZ deployment (minimum 2 AZs, prefer 3)
+   - Health checks on targets (removes unhealthy pods)
+   - Connection draining (deregistration delay)
+   - Auto-scaling based on request count
+
+4. Application Tier (EKS)
+   - Minimum 3 replicas per service across AZs
+   - Pod anti-affinity (spread across nodes/AZs)
+   - PodDisruptionBudget (minAvailable: 2)
+   - HPA: CPU 70%, custom metrics
+   - Cluster Autoscaler / Karpenter for nodes
+   - Rolling updates: maxSurge=1, maxUnavailable=0
+   - Readiness gates: only serve traffic when fully ready
+   - Graceful shutdown: preStop hook + terminationGracePeriodSeconds
+
+5. Data Tier
+   - Aurora: Multi-AZ with read replicas (auto-failover ~30s)
+   - Redis: ElastiCache multi-AZ with automatic failover
+   - Connection pooling (PgBouncer/ProxySQL)
+   - Circuit breaker on DB calls (fail fast, don't cascade)
+
+6. Failure Scenarios Handled
+   - Single AZ failure: pods rescheduled, DB failover, no downtime
+   - Pod crash: auto-restart, health check removes from LB, HPA scales
+   - Node failure: pods evicted, rescheduled to healthy nodes
+   - Deploy failure: canary detects errors, auto-rollback
+   - Dependency failure: circuit breaker, graceful degradation, cached responses
+
+Key Numbers:
+- RTO (Recovery Time Objective): &lt;1 minute for pod failures, &lt;5 min for AZ
+- RPO (Recovery Point Objective): 0 for sync replication, &lt;1s for Aurora
+- Health check interval: 10s with 3 failures = 30s detection
+- Scale up time: ~60s for new pods, ~3 min for new nodes
+        </pre>
+    </div>
+
+    <!-- Q4: Multi-Region DR -->
+    <h3>Design Multi-Region Disaster Recovery</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Architecture</span>
+            <span class="tag tag-green">System Design</span>
+        </div>
+        <pre>
+DR Strategy Tiers:
+
+  Strategy       RTO          RPO         Cost      Complexity
+  +-----------+-----------+-----------+-----------+-----------+
+  | Backup/   | Hours     | Hours     | $         | Low       |
+  | Restore   | (4-24h)   | (1-24h)   |           |           |
+  +-----------+-----------+-----------+-----------+-----------+
+  | Pilot     | Minutes   | Minutes   | $$        | Medium    |
+  | Light     | (15-60m)  | (1-15m)   |           |           |
+  +-----------+-----------+-----------+-----------+-----------+
+  | Warm      | Minutes   | Seconds   | $$$       | High      |
+  | Standby   | (5-15m)   | (&lt;15s)    |           |           |
+  +-----------+-----------+-----------+-----------+-----------+
+  | Active-   | Seconds   | Zero      | $$$$      | Very High |
+  | Active    | (&lt;30s)    | (0)       |           |           |
+  +-----------+-----------+-----------+-----------+-----------+
+
+Recommended: Warm Standby for most production systems
+
+Architecture:
+  Region A (Primary)                    Region B (Secondary)
+  +------------------+                  +------------------+
+  | EKS Cluster      |                  | EKS Cluster      |
+  | (full capacity)  |                  | (min capacity)   |
+  +------------------+                  +------------------+
+         |                                      |
+  +------------------+   replication    +------------------+
+  | Aurora Primary   | ------------->   | Aurora Replica   |
+  | (read/write)     |   async &lt;1s     | (read-only)      |
+  +------------------+                  +------------------+
+         |                                      |
+  +------------------+   replication    +------------------+
+  | S3 Bucket        | ------------->   | S3 Bucket        |
+  | (source)         |   CRR            | (replica)        |
+  +------------------+                  +------------------+
+
+  Route 53 (Failover Routing)
+  - Primary: Region A health check
+  - Secondary: Region B (activated on failover)
+
+Failover Process:
+1. Health check fails in Region A (automated detection)
+2. Route 53 updates DNS to Region B (automatic, ~60s)
+3. Aurora replica promoted to primary (automatic, ~60s)
+4. EKS in Region B scales up (Karpenter, ~3-5 min)
+5. Total RTO: ~5-10 minutes
+
+Key Decisions:
+- Data replication: Aurora Global DB (async, &lt;1s lag) vs DynamoDB Global Tables (active-active)
+- State: externalize all state (Redis, DB), stateless containers
+- DNS TTL: 60s for fast failover (trade-off: more DNS queries)
+- Testing: Monthly DR drills, chaos engineering (simulated region failure)
+- Cost: secondary region at 20% capacity, auto-scale on failover
+- Secrets: replicate to both regions (AWS Secrets Manager multi-region)
+        </pre>
+    </div>
+
+    <!-- Q5: Container Platform -->
+    <h3>Design Container Platform for 100 Developers</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Architecture</span>
+            <span class="tag tag-blue">System Design</span>
+        </div>
+        <pre>
+Platform Architecture:
+
+  Developers --> Self-Service Portal --> GitOps Config Repo --> ArgoCD --> EKS Clusters
+                                              |
+                                    Platform Team Review (for prod)
+
+Multi-Tenancy Model:
+- Namespace per team (or per service for large teams)
+- ResourceQuotas per namespace (CPU, memory, pod count limits)
+- NetworkPolicies (default deny, explicit allow between namespaces)
+- RBAC: team gets admin in their namespace, read in shared
+
+Cluster Strategy:
+- 3 clusters: dev, staging, production
+- Production: multi-AZ, 3 control plane nodes
+- Separate cluster for platform services (monitoring, CI)
+- Node pools: general (m5.xlarge), memory-optimized (r5), GPU (p3)
+
+Developer Experience:
+1. Onboarding: template repo with Dockerfile, Helm chart, CI config, observability
+2. Self-service: create namespace, deploy service, view logs/metrics
+3. Guardrails: admission controllers (OPA/Kyverno) enforce:
+   - Must have resource requests/limits
+   - Must have health checks
+   - No privileged containers
+   - Images from approved registry only
+   - Must have labels (team, service, environment)
+4. Observability: auto-injected sidecar for tracing, pre-built Grafana dashboards
+
+Platform Components:
++-------------------+-----------------------------------+
+| Component         | Tool                              |
++-------------------+-----------------------------------+
+| Container Runtime | containerd                        |
+| Orchestration     | EKS (managed Kubernetes)          |
+| Service Mesh      | Istio / Linkerd (optional)        |
+| Ingress           | NGINX Ingress Controller + ALB    |
+| GitOps            | ArgoCD                            |
+| Policy Engine     | Kyverno / OPA Gatekeeper          |
+| Secrets           | External Secrets Operator + AWS SM|
+| Monitoring        | Prometheus + Grafana + Loki       |
+| Tracing           | OpenTelemetry + Tempo             |
+| Cost Management   | Kubecost                          |
+| Autoscaling       | Karpenter (nodes) + HPA (pods)    |
+| Certificate       | cert-manager                      |
+| DNS               | external-dns                      |
++-------------------+-----------------------------------+
+
+Scaling Considerations:
+- 100 devs ~= 20 teams ~= 50-100 microservices
+- Cluster sizing: start with 20-30 nodes, Karpenter auto-scales
+- etcd limits: &lt;100k objects, watch for namespace sprawl
+- Registry: ECR with image scanning, lifecycle policies for old images
+- Cost: spot instances for dev/staging (70% savings), on-demand for prod
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 2. SCENARIO-BASED QUESTIONS -->
+    <!-- ============================================================ -->
+
+    <h2>2. Scenario-Based Questions</h2>
+
+    <!-- Scenario 1 -->
+    <h3>Service is Slow - Diagnosis Approach</h3>
+
+    <div class="card">
+        <h4>Question: "Users report the application is slow. Walk me through your investigation."</h4>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Diagnosis Framework</span>
+            <span class="tag tag-green">Scenario</span>
+        </div>
+        <pre>
+Step 1: Define "slow" and scope the problem
+- Which users? All or subset? (geographic? specific feature?)
+- When did it start? (correlate with deploys, traffic spikes)
+- How slow? (2x normal? 10x? timeouts?)
+- Which endpoints? (all or specific?)
+
+Step 2: Check high-level metrics (top-down approach)
+- Grafana dashboard: latency p50/p95/p99 over time
+- Error rate: is slowness causing errors (timeouts)?
+- Traffic: did request volume spike? (viral event, DDoS, bot)
+- Saturation: are resources maxed out?
+
+Step 3: Identify the bottleneck layer
+- CDN/LB layer: check ALB latency metrics, connection count
+- Application layer: CPU throttling? memory pressure? GC pauses?
+  $ kubectl top pods -n production
+  $ kubectl describe pod &lt;pod&gt; (check OOMKilled, restarts)
+- Database layer: slow queries? connection pool exhausted? locks?
+  - Check RDS metrics: CPU, connections, read/write latency
+  - Check slow query log
+- Network: DNS resolution slow? cross-AZ latency? network policy blocking?
+- External dependencies: third-party API slow? (check circuit breaker state)
+
+Step 4: Deep dive with traces and logs
+- Pull trace for a slow request (find in Tempo/Jaeger)
+- Identify which span is slow (DB query? external call? computation?)
+- Check logs for errors/warnings around the time window
+- Check for resource contention (noisy neighbor, shared DB)
+
+Step 5: Correlate with changes
+- Recent deploy? (check ArgoCD/deployment history)
+- Config change? (ConfigMap/Secret update)
+- Infrastructure change? (node scaling, AZ issue)
+- Traffic pattern change? (new client, batch job started)
+
+Step 6: Remediate
+- Immediate: scale up pods (if resource-bound), restart (if memory leak)
+- Short-term: rollback deploy, revert config, add caching
+- Long-term: fix root cause, add performance test to CI, improve alerts
+
+Key Metrics to Check:
+- Pod: CPU usage vs request/limit, memory, restart count
+- Node: CPU, memory, disk I/O, network
+- Application: request latency histogram, error rate, active connections
+- Database: query latency, connection count, lock waits, cache hit ratio
+- Network: DNS lookup time, TCP connection time, TLS handshake time
+        </pre>
+    </div>
+
+    <!-- Scenario 2 -->
+    <h3>Monolith to Microservices Migration</h3>
+
+    <div class="card">
+        <h4>Question: "Your company has a monolith that is becoming hard to scale and deploy. How would you approach breaking it into microservices?"</h4>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Migration Strategy</span>
+            <span class="tag tag-blue">Scenario</span>
+        </div>
+        <pre>
+Phase 0: Assess and Plan (2-4 weeks)
+- Map the monolith: identify bounded contexts (DDD)
+- Identify pain points: which parts change most? scale differently? cause outages?
+- Define success criteria: deploy frequency, team autonomy, scale independently
+- Get buy-in: this is a multi-quarter effort, not a rewrite
+
+Phase 1: Strangler Fig Pattern (months 1-3)
+- Put an API gateway/reverse proxy in front of the monolith
+- Route new features to new microservices
+- Route existing features to monolith (unchanged)
+- Gradual migration: each sprint, extract one bounded context
+
+  Client -> API Gateway -> New Service A (extracted)
+                        -> Monolith (everything else, shrinking over time)
+
+Phase 2: Extract Services by Domain (months 3-12)
+Priority order:
+1. Independent modules with clear boundaries (authentication, notifications)
+2. High-change-frequency modules (features that ship weekly)
+3. Different scaling needs (search needs scale, admin panel does not)
+4. Team ownership (one team = one service)
+
+Extraction steps for each service:
+a) Identify the boundary (API, data, dependencies)
+b) Create the new service with its own DB (decompose data!)
+c) Implement anti-corruption layer (adapter between old and new)
+d) Route traffic to new service (feature flag/gradual rollout)
+e) Remove old code from monolith
+f) Verify: latency, errors, data consistency
+
+Phase 3: Platform Enablement (parallel)
+- Container platform (Kubernetes)
+- CI/CD per service
+- Service mesh for observability
+- Centralized logging and tracing (critical for debugging distributed systems)
+- Shared libraries for cross-cutting concerns (auth, logging, metrics)
+
+Pitfalls to Avoid:
+- Distributed monolith: services too coupled, must deploy together -> worse than original
+- Shared database: services reading each other's tables = hidden coupling
+- Too many services too fast: operational complexity explodes
+- No observability: debugging distributed systems without tracing is painful
+- Data consistency: SAGA pattern vs 2PC, eventual consistency is harder than it sounds
+- Network overhead: in-process calls are now network calls (latency, failure modes)
+
+Key Principles:
+- Each service owns its data (no shared DB)
+- Services communicate via well-defined APIs (REST/gRPC) or events (Kafka)
+- Deploy independently, fail independently
+- Start with 3-5 services, not 50 (avoid premature decomposition)
+        </pre>
+    </div>
+
+    <!-- Scenario 3 -->
+    <h3>Deployment Broke Production - Response</h3>
+
+    <div class="card">
+        <h4>Question: "A deploy just went out and customers are seeing errors. What do you do?"</h4>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Incident Response</span>
+            <span class="tag tag-green">Scenario</span>
+        </div>
+        <pre>
+Immediate Response (first 5 minutes):
+
+1. ASSESS: Confirm the impact
+   - Check error rate dashboard (is it actually the deploy?)
+   - Scope: all users or subset? which endpoints?
+   - Severity: data loss? degraded? complete outage?
+
+2. COMMUNICATE: Declare incident
+   - Open incident channel (#incident-YYYY-MM-DD)
+   - Assign roles: Incident Commander, Comms Lead
+   - Post status page update: "Investigating elevated error rates"
+
+3. MITIGATE: Rollback (don't debug in production under pressure)
+   $ kubectl rollout undo deployment/web-app -n production
+   $ kubectl rollout status deployment/web-app -n production
+   # Or revert ArgoCD to previous commit:
+   $ git revert HEAD && git push
+
+   If rollback isn't straightforward:
+   - Feature flag: disable the new code path
+   - Traffic shift: route to canary-free version
+   - Scale old version back up alongside new
+
+4. VERIFY: Confirm mitigation worked
+   - Error rate returning to baseline?
+   - Latency normalized?
+   - Customer reports stopping?
+   - Monitor for 15+ minutes (some issues are delayed)
+
+5. INVESTIGATE (after mitigation): Root cause
+   - What changed in the deploy? (diff the commits)
+   - Check logs from failed pods
+   - Compare metrics before/after deploy
+   - Was it tested in staging? Why didn't it catch this?
+
+Post-Incident (within 48 hours):
+
+6. BLAMELESS POSTMORTEM
+   - Timeline of events
+   - Root cause (5 Whys)
+   - What went well / what went poorly
+   - Action items:
+     * Add test that would have caught this
+     * Improve canary analysis (earlier detection)
+     * Better staging parity with production
+     * Runbook updates
+
+Key Principles:
+- Mitigate first, investigate later (reduce customer impact ASAP)
+- Rollback is always better than a forward fix under pressure
+- Communicate early and often (silence = anxiety for stakeholders)
+- Blameless culture: focus on systems, not individuals
+- Every incident is a learning opportunity
+        </pre>
+    </div>
+
+    <!-- Scenario 4 -->
+    <h3>Noisy Neighbor in Shared Cluster</h3>
+
+    <div class="card">
+        <h4>Question: "Team A's service is consuming all the CPU on shared nodes, impacting Team B. How do you handle this?"</h4>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Solution</span>
+            <span class="tag tag-blue">Scenario</span>
+        </div>
+        <pre>
+Immediate Fix:
+1. Identify the offending pods:
+   $ kubectl top pods -n team-a --sort-by=cpu
+   $ kubectl describe node &lt;node-name&gt;  # Check allocated vs capacity
+
+2. If no resource limits set, add them immediately:
+   - Edit deployment to add CPU/memory limits
+   - This prevents unbounded resource consumption
+
+3. If limits exist but are too high, reduce them
+
+Prevention (implement all of these):
+
+1. Resource Quotas per namespace:
+   apiVersion: v1
+   kind: ResourceQuota
+   metadata:
+     name: team-a-quota
+     namespace: team-a
+   spec:
+     hard:
+       requests.cpu: "10"
+       limits.cpu: "20"
+       requests.memory: 20Gi
+       limits.memory: 40Gi
+
+2. LimitRange (enforce defaults):
+   - Every container MUST have requests and limits
+   - Set sensible defaults via LimitRange
+   - Admission controller rejects pods without resources
+
+3. Priority Classes:
+   - Critical services get higher priority
+   - Low-priority workloads get preempted first
+
+4. Node Isolation (for extreme cases):
+   - Dedicated node pools per team (node selectors + taints)
+   - Team A's pods can only schedule on Team A's nodes
+   - More expensive but complete isolation
+
+5. Policy Enforcement (Kyverno/OPA):
+   - REQUIRE resource requests/limits on all pods
+   - REQUIRE max CPU limit per container (e.g., 4 cores)
+   - Reject deployments that would exceed quota
+
+Long-term:
+- Chargeback/showback: teams see their resource costs
+- Right-sizing: VPA recommendations for actual usage
+- Capacity planning: regular reviews of quota vs usage
+        </pre>
+    </div>
+
+    <!-- Scenario 5 -->
+    <h3>Certificate Expired in Production</h3>
+
+    <div class="card">
+        <h4>Question: "Users are getting TLS errors. You discover a certificate expired. What is your response and how do you prevent this?"</h4>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Response and Prevention</span>
+            <span class="tag tag-green">Scenario</span>
+        </div>
+        <pre>
+Immediate Response (minutes):
+
+1. Confirm the issue:
+   $ openssl s_client -connect app.example.com:443 2>/dev/null | openssl x509 -noout -dates
+   # Or check in browser: certificate details
+
+2. Identify which cert expired:
+   - Ingress TLS secret?
+   - Load balancer cert (ACM)?
+   - Upstream/internal mTLS cert?
+   $ kubectl get secret tls-secret -n production -o jsonpath='{.data.tls\.crt}' | \
+     base64 -d | openssl x509 -noout -dates
+
+3. Renew immediately:
+   Option A: cert-manager is installed -> check Certificate resource status
+   $ kubectl describe certificate app-tls -n production
+   $ kubectl delete secret tls-secret  # cert-manager will recreate
+
+   Option B: Manual renewal
+   - Generate CSR, get new cert from CA
+   - Update the Kubernetes secret:
+   $ kubectl create secret tls tls-secret --cert=new.crt --key=new.key \
+     --dry-run=client -o yaml | kubectl apply -f -
+
+   Option C: ACM (AWS)
+   - ACM auto-renews if DNS validation is configured
+   - If not: manually request new cert, update ALB listener
+
+4. Verify:
+   $ curl -vI https://app.example.com 2>&1 | grep "expire date"
+
+Prevention (never let this happen again):
+
+1. cert-manager (automated):
+   - Automatically issues and renews certs from Let's Encrypt/internal CA
+   - Renews 30 days before expiry
+   - Certificate resource declares desired state, cert-manager handles lifecycle
+
+2. Monitoring:
+   - Alert when cert expires in &lt;30 days:
+     probe_ssl_earliest_cert_expiry - time() &lt; 30*24*3600
+   - Blackbox exporter probes all endpoints
+   - Dashboard showing all cert expiry dates
+
+3. Inventory:
+   - List of ALL certificates, where they are, when they expire
+   - Include: ingress certs, internal mTLS, database SSL, third-party certs
+   - Automated scanning: cert-inventory tool or custom script
+
+4. Process:
+   - Runbook for cert renewal (step by step)
+   - Rotation tested quarterly
+   - No manual certs: everything via cert-manager or ACM
+        </pre>
+    </div>
+
+    <!-- Scenario 6 -->
+    <h3>Database Migration Zero-Downtime</h3>
+
+    <div class="card">
+        <h4>Question: "You need to change the database schema (add columns, rename tables) without any downtime. How?"</h4>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Zero-Downtime Migration</span>
+            <span class="tag tag-blue">Scenario</span>
+        </div>
+        <pre>
+Golden Rule: Application must work with BOTH old and new schema simultaneously.
+
+Strategy: Expand-Migrate-Contract (3 deploys, not 1)
+
+Example: Rename column "username" to "user_name"
+
+Phase 1: EXPAND (add new, keep old)
+  Migration: ALTER TABLE users ADD COLUMN user_name VARCHAR(255);
+  App deploy: write to BOTH columns, read from old (username)
+  Backfill: UPDATE users SET user_name = username WHERE user_name IS NULL;
+
+Phase 2: MIGRATE (switch reads)
+  App deploy: write to BOTH columns, read from new (user_name)
+  Verify: all reads working correctly from new column
+
+Phase 3: CONTRACT (remove old)
+  App deploy: only use new column (user_name)
+  Migration: ALTER TABLE users DROP COLUMN username;
+
+Safe Migration Patterns:
+
+1. Add column: always safe (nullable or with default)
+2. Remove column: stop reading first, then drop
+3. Rename column: expand/migrate/contract (never rename directly)
+4. Add index: CREATE INDEX CONCURRENTLY (non-locking in PostgreSQL)
+5. Change type: add new column with new type, migrate data, switch
+6. Add NOT NULL: add column nullable -> backfill -> add constraint
+
+Dangerous Operations (never in production directly):
+- ALTER TABLE ... RENAME COLUMN (breaks running app)
+- ALTER TABLE ... DROP COLUMN (breaks running app)
+- ALTER TABLE ... ALTER COLUMN SET NOT NULL (locks table, may fail)
+- Large table migrations without batching (locks, timeouts)
+
+Tools:
+- gh-ost (GitHub): online schema migration for MySQL
+- pg-osc: online schema change for PostgreSQL
+- Flyway/Liquibase: version-controlled migrations
+- Django migrations: built-in with RunSQL for custom
+- Rails: strong_migrations gem catches dangerous operations
+
+Verification:
+- Run migration on staging with production-sized data first
+- Measure lock time and query impact
+- Test rollback procedure before applying to production
+- Monitor query latency during and after migration
+        </pre>
+    </div>
+
+    <!-- Scenario 7 -->
+    <h3>Cost Optimization for Kubernetes Cluster</h3>
+
+    <div class="card">
+        <h4>Question: "Your Kubernetes cluster bill is growing 20% month over month. How do you reduce costs without impacting reliability?"</h4>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Cost Optimization Strategy</span>
+            <span class="tag tag-green">Scenario</span>
+        </div>
+        <pre>
+Step 1: Visibility (you cannot optimize what you cannot measure)
+- Install Kubecost or OpenCost (per-namespace, per-team cost breakdown)
+- Tag/label everything: team, service, environment, cost-center
+- Create cost dashboard: who spends what, trending over time
+
+Step 2: Right-sizing (biggest single savings, typically 30-50%)
+- Install VPA in recommend mode (not auto):
+  $ kubectl get vpa -A  # Check recommendations
+- Common finding: requests set at 1 CPU but actual usage is 100m
+- Reduce requests to match p95 actual usage + 20% buffer
+- Reduce limits to 2x requests (or remove CPU limits entirely)
+
+Step 3: Spot/Preemptible Instances (50-70% savings on compute)
+- Dev/staging: 100% spot instances
+- Production: mix of on-demand (baseline) + spot (burst)
+- Karpenter: automatically picks cheapest instance type
+- Handle interruptions: PDBs, multiple AZs, graceful shutdown
+
+Step 4: Autoscaling (don't pay for idle capacity)
+- HPA: scale pods based on CPU/memory/custom metrics
+- Karpenter/Cluster Autoscaler: remove nodes when pods fit on fewer
+- Scale to zero: non-production environments at night/weekends
+  - CronJob to scale dev deployments to 0 replicas at 8PM, restore at 8AM
+  - 60% savings on dev clusters
+
+Step 5: Storage Optimization
+- Delete unused PVCs (orphaned after pod deletion)
+- Right-size PVCs (most are over-provisioned)
+- Use gp3 instead of gp2 (20% cheaper, better performance)
+- S3 lifecycle policies for logs/backups (transition to Glacier)
+
+Step 6: Network
+- Keep traffic in same AZ when possible (inter-AZ = $0.01/GB)
+- Use topology-aware routing (Kubernetes 1.27+)
+- Cache aggressively (CDN, Redis) to reduce backend traffic
+
+Step 7: Governance
+- Set ResourceQuotas per namespace (prevent unchecked growth)
+- Require resource requests on all pods (admission webhook)
+- Monthly cost review with team leads (chargeback model)
+- Auto-delete idle resources: namespaces with no pods for 7 days
+
+Quick Wins (implement today):
+1. Delete unused load balancers ($18/month each)
+2. Right-size RDS instances (often 4x over-provisioned)
+3. Reserved Instances/Savings Plans for baseline (30-40% savings)
+4. Compress/disable debug logs in production
+5. Set image pull policy to IfNotPresent (reduces ECR transfer)
+        </pre>
+    </div>
+
+    <!-- Scenario 8 -->
+    <h3>Security Incident Response</h3>
+
+    <div class="card">
+        <h4>Question: "You detect suspicious activity - a container is making unexpected outbound connections. Walk me through your response."</h4>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Incident Response</span>
+            <span class="tag tag-blue">Scenario</span>
+        </div>
+        <pre>
+Phase 1: DETECT and ASSESS (first 5 minutes)
+
+1. Confirm the alert:
+   - Which pod? Which namespace? What connections?
+   - Is it a known service making expected calls? (false positive check)
+   $ kubectl get pod suspicious-pod -n production -o yaml
+   $ kubectl logs suspicious-pod -n production --tail=100
+
+2. Check network connections:
+   $ kubectl exec suspicious-pod -- netstat -tlnp 2>/dev/null
+   $ kubectl exec suspicious-pod -- cat /proc/net/tcp
+   - What IPs? What ports? Known C2 servers? Crypto mining pools?
+
+3. Assess blast radius:
+   - What ServiceAccount does this pod use? What permissions?
+   - What secrets are mounted? What can be accessed?
+   - Is there lateral movement potential?
+
+Phase 2: CONTAIN (next 10 minutes)
+
+4. Isolate immediately (do NOT delete the pod - preserve evidence):
+   # Apply deny-all NetworkPolicy to isolate the pod
+   $ kubectl apply -f - &lt;&lt;EOF
+   apiVersion: networking.k8s.io/v1
+   kind: NetworkPolicy
+   metadata:
+     name: isolate-compromised
+     namespace: production
+   spec:
+     podSelector:
+       matchLabels:
+         app: suspicious-app
+     policyTypes: [Ingress, Egress]
+     # No rules = deny all traffic
+   EOF
+
+5. Revoke credentials:
+   - Rotate the ServiceAccount token
+   - Rotate any secrets the pod had access to (DB passwords, API keys)
+   - Revoke IAM role (if using IRSA)
+
+6. Preserve evidence:
+   $ kubectl logs suspicious-pod -n production --all-containers > /tmp/evidence-logs.txt
+   $ kubectl get pod suspicious-pod -o yaml > /tmp/evidence-pod-spec.txt
+   $ kubectl exec suspicious-pod -- find / -newer /proc -type f 2>/dev/null > /tmp/evidence-new-files.txt
+   # If possible, snapshot the node for forensics
+
+Phase 3: ERADICATE
+
+7. Identify entry point:
+   - Vulnerable application code? (RCE, SSRF, deserialization)
+   - Compromised container image? (check image hash, scan with Trivy)
+   - Stolen credentials? (check audit logs for unusual API calls)
+   - Supply chain? (compromised dependency)
+
+8. Remove the threat:
+   - Patch vulnerability or rebuild image from verified source
+   - Kill compromised pods: kubectl delete pod suspicious-pod
+   - Scan all other pods with same image for compromise
+   - Check audit logs for unusual Kubernetes API calls
+
+Phase 4: RECOVER and PREVENT
+
+9. Recover:
+   - Deploy patched version
+   - Restore from clean backup if data was modified
+   - Monitor closely for 48 hours
+
+10. Prevent recurrence:
+    - Enable network policies (default deny) cluster-wide
+    - Pod Security Standards: restricted profile
+    - Image scanning in CI (block vulnerable images)
+    - Runtime security: Falco for anomaly detection
+    - Audit logging: who accessed what, when
+    - Principle of least privilege: minimal RBAC, minimal network access
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 3. GOTCHA QUESTIONS -->
+    <!-- ============================================================ -->
+
+    <h2>3. Gotcha Questions</h2>
+
+    <!-- Gotcha 1 -->
+    <h3>CMD vs ENTRYPOINT in Docker</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Docker CMD vs ENTRYPOINT</span>
+            <span class="tag tag-green">Gotcha</span>
+        </div>
+        <pre>
+ENTRYPOINT: The executable that always runs. Defines the container as an executable.
+CMD: Default arguments to the entrypoint. Can be overridden at runtime.
+
+Dockerfile Examples:
+
+# CMD only - entire command can be overridden
+FROM ubuntu
+CMD ["echo", "hello"]
+# docker run myimage              -> "hello"
+# docker run myimage echo "world" -> "world" (CMD replaced entirely)
+
+# ENTRYPOINT only - always runs this executable
+FROM ubuntu
+ENTRYPOINT ["echo"]
+# docker run myimage              -> "" (echo with no args)
+# docker run myimage "hello"      -> "hello" (args appended)
+
+# ENTRYPOINT + CMD - best practice for production
+FROM ubuntu
+ENTRYPOINT ["python", "app.py"]
+CMD ["--port=8080"]
+# docker run myimage              -> python app.py --port=8080
+# docker run myimage --port=9090  -> python app.py --port=9090 (CMD overridden)
+
+Key Rules:
+1. CMD is overridden by docker run arguments
+2. ENTRYPOINT is NOT overridden by docker run arguments (use --entrypoint to override)
+3. Shell form (CMD echo hello) runs via /bin/sh -c - PID 1 is shell, not your app
+4. Exec form (CMD ["echo", "hello"]) runs directly - PID 1 is your app (handles signals)
+5. In Kubernetes: command: overrides ENTRYPOINT, args: overrides CMD
+
+Kubernetes mapping:
+  Dockerfile         | Kubernetes Pod Spec
+  -------------------|--------------------
+  ENTRYPOINT         | spec.containers[].command
+  CMD                | spec.containers[].args
+
+# Pod that overrides both:
+spec:
+  containers:
+  - name: app
+    image: myimage
+    command: ["/bin/sh"]         # Overrides ENTRYPOINT
+    args: ["-c", "echo hello"]  # Overrides CMD
+        </pre>
+    </div>
+
+    <!-- Gotcha 2 -->
+    <h3>What Happens on kubectl apply (Full Flow)</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">kubectl apply Flow</span>
+            <span class="tag tag-blue">Gotcha</span>
+        </div>
+        <pre>
+$ kubectl apply -f deployment.yaml
+
+Step-by-step flow:
+
+1. CLIENT SIDE (kubectl):
+   - Reads YAML file
+   - Validates basic syntax
+   - Discovers API endpoint via kubeconfig (~/.kube/config)
+   - Sends HTTPS request to API server
+
+2. API SERVER (kube-apiserver):
+   a) Authentication: Who are you? (client cert, bearer token, OIDC)
+   b) Authorization: Can you do this? (RBAC check: can user create/update deployments?)
+   c) Admission Control (mutating):
+      - MutatingAdmissionWebhooks fire (e.g., inject sidecar, add labels)
+      - Default values applied (e.g., default ServiceAccount)
+   d) Schema Validation: Is the YAML valid for this resource type?
+   e) Admission Control (validating):
+      - ValidatingAdmissionWebhooks fire (e.g., OPA/Kyverno policy checks)
+      - Reject if policies violated (no resource limits, etc.)
+   f) Persist to etcd: Write the desired state
+
+3. CONTROLLER MANAGER (for Deployment):
+   - Deployment controller detects new/changed Deployment
+   - Creates/updates ReplicaSet (with pod template hash)
+   - ReplicaSet controller detects new ReplicaSet
+   - Creates Pod objects in etcd (Pending state)
+
+4. SCHEDULER (kube-scheduler):
+   - Watches for unscheduled Pods (nodeName not set)
+   - Filtering: which nodes CAN run this pod? (resources, taints, affinity, selectors)
+   - Scoring: which node is BEST? (spread, resource balance, locality)
+   - Binding: assigns Pod to a Node (updates Pod.spec.nodeName in etcd)
+
+5. KUBELET (on the assigned node):
+   - Watches API server, sees Pod assigned to its node
+   - Pulls container image (if not cached)
+   - Calls container runtime (containerd) via CRI to create containers
+   - Sets up networking (CNI plugin creates veth pair, assigns IP)
+   - Mounts volumes (CSI driver if needed)
+   - Runs init containers sequentially
+   - Starts main containers
+   - Reports Pod status back to API server
+
+6. KUBE-PROXY (on every node):
+   - Watches Service/Endpoint objects
+   - Updates iptables/IPVS rules for service routing
+   - Ensures service ClusterIP routes to correct pod IPs
+
+7. READINESS:
+   - Kubelet runs readiness probe
+   - When ready: Endpoints controller adds pod IP to Endpoints/EndpointSlice
+   - Service now routes traffic to the new pod
+
+Total time: typically 5-30 seconds for a simple pod (image pull is often the slowest step)
+        </pre>
+    </div>
+
+    <!-- Gotcha 3 -->
+    <h3>DNS Resolution Step by Step</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Kubernetes DNS Resolution</span>
+            <span class="tag tag-green">Gotcha</span>
+        </div>
+        <pre>
+When a pod resolves a service name, here is exactly what happens:
+
+1. Application calls getaddrinfo("my-svc") or similar
+
+2. Resolver reads /etc/resolv.conf in the container:
+   nameserver 10.96.0.10          # CoreDNS ClusterIP
+   search default.svc.cluster.local svc.cluster.local cluster.local
+   options ndots:5
+
+3. Because "my-svc" has fewer than 5 dots (ndots:5 setting):
+   - First tries: my-svc.default.svc.cluster.local
+   - Then tries: my-svc.svc.cluster.local
+   - Then tries: my-svc.cluster.local
+   - Finally tries: my-svc (absolute)
+   (This is why FQDN with trailing dot is faster: "my-svc.default.svc.cluster.local.")
+
+4. DNS query goes to CoreDNS (10.96.0.10):
+   - CoreDNS checks its cache
+   - If not cached: looks up the Service object in Kubernetes API
+   - Returns the ClusterIP (for ClusterIP services)
+   - Or returns all Pod IPs (for Headless services, clusterIP: None)
+
+5. Response returned to the pod with IP address
+
+DNS Records Created by Kubernetes:
+
+  Service Type    | DNS Record
+  ----------------|------------------------------------------
+  ClusterIP       | my-svc.namespace.svc.cluster.local -> ClusterIP
+  Headless        | my-svc.namespace.svc.cluster.local -> Pod IPs (A records)
+  ExternalName    | my-svc.namespace.svc.cluster.local -> CNAME to external
+  StatefulSet Pod | pod-0.my-svc.namespace.svc.cluster.local -> Pod IP
+
+Troubleshooting DNS:
+  $ kubectl run dnstest --image=busybox:1.36 --rm -it -- nslookup my-svc
+  $ kubectl run dnstest --image=busybox:1.36 --rm -it -- cat /etc/resolv.conf
+  $ kubectl get endpoints my-svc  # Check if endpoints exist
+  $ kubectl logs -n kube-system -l k8s-app=kube-dns  # CoreDNS logs
+
+Performance tip: For high-QPS services, use FQDN with trailing dot to avoid
+search domain expansion (saves 3-4 extra DNS queries per resolution).
+        </pre>
+    </div>
+
+    <!-- Gotcha 4 -->
+    <h3>Eventual Consistency Explained</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Eventual Consistency</span>
+            <span class="tag tag-blue">Gotcha</span>
+        </div>
+        <pre>
+Definition: If no new updates are made, eventually all reads will return the last
+written value. The system will converge to a consistent state, but not immediately.
+
+CAP Theorem Context:
+- Consistency: Every read receives the most recent write
+- Availability: Every request receives a response
+- Partition Tolerance: System works despite network partitions
+
+You can only have 2 of 3. In distributed systems (where P is mandatory):
+- CP: Consistent but may be unavailable during partitions (etcd, ZooKeeper)
+- AP: Available but may return stale data (DynamoDB, Cassandra, DNS)
+
+Real-World Examples:
+
+1. DNS Propagation:
+   - You update a DNS record
+   - Some resolvers still have old cached value (TTL not expired)
+   - Eventually (after TTL) all resolvers have new value
+
+2. Kubernetes Endpoints:
+   - Pod becomes ready
+   - Endpoints controller updates Endpoints object
+   - kube-proxy on each node watches and updates iptables
+   - Brief window where some nodes route to new pod, others don't
+
+3. S3 (now strongly consistent as of Dec 2020):
+   - Previously: PUT then immediate GET might return old object
+   - Now: strong read-after-write consistency
+
+4. Database Replicas:
+   - Write to primary -> replicate to read replica
+   - Read from replica might return stale data during replication lag
+   - Eventually consistent (typically milliseconds)
+
+5. Kubernetes watch/cache:
+   - Controllers use informers (local cache of API objects)
+   - Cache is eventually consistent with etcd
+   - Why you sometimes see brief inconsistencies after rapid changes
+
+How to Handle in Applications:
+- Idempotent operations (safe to retry)
+- Read-your-writes: read from primary after writing
+- Optimistic concurrency (version/etag checks)
+- Conflict resolution strategies (last-write-wins, merge)
+- Design for "what if I read stale data?" - is it acceptable?
+        </pre>
+    </div>
+
+    <!-- Gotcha 5 -->
+    <h3>Difference Between Process and Thread</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Process vs Thread</span>
+            <span class="tag tag-green">Gotcha</span>
+        </div>
+        <pre>
+Process:
+- Independent execution unit with its OWN memory space
+- Has its own address space, file descriptors, heap, stack
+- Created via fork() on Linux (copies parent's memory space, COW)
+- Communication between processes: IPC (pipes, sockets, shared memory, message queues)
+- Crash in one process does NOT affect others
+- More expensive to create/destroy and context switch
+- Example: each container in a pod is a process (or process tree)
+
+Thread:
+- Lightweight execution unit WITHIN a process
+- Shares memory space, heap, file descriptors with other threads in same process
+- Has its own stack and registers only
+- Communication: direct shared memory (but needs locks/mutexes)
+- Crash in one thread CAN crash the entire process
+- Cheaper to create/destroy, faster context switch
+- Example: Go goroutines, Java threads, Python threads (limited by GIL)
+
+Comparison:
+  Aspect          | Process              | Thread
+  ----------------|---------------------|-------------------
+  Memory          | Own address space    | Shared with process
+  Creation cost   | High (fork)          | Low (pthread_create)
+  Context switch  | Expensive            | Cheaper
+  Communication   | IPC (complex)        | Shared memory (simple but dangerous)
+  Isolation       | Strong               | Weak (shared memory)
+  Crash impact    | Isolated             | Takes down process
+
+Container Context:
+- A container IS a process (or process group) with isolation via:
+  - Namespaces: what it can SEE (PID, network, mount, user)
+  - Cgroups: what it can USE (CPU, memory, I/O limits)
+- Container PID 1: the main process. If it dies, container dies.
+- Multi-process containers: possible but anti-pattern (use init system like tini)
+
+Why This Matters for DevOps:
+- CPU limits apply to the PROCESS (all threads share the CPU allocation)
+- Memory limits apply to the cgroup (total memory of process + all threads)
+- OOMKill targets the process (all threads die)
+- "1 CPU" means 1000ms of CPU time per 1000ms wall time (across all threads)
+        </pre>
+    </div>
+
+    <!-- Gotcha 6 -->
+    <h3>TCP 3-Way Handshake</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">TCP Handshake</span>
+            <span class="tag tag-blue">Gotcha</span>
+        </div>
+        <pre>
+The 3-way handshake establishes a TCP connection:
+
+  Client                             Server
+    |                                   |
+    |  1. SYN (seq=x)                  |  Client: "I want to connect, my sequence starts at x"
+    |---------------------------------->|  Client state: SYN_SENT
+    |                                   |
+    |  2. SYN-ACK (seq=y, ack=x+1)    |  Server: "OK, my sequence starts at y, I acknowledge x"
+    |<----------------------------------|  Server state: SYN_RECEIVED
+    |                                   |
+    |  3. ACK (seq=x+1, ack=y+1)      |  Client: "I acknowledge y, let's talk"
+    |---------------------------------->|  Both state: ESTABLISHED
+    |                                   |
+    |  ... data transfer begins ...     |
+
+Why 3 steps (not 2)?
+- Both sides need to agree on initial sequence numbers
+- Both sides need confirmation that the other received their sequence number
+- Prevents old duplicate SYN packets from opening phantom connections
+
+Connection Termination (4-way):
+  Client                             Server
+    |  FIN                              |  Client: "I'm done sending"
+    |---------------------------------->|  Client: FIN_WAIT_1
+    |  ACK                              |  Server: "Got it" (may still send data)
+    |<----------------------------------|  Client: FIN_WAIT_2
+    |  FIN                              |  Server: "I'm done too"
+    |<----------------------------------|  Client: TIME_WAIT
+    |  ACK                              |  Client: "Got it"
+    |---------------------------------->|  Server: CLOSED
+    |  (wait 2*MSL)                     |  Client: CLOSED
+
+Why This Matters for DevOps:
+
+1. Connection timeouts: If SYN-ACK never comes back, client retries (exponential backoff)
+   - TCP default: retry SYN 6 times over ~127 seconds before failing
+   - Load balancers: idle timeout (default 60s) closes connection if no data
+
+2. TIME_WAIT: After closing, client holds the port for 2*MSL (~60s)
+   - High-traffic services: can exhaust ephemeral ports
+   - Fix: connection pooling, SO_REUSEADDR, shorter TIME_WAIT
+
+3. Health checks: TCP health check = complete 3-way handshake
+   - Faster than HTTP health check (no request/response needed)
+   - But doesn't verify application is actually working
+
+4. Kubernetes readiness: Pod must be ready to complete TCP handshake
+   - If readiness probe fails, pod removed from Service endpoints
+   - New connections routed elsewhere
+
+5. Graceful shutdown:
+   - preStop hook: sleep to drain connections
+   - Application: stop accepting new connections, finish in-flight requests
+   - terminationGracePeriodSeconds: max time before SIGKILL
+        </pre>
+    </div>
+
+    <!-- Gotcha 7 -->
+    <h3>What Happens When You Type a URL in Browser</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">URL to Page Load</span>
+            <span class="tag tag-green">Gotcha</span>
+        </div>
+        <pre>
+You type "https://app.example.com/dashboard" and press Enter:
+
+1. URL PARSING
+   - Browser parses: protocol (https), host (app.example.com), path (/dashboard)
+   - Checks HSTS preload list (must use HTTPS?)
+
+2. DNS RESOLUTION (~20-100ms if not cached)
+   - Browser cache -> OS cache -> Router cache -> ISP resolver -> Root -> TLD -> Authoritative
+   - app.example.com -> Route 53 -> returns IP (e.g., 52.1.2.3 = CloudFront/ALB)
+   - May return multiple IPs (load balancing, geo-routing)
+
+3. TCP CONNECTION (~20-50ms)
+   - 3-way handshake: SYN -> SYN-ACK -> ACK
+   - If HTTP/2 or HTTP/3: connection multiplexing (single connection for all requests)
+
+4. TLS HANDSHAKE (~30-100ms, adds 1-2 RTT)
+   - Client Hello: supported cipher suites, SNI (which domain)
+   - Server Hello: chosen cipher, certificate
+   - Client verifies certificate chain (trusted CA? expired? hostname match?)
+   - Key exchange (ECDHE), derive symmetric session keys
+   - TLS 1.3: 1 RTT (faster than TLS 1.2's 2 RTT)
+
+5. HTTP REQUEST
+   - GET /dashboard HTTP/2
+   - Headers: Host, User-Agent, Accept, Cookie, Authorization
+   - If CDN (CloudFront): cache hit -> return immediately (skip steps 6-7)
+   - If cache miss: forward to origin (ALB)
+
+6. SERVER PROCESSING (your infrastructure)
+   - ALB receives request -> routes to target group
+   - Kubernetes Ingress -> Service -> Pod
+   - Application processes request:
+     * Authentication (verify JWT/session)
+     * Authorization (can user access /dashboard?)
+     * Business logic (fetch data from DB, Redis)
+     * Render response (HTML or JSON for SPA)
+
+7. HTTP RESPONSE
+   - Status: 200 OK
+   - Headers: Content-Type, Cache-Control, Set-Cookie
+   - Body: HTML document (or JSON for SPA)
+   - Compression: gzip/br reduces transfer size 60-80%
+
+8. BROWSER RENDERING
+   - Parse HTML -> DOM tree
+   - Parse CSS -> CSSOM tree
+   - Execute JavaScript (may modify DOM)
+   - Combine DOM + CSSOM -> Render tree
+   - Layout (compute positions/sizes)
+   - Paint (draw pixels)
+   - Composite (layer composition, GPU)
+
+9. SUBSEQUENT REQUESTS (parallel)
+   - CSS, JS, images, fonts (referenced in HTML)
+   - HTTP/2: multiplexed on same connection
+   - Browser: max 6 connections per domain (HTTP/1.1)
+   - Service Worker: may intercept and serve from cache
+
+Total time: 100ms-3s depending on location, caching, server speed
+What we control: steps 5-7 (server infrastructure), caching strategy, CDN placement
+        </pre>
+    </div>
+
+    <!-- Gotcha 8 -->
+    <h3>Authentication vs Authorization</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">AuthN vs AuthZ</span>
+            <span class="tag tag-blue">Gotcha</span>
+        </div>
+        <pre>
+Authentication (AuthN): WHO are you?
+Authorization (AuthZ): WHAT can you do?
+
+  Authentication (Identity)           Authorization (Permissions)
+  +---------------------------+      +---------------------------+
+  | "Prove you are who you    |      | "Now that I know who you  |
+  |  claim to be"             |      |  are, here's what you     |
+  |                           |      |  can access"              |
+  | Methods:                  |      | Methods:                  |
+  | - Username/Password       |      | - RBAC (Role-Based)       |
+  | - Client Certificate      |      | - ABAC (Attribute-Based)  |
+  | - Bearer Token (JWT)      |      | - ACL (Access Control)    |
+  | - OIDC/OAuth2             |      | - Policy (OPA/Cedar)      |
+  | - Multi-Factor (MFA)      |      |                           |
+  | - API Key                 |      | Answers:                  |
+  |                           |      | - Can user X read pods?   |
+  | Answers:                  |      | - Can service Y access    |
+  | - Is this user valid?     |      |   database Z?             |
+  | - Is this token expired?  |      | - Can team A deploy to    |
+  | - Is this cert trusted?   |      |   production?             |
+  +---------------------------+      +---------------------------+
+
+Kubernetes Context:
+
+  Authentication:                     Authorization:
+  - Client certificates (x509)        - RBAC (Role/ClusterRole + Bindings)
+  - Bearer tokens                      - "can user X create pods in ns Y?"
+  - OIDC (from identity provider)      - kubectl auth can-i create pods
+  - ServiceAccount tokens              - Admission controllers (OPA)
+
+  $ kubectl auth can-i create deployments --as=jane --namespace=production
+  # yes/no
+
+AWS Context:
+
+  Authentication:                     Authorization:
+  - IAM User credentials              - IAM Policies (JSON documents)
+  - IAM Role (assumed via STS)         - Resource-based policies
+  - Federation (SAML, OIDC)            - Permission boundaries
+  - MFA device                         - Service Control Policies (SCP)
+
+Common Mistake: Confusing the two.
+- "I have valid credentials" (authenticated) does NOT mean "I can do anything" (authorized)
+- API returning 401 = authentication failure (who are you?)
+- API returning 403 = authorization failure (you cannot do this)
+
+OAuth2 / OIDC:
+- OAuth2: authorization framework (grants access tokens for specific scopes)
+- OIDC: authentication layer ON TOP of OAuth2 (provides ID token = who you are)
+- Access Token: "this app can read your email" (authorization)
+- ID Token: "this user is jane@company.com" (authentication)
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 4. AWS/CLOUD QUESTIONS -->
+    <!-- ============================================================ -->
+
+    <h2>4. AWS/Cloud Questions</h2>
+
+    <!-- AWS Q1 -->
+    <h3>EKS vs ECS vs Lambda - When to Use Each</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Compute Comparison</span>
+            <span class="tag tag-green">AWS</span>
+        </div>
+        <pre>
+EKS (Elastic Kubernetes Service):
+  Best for: Complex microservices, multi-cloud/hybrid strategy, team knows K8s
+  Pros:
+  - Portable (same YAML works anywhere with K8s)
+  - Rich ecosystem (Helm, ArgoCD, Istio, Prometheus)
+  - Fine-grained control over scheduling, networking, storage
+  - Multi-tenancy with namespaces, RBAC, NetworkPolicies
+  Cons:
+  - Operational complexity (upgrades, networking, debugging)
+  - Higher learning curve
+  - Control plane cost ($73/month) + worker nodes
+  When: 10+ microservices, need K8s features, team expertise exists
+
+ECS (Elastic Container Service):
+  Best for: AWS-native teams, simpler container workloads, Fargate preference
+  Pros:
+  - Deep AWS integration (ALB, CloudWatch, IAM roles native)
+  - Simpler than K8s (fewer concepts to learn)
+  - Fargate: true serverless containers (no nodes to manage)
+  - No control plane cost
+  Cons:
+  - AWS lock-in (not portable)
+  - Less ecosystem (no Helm, limited tooling)
+  - Less flexible scheduling/networking
+  When: AWS-only shop, &lt;10 services, want simplicity, Fargate fits workload
+
+Lambda (Serverless Functions):
+  Best for: Event-driven, sporadic traffic, simple functions, rapid prototyping
+  Pros:
+  - Zero management (no servers, containers, or orchestration)
+  - Pay per invocation (zero cost at zero traffic)
+  - Auto-scales to thousands of concurrent executions
+  - &lt;100ms cold start with SnapStart (Java) or provisioned concurrency
+  Cons:
+  - 15-minute max execution time
+  - 10GB memory max, 6 vCPU max
+  - Cold starts (250ms-2s for first invocation)
+  - Vendor lock-in, hard to test locally
+  - Connection management (DB connections per invocation)
+  When: Event processing, APIs with variable traffic, cron jobs, glue logic
+
+Decision Matrix:
+  +------------------+--------+--------+--------+
+  | Factor           | EKS    | ECS    | Lambda |
+  +------------------+--------+--------+--------+
+  | Complexity       | High   | Medium | Low    |
+  | Portability      | High   | Low    | Low    |
+  | Cost at scale    | Low    | Medium | High   |
+  | Cost at zero     | High   | Medium | Zero   |
+  | Control          | Full   | Medium | Low    |
+  | Cold start       | No     | No     | Yes    |
+  | Long-running     | Yes    | Yes    | 15min  |
+  | Stateful         | Yes    | Yes    | No     |
+  +------------------+--------+--------+--------+
+
+Hybrid approach (common in practice):
+- EKS for core microservices (always running, complex)
+- Lambda for event handlers (S3 triggers, SQS consumers, cron)
+- ECS Fargate for simple services that don't need K8s features
+        </pre>
+    </div>
+
+    <!-- AWS Q2 -->
+    <h3>IAM Roles, Policies, and OIDC</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">IAM Deep Dive</span>
+            <span class="tag tag-blue">AWS</span>
+        </div>
+        <pre>
+Core Concepts:
+
+Principal: WHO (user, role, service, account)
+Action: WHAT (s3:GetObject, ec2:RunInstances)
+Resource: WHICH (arn:aws:s3:::my-bucket/*)
+Condition: WHEN (only from VPC, only with MFA, only during business hours)
+
+IAM User: Long-lived credentials (access key + secret). Used for humans (console) or CI/CD.
+           Best practice: no IAM users for applications. Use roles.
+
+IAM Role: Temporary credentials (assumed via STS). No permanent password/key.
+           Used for: EC2 instances, Lambda, EKS pods, cross-account access.
+           Trust policy defines WHO can assume the role.
+
+IAM Policy Types:
+1. Identity-based: attached to user/group/role ("I can do X")
+2. Resource-based: attached to resource ("X can access me") - e.g., S3 bucket policy
+3. Permission boundary: max permissions an identity CAN have (guardrail)
+4. Service Control Policy (SCP): org-wide guardrails (e.g., "no one can delete CloudTrail")
+5. Session policy: further restrict assumed role session
+
+Policy Evaluation:
+  Explicit Deny > SCP > Permission Boundary > Identity Policy + Resource Policy
+  Default: implicit deny. Must have explicit allow AND no explicit deny.
+
+OIDC Federation (critical for EKS):
+
+  Problem: How does a Kubernetes pod get AWS permissions without long-lived credentials?
+  Solution: IRSA (IAM Roles for Service Accounts)
+
+  Flow:
+  1. EKS cluster has an OIDC provider registered with IAM
+  2. Kubernetes ServiceAccount annotated with IAM role ARN
+  3. Pod starts -> AWS SDK detects projected token (JWT)
+  4. SDK calls STS AssumeRoleWithWebIdentity
+  5. STS validates JWT against OIDC provider
+  6. STS returns temporary credentials (15min-12hr)
+  7. Pod uses temp credentials for AWS API calls
+
+  Setup:
+  # Trust policy on the IAM role:
+  {
+    "Effect": "Allow",
+    "Principal": {
+      "Federated": "arn:aws:iam::123456789012:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/EXAMPLE"
+    },
+    "Action": "sts:AssumeRoleWithWebIdentity",
+    "Condition": {
+      "StringEquals": {
+        "oidc.eks.us-east-1....:sub": "system:serviceaccount:production:web-sa"
+      }
+    }
+  }
+
+  # ServiceAccount annotation:
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: web-sa
+    annotations:
+      eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/web-role"
+
+Least Privilege Principles:
+- Start with zero permissions, add what's needed
+- Use conditions (source VPC, MFA, time-based)
+- Scope resources (specific ARN, not *)
+- Regular access reviews (IAM Access Analyzer)
+- Short-lived credentials (roles > users, min session duration)
+        </pre>
+    </div>
+
+    <!-- AWS Q3 -->
+    <h3>VPC Design for Production</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">VPC Architecture</span>
+            <span class="tag tag-green">AWS</span>
+        </div>
+        <pre>
+Production VPC Design (multi-AZ, defense in depth):
+
+  VPC CIDR: 10.0.0.0/16 (65,536 IPs)
+
+  +-----------+------------------+------------------+------------------+
+  | Tier      | AZ-a (10.0.x.0) | AZ-b (10.0.x.0) | AZ-c (10.0.x.0) |
+  +-----------+------------------+------------------+------------------+
+  | Public    | 10.0.1.0/24      | 10.0.2.0/24      | 10.0.3.0/24      |
+  | (ALB,NAT) | 254 IPs          | 254 IPs          | 254 IPs          |
+  +-----------+------------------+------------------+------------------+
+  | Private   | 10.0.10.0/22     | 10.0.14.0/22     | 10.0.18.0/22     |
+  | (App/EKS) | 1022 IPs         | 1022 IPs         | 1022 IPs         |
+  +-----------+------------------+------------------+------------------+
+  | Data      | 10.0.100.0/24    | 10.0.101.0/24    | 10.0.102.0/24    |
+  | (RDS,ElC) | 254 IPs          | 254 IPs          | 254 IPs          |
+  +-----------+------------------+------------------+------------------+
+
+Subnet Sizing for EKS:
+- Each pod gets an IP from the subnet (AWS VPC CNI)
+- m5.xlarge = max 58 pods = 58 IPs per node
+- 50 nodes * 58 = 2,900 IPs needed minimum
+- /22 subnet = 1,022 IPs per AZ (scale with secondary CIDR if needed)
+
+Key Components:
+1. Internet Gateway: attached to VPC, enables public subnet internet access
+2. NAT Gateway: one per AZ in public subnet, enables private subnet outbound
+3. Route Tables:
+   - Public: 0.0.0.0/0 -> IGW
+   - Private: 0.0.0.0/0 -> NAT GW
+   - Data: no internet route (most isolated)
+
+Security Layers:
+1. Security Groups (stateful, instance-level firewall):
+   - ALB SG: inbound 443 from 0.0.0.0/0
+   - App SG: inbound 8080 from ALB SG only
+   - DB SG: inbound 5432 from App SG only
+   - Reference SGs by ID (not CIDR) for dynamic membership
+
+2. NACLs (stateless, subnet-level firewall):
+   - Default: allow all (use SGs for primary filtering)
+   - Use NACLs for broad blocks (e.g., block known bad CIDRs)
+
+3. VPC Endpoints (avoid NAT for AWS services):
+   - Gateway endpoints: S3, DynamoDB (free, route table entry)
+   - Interface endpoints: ECR, STS, CloudWatch, SecretsManager (ENI in subnet)
+   - Saves NAT costs, lower latency, traffic stays in AWS network
+
+4. VPC Flow Logs: capture network traffic metadata (source, dest, port, action)
+   - Send to CloudWatch Logs or S3
+   - Essential for security investigation and compliance
+
+EKS-Specific:
+- Tag subnets: kubernetes.io/role/internal-elb=1 (for internal ALB)
+- Tag subnets: kubernetes.io/role/elb=1 (for public ALB)
+- Secondary CIDR (100.64.0.0/16) for pod IPs if running out of space
+- VPC CNI custom networking for pod IP separation from node IP
+        </pre>
+    </div>
+
+    <!-- AWS Q4 -->
+    <h3>Route 53 Routing Policies</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Route 53 Routing</span>
+            <span class="tag tag-blue">AWS</span>
+        </div>
+        <pre>
+Route 53 Routing Policies:
+
+1. SIMPLE: One record, one or more values. Random selection if multiple.
+   Use: Single resource, no health checks needed.
+   Example: app.example.com -> [52.1.1.1, 52.1.1.2] (round-robin)
+
+2. WEIGHTED: Distribute traffic by percentage.
+   Use: Blue-green deployments, canary releases, A/B testing.
+   Example: 90% to v1 (weight=90), 10% to v2 (weight=10)
+   - Set weight=0 to stop sending traffic to a version
+   - Combined with health checks for automatic failover
+
+3. LATENCY: Route to the region with lowest latency for the user.
+   Use: Multi-region active-active deployments.
+   Example: US users -> us-east-1, EU users -> eu-west-1 (based on measured latency)
+   - AWS measures latency from resolver to regions
+   - Not geographic (a user in Texas might route to us-west-2 if ISP peering is better)
+
+4. FAILOVER: Active-passive. Route to secondary only when primary fails.
+   Use: DR setup. Primary region + standby region.
+   Example: primary -> us-east-1 ALB (health checked), secondary -> us-west-2 ALB
+   - Must have health check on primary
+   - Failover in ~60s (health check interval * threshold)
+
+5. GEOLOCATION: Route based on user's geographic location.
+   Use: Compliance (EU data stays in EU), localized content.
+   Example: Users in Germany -> eu-central-1, Users in Japan -> ap-northeast-1
+   - Based on IP geolocation
+   - Must define default record (for unmapped locations)
+
+6. GEOPROXIMITY: Route based on geographic distance + bias.
+   Use: Fine-tuned geographic routing with ability to shift traffic.
+   Example: Shift traffic away from us-east-1 during maintenance (set bias=-50)
+   - Bias: expand (+) or shrink (-) a region's geographic area
+   - Requires Traffic Flow (visual editor)
+
+7. MULTIVALUE ANSWER: Like simple but with health checks per record.
+   Use: Simple load balancing without ELB.
+   Example: Return up to 8 healthy IPs (unhealthy ones excluded)
+   - Not a replacement for ELB (no connection-level load balancing)
+   - Good for simple multi-endpoint health checking
+
+8. IP-BASED: Route based on source IP/CIDR of the client.
+   Use: When you know your users' IP ranges (ISPs, enterprises).
+   Example: Corporate network 10.x.x.x -> internal endpoint
+
+Health Checks:
+- Endpoint: HTTP/HTTPS/TCP check (10s or 30s interval)
+- Calculated: combine multiple health checks (OR/AND logic)
+- CloudWatch alarm: health check based on metric alarm state
+- String matching: check response body contains expected string
+- Failure threshold: 3 consecutive failures = unhealthy (configurable 1-10)
+        </pre>
+    </div>
+
+    <!-- AWS Q5 -->
+    <h3>S3 Consistency Model</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">S3 Consistency</span>
+            <span class="tag tag-green">AWS</span>
+        </div>
+        <pre>
+Current Model (December 2020+): STRONG Read-After-Write Consistency
+
+What this means:
+- PUT new object -> immediately GET returns new object (100% of the time)
+- PUT overwrite -> immediately GET returns new version
+- DELETE -> immediately GET returns 404
+- LIST -> immediately reflects changes
+
+This is a HUGE improvement. Before Dec 2020:
+- New PUT: strongly consistent (read-after-write)
+- Overwrite PUT: eventually consistent (might get old version briefly)
+- DELETE: eventually consistent (might still see deleted object)
+- LIST: eventually consistent (might not see new object in listing)
+
+Why You Still Need to Know This:
+
+1. S3 is eventually consistent for:
+   - Cross-Region Replication (CRR): async, minutes of lag
+   - S3 Inventory: generated daily/weekly, not real-time
+   - CloudFront cache: objects cached at edge, may be stale until TTL expires
+
+2. Other AWS services that ARE eventually consistent:
+   - DynamoDB Global Tables (cross-region)
+   - IAM policy changes (can take up to 60 seconds to propagate)
+   - Route 53 DNS changes (TTL-dependent propagation)
+   - CloudFormation stack status (brief lag after updates)
+
+3. S3 Performance:
+   - 3,500 PUT/COPY/POST/DELETE per second per prefix
+   - 5,500 GET/HEAD per second per prefix
+   - Prefix: everything between bucket name and object key (use random prefixes for scale)
+   - Multipart upload: recommended for objects > 100MB, required > 5GB
+
+4. Durability vs Availability:
+   - Durability: 99.999999999% (11 nines) - chance of losing an object
+   - Availability: 99.99% (Standard) - chance service is unavailable
+   - Durability is about data safety; Availability is about access
+
+5. Storage Classes:
+   | Class              | Availability | Min Duration | Use Case            |
+   |--------------------|-------------|-------------|---------------------|
+   | Standard           | 99.99%      | None        | Frequent access     |
+   | Intelligent-Tier   | 99.9%       | None        | Unknown patterns    |
+   | Standard-IA        | 99.9%       | 30 days     | Infrequent access   |
+   | One Zone-IA        | 99.5%       | 30 days     | Reproducible data   |
+   | Glacier Instant    | 99.9%       | 90 days     | Rare, ms retrieval  |
+   | Glacier Flexible   | 99.99%      | 90 days     | Archive, min-hours  |
+   | Glacier Deep       | 99.99%      | 180 days    | Compliance, 12-48hr |
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 5. BEHAVIORAL PREP -->
+    <!-- ============================================================ -->
+
+    <h2>5. Behavioral Prep (STAR Format)</h2>
+
+    <div class="card card-info">
+        <h4>STAR Method</h4>
+        <p><strong>S</strong>ituation: Set the context (where, when, what was happening)</p>
+        <p><strong>T</strong>ask: What was your specific responsibility/goal</p>
+        <p><strong>A</strong>ction: What YOU did (be specific, use "I" not "we")</p>
+        <p><strong>R</strong>esult: Quantifiable outcome (metrics, time saved, incidents prevented)</p>
+    </div>
+
+    <h3>Common Topics to Prepare</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Behavioral Stories</span>
+            <span class="tag tag-blue">Behavioral</span>
+        </div>
+        <pre>
+Prepare 2-3 sentences for each section. Keep total answer under 2 minutes.
+
+1. OUTAGE YOU HANDLED
+   Situation: "Production API went down at 2 AM, affecting 50k users..."
+   Task: "As on-call engineer, I needed to restore service and identify root cause..."
+   Action: "I checked dashboards, identified memory leak from recent deploy,
+            rolled back in 3 minutes, then led post-mortem next day..."
+   Result: "MTTR was 8 minutes (down from team average of 45 min).
+            Added memory alerting that prevented 3 similar incidents since."
+
+2. AUTOMATION YOU BUILT
+   Situation: "Team spent 4 hours/week manually deploying to 12 environments..."
+   Task: "I proposed and owned automating the deployment pipeline..."
+   Action: "Built GitOps pipeline with ArgoCD, Helm charts, automated testing,
+            canary deployments with auto-rollback..."
+   Result: "Deployment time: 4 hours -> 15 minutes. Deploy frequency: weekly -> daily.
+            Change failure rate dropped from 20% to 3%."
+
+3. DISAGREEMENT / CONFLICT
+   Situation: "Team wanted to rewrite the monolith from scratch, I disagreed..."
+   Task: "I needed to influence the decision without authority..."
+   Action: "I researched strangler fig pattern, built a POC migrating one service,
+            presented data on risk (80% of rewrites fail or take 3x longer)..."
+   Result: "Team adopted incremental migration. Delivered first service in 3 weeks
+            (vs 6-month estimate for full rewrite). Now 8/12 services migrated."
+
+4. BROKE PRODUCTION
+   Situation: "My Terraform change deleted a production security group, breaking traffic..."
+   Task: "Restore service immediately and prevent recurrence..."
+   Action: "Detected via monitoring in 2 min, manually recreated SG in 5 min,
+            then implemented: Terraform plan review requirement, blast radius controls,
+            separation of state for critical resources..."
+   Result: "Service restored in 7 min. New safeguards have prevented 4 similar
+            near-misses since. Team now does mandatory plan review for production."
+
+5. LEARNING SOMETHING QUICKLY
+   Situation: "Team adopted Kubernetes, nobody had production experience..."
+   Task: "Get our first service running in production within 4 weeks..."
+   Action: "CKA certification in 2 weeks, built staging cluster, documented patterns,
+            ran lunch-and-learn sessions, paired with team on first production deploy..."
+   Result: "Production in 3 weeks. Team velocity: 0 -> 5 services deployed in 2 months.
+            Documentation became team onboarding standard."
+
+Tips:
+- Every story should highlight YOUR contribution specifically
+- Include failure/learning stories (shows self-awareness)
+- Quantify everything (time, money, users, percentage)
+- Prepare 8-10 stories, mix them across different question angles
+- Practice out loud (timing, clarity)
+        </pre>
+    </div>
+
+    <h3>Common Behavioral Questions</h3>
+
+    <div class="card">
+        <ul>
+            <li>"Tell me about a time you dealt with a production incident under pressure"</li>
+            <li>"Describe a project where you had to learn a new technology quickly"</li>
+            <li>"How do you handle disagreements with teammates about technical decisions?"</li>
+            <li>"Tell me about a time your automation or tooling significantly improved a process"</li>
+            <li>"Describe a mistake you made and what you learned from it"</li>
+            <li>"How do you prioritize when you have multiple urgent tasks?"</li>
+            <li>"Tell me about a time you influenced a decision without direct authority"</li>
+            <li>"Describe how you mentored someone or improved team practices"</li>
+        </ul>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 6. PREPARATION STRATEGY -->
+    <!-- ============================================================ -->
+
+    <h2>6. Preparation Strategy</h2>
+
+    <h3>Build a Home Lab</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Home Lab Setup</span>
+            <span class="tag tag-green">Strategy</span>
+        </div>
+        <pre>
+Minimum Viable Home Lab (free or cheap):
+
+1. Local Kubernetes:
+   - minikube, kind, or k3d (lightweight clusters on your laptop)
+   - Deploy real applications: WordPress + MySQL, microservice demo (Sock Shop)
+   - Practice: deployments, services, ingress, RBAC, network policies, HPA
+
+2. CI/CD Pipeline:
+   - GitHub repo + GitHub Actions (free tier)
+   - Build Docker image -> push to GHCR -> deploy to local cluster
+   - Add: linting, testing, security scanning, ArgoCD for GitOps
+
+3. Infrastructure as Code:
+   - Terraform + AWS Free Tier (or LocalStack for mock AWS)
+   - Deploy: VPC, EKS cluster, RDS, S3
+   - Practice: modules, state management, workspaces, drift detection
+
+4. Monitoring Stack:
+   - Prometheus + Grafana + Loki (docker-compose or Helm)
+   - Create dashboards, alerts, runbooks
+   - Break things and practice incident response
+
+5. Chaos Engineering:
+   - Chaos Mesh or LitmusChaos on local cluster
+   - Kill pods, inject latency, simulate node failure
+   - Verify: HPA scales, PDB prevents over-disruption, alerts fire
+
+Projects That Impress Interviewers:
+- "I built a GitOps pipeline that deploys to 3 environments with canary releases"
+- "I wrote a Kubernetes operator that auto-rotates secrets"
+- "I set up multi-cluster monitoring with Thanos and custom SLO alerts"
+- "I did chaos engineering: randomly killed pods and verified zero downtime"
+        </pre>
+    </div>
+
+    <h3>Practice Explaining</h3>
+
+    <div class="card card-warning">
+        <h4>The Explanation Test</h4>
+        <p>For every concept you study, practice explaining it at three levels:</p>
+        <ul>
+            <li><strong>5-second version:</strong> "An HPA automatically scales pods based on metrics."</li>
+            <li><strong>30-second version:</strong> Add how it works (metrics server, target utilization, scaling behavior).</li>
+            <li><strong>5-minute version:</strong> Add implementation details, edge cases, production gotchas, alternatives.</li>
+        </ul>
+        <p>If you can't explain it simply, you don't understand it well enough. Practice with a rubber duck, a friend, or record yourself.</p>
+    </div>
+
+    <h3>Mock System Design</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">System Design Practice</span>
+            <span class="tag tag-blue">Strategy</span>
+        </div>
+        <pre>
+Weekly Practice Routine:
+
+Monday: Study one system (e.g., "How does Prometheus work internally?")
+Tuesday: Design exercise (whiteboard, 45 min timer)
+Wednesday: Hands-on lab (implement what you designed)
+Thursday: Gotcha questions (explain 5 concepts to yourself)
+Friday: Mock interview with a friend or recording
+
+System Design Practice Framework (45 minutes):
+- Minutes 0-5: Clarify requirements, define scope
+- Minutes 5-15: High-level architecture (boxes and arrows)
+- Minutes 15-30: Deep dive into 2-3 critical components
+- Minutes 30-40: Scaling, failure modes, trade-offs
+- Minutes 40-45: Summary, what you'd do differently with more time
+
+Practice Questions (do one per week):
+1. Design a log aggregation system for 10,000 containers
+2. Design a secrets management system
+3. Design a self-healing infrastructure
+4. Design a deployment system that supports canary + blue-green
+5. Design a multi-tenant Kubernetes platform
+6. Design an incident management system
+7. Design a service mesh
+8. Design auto-remediation for common failure modes
+        </pre>
+    </div>
+
+    <h3>Break Things on Purpose</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">Chaos Experiments</span>
+            <span class="tag tag-green">Strategy</span>
+        </div>
+        <pre>
+Learning-by-breaking exercises (on your home lab):
+
+1. Kill the scheduler:
+   $ kubectl delete pod -n kube-system -l component=kube-scheduler
+   What happens? New pods stay Pending. Existing pods unaffected.
+
+2. Fill a disk:
+   $ kubectl exec mypod -- dd if=/dev/zero of=/data/bigfile bs=1M count=1000
+   What happens? Eviction? OOM? Depends on ephemeral-storage limits.
+
+3. OOMKill a pod:
+   Deploy with 64Mi memory limit, run memory-hungry process.
+   Watch: kubectl get events --watch
+
+4. Break DNS:
+   Scale CoreDNS to 0 replicas. Watch services fail to resolve.
+   Lesson: DNS is critical infrastructure, always have redundancy.
+
+5. Network partition:
+   Apply NetworkPolicy that blocks all traffic. Watch health checks fail.
+
+6. Slow database:
+   Add latency to DB connection (tc qdisc add). Watch timeouts cascade.
+
+7. Certificate expiry:
+   Create short-lived cert (1 min), watch TLS failures.
+
+8. Resource exhaustion:
+   Deploy 100 pods on a small cluster. Watch scheduling failures, evictions.
+
+Why this works:
+- You'll remember the symptoms when you see them in production
+- You'll know what to check first (reducing MTTR)
+- Interview answers become "I've seen this, here's what happens..."
+- Confidence: you've broken things and fixed them
+        </pre>
+    </div>
+
+    <h3>Build Your Brag Doc</h3>
+
+    <div class="card card-success">
+        <h4>Brag Document Template</h4>
+        <p>Keep a running document of your accomplishments. Update weekly. Use for performance reviews AND interview prep.</p>
+        <ul>
+            <li><strong>Impact metrics:</strong> "Reduced deploy time from 4h to 15min" (quantify everything)</li>
+            <li><strong>Incidents handled:</strong> Date, service, your role, outcome, MTTR</li>
+            <li><strong>Projects delivered:</strong> Scope, timeline, technologies, challenges overcome</li>
+            <li><strong>Knowledge shared:</strong> Docs written, presentations given, people mentored</li>
+            <li><strong>Tools/automation built:</strong> What it does, who uses it, time saved</li>
+            <li><strong>Problems prevented:</strong> Monitoring/alerts/policies that caught issues before production</li>
+            <li><strong>Skills learned:</strong> New technology adopted, certification earned, course completed</li>
+        </ul>
+        <p>Review your brag doc before every interview. Pick the best 5-8 stories that map to common behavioral questions. Practice telling each one in under 2 minutes using STAR format.</p>
+    </div>
+
+    <h3>Night-Before Checklist</h3>
+
+    <div class="card card-warning">
+        <h4>Final Review (the night before)</h4>
+        <ol>
+            <li>Re-read this page (you are here)</li>
+            <li>Review your YAML reference page (apiVersions, resource templates)</li>
+            <li>Pick your top 5 behavioral stories and say them out loud once</li>
+            <li>Review the job description - which skills do they emphasize?</li>
+            <li>Prepare 3-5 questions to ask THEM (shows genuine interest):
+                <ul>
+                    <li>"What does the on-call rotation look like?"</li>
+                    <li>"What's your deployment frequency to production?"</li>
+                    <li>"What's the biggest reliability challenge you're facing?"</li>
+                    <li>"How do teams own their services end-to-end?"</li>
+                    <li>"What does your monitoring/observability stack look like?"</li>
+                </ul>
+            </li>
+            <li>Get sleep. Seriously. A rested brain recalls better than a crammed brain.</li>
+        </ol>
+    </div>
+
+</div>
+</body>
+</html>

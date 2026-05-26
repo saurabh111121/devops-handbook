@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cost & FinOps - DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html" class="active">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> / <a href="../index.html">Infrastructure</a> / Cost & FinOps
+        </div>
+
+        <h1>Cost & FinOps</h1>
+        <p class="subtitle">Cloud financial management, AWS cost optimization, Kubernetes cost allocation, and engineering cost culture</p>
+
+        <!-- ============================================ -->
+        <!-- 1. FinOps Principles -->
+        <!-- ============================================ -->
+        <h2>1. FinOps Principles</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">FinOps Lifecycle: Inform -> Optimize -> Operate</div>
+            <pre>
+                    +------------------+
+                    |     INFORM       |
+                    |  (Visibility)    |
+                    |                  |
+                    | - Cost allocation|
+                    | - Tagging        |
+                    | - Showback       |
+                    | - Dashboards     |
+                    | - Forecasting    |
+                    +--------+---------+
+                             |
+                             v
+          +------------------+------------------+
+          |                                     |
+          v                                     |
+  +-------+--------+                            |
+  |    OPTIMIZE     |                           |
+  |  (Efficiency)   |                           |
+  |                 |                           |
+  | - Right-sizing  |                           |
+  | - Reserved/SP   |                           |
+  | - Spot usage    |                           |
+  | - Waste removal |                           |
+  | - Architecture  |                           |
+  +-------+---------+                           |
+          |                                     |
+          v                                     |
+  +-------+---------+                           |
+  |     OPERATE      |                          |
+  |  (Governance)    |--------------------------+
+  |                  |      (Continuous cycle)
+  | - Budgets/alerts |
+  | - Policy enforce |
+  | - Chargeback     |
+  | - Team ownership |
+  | - Anomaly detect |
+  +------------------+
+
+  Core FinOps Principles:
+  1. Teams need to collaborate (finance + engineering + business)
+  2. Everyone takes ownership for their cloud usage
+  3. A centralized team drives FinOps best practices
+  4. Reports should be accessible and timely
+  5. Decisions are driven by business value of cloud
+  6. Take advantage of the variable cost model of cloud
+            </pre>
+        </div>
+
+        <div class="card card-info">
+            <h4>Culture of Cost Awareness</h4>
+            <ul>
+                <li><strong>Shift-left cost:</strong> Engineers consider cost during design, not after the bill arrives</li>
+                <li><strong>Unit economics:</strong> Measure cost per transaction/user/request, not just total spend</li>
+                <li><strong>Cost as a metric:</strong> Display cost alongside performance metrics in dashboards</li>
+                <li><strong>Team accountability:</strong> Each team owns their spend (tagged resources, namespace cost)</li>
+                <li><strong>Gamification:</strong> Monthly cost reduction challenges, leaderboards for efficiency</li>
+                <li><strong>Architecture reviews:</strong> Include cost analysis in design documents</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 2. AWS Cost Optimization -->
+        <!-- ============================================ -->
+        <h2>2. AWS Cost Optimization</h2>
+
+        <h3>Pricing Models Comparison</h3>
+
+        <table>
+            <thead>
+                <tr><th>Model</th><th>Commitment</th><th>Discount</th><th>Flexibility</th><th>Best For</th><th>Risk</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>On-Demand</strong></td>
+                    <td>None</td>
+                    <td>0% (baseline)</td>
+                    <td>Maximum - any instance, any time</td>
+                    <td>Spiky/unpredictable workloads, short-lived dev</td>
+                    <td>None (but most expensive)</td>
+                </tr>
+                <tr>
+                    <td><strong>Reserved Instances</strong></td>
+                    <td>1 or 3 years</td>
+                    <td>30-72%</td>
+                    <td>Low - locked to instance family/region</td>
+                    <td>Steady-state workloads with known capacity</td>
+                    <td>Commitment if needs change</td>
+                </tr>
+                <tr>
+                    <td><strong>Savings Plans (Compute)</strong></td>
+                    <td>1 or 3 years ($/hr)</td>
+                    <td>20-66%</td>
+                    <td>High - any instance type, region, OS, tenancy</td>
+                    <td>Flexible baseline (covers EC2, Fargate, Lambda)</td>
+                    <td>Must spend committed $/hr regardless</td>
+                </tr>
+                <tr>
+                    <td><strong>Savings Plans (EC2)</strong></td>
+                    <td>1 or 3 years ($/hr)</td>
+                    <td>30-72%</td>
+                    <td>Medium - locked to instance family + region</td>
+                    <td>Known instance families, deeper discount needed</td>
+                    <td>Less flexible than Compute SP</td>
+                </tr>
+                <tr>
+                    <td><strong>Spot Instances</strong></td>
+                    <td>None</td>
+                    <td>60-90%</td>
+                    <td>High - but can be interrupted with 2min notice</td>
+                    <td>Fault-tolerant: batch, CI/CD, stateless workers</td>
+                    <td>Interruption (must handle gracefully)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="card">
+            <h4>Right-Sizing Strategy</h4>
+            <ul>
+                <li><strong>AWS Compute Optimizer:</strong> Analyzes 14 days of CloudWatch metrics, recommends instance type changes</li>
+                <li><strong>CloudWatch metrics to check:</strong> CPU average < 40%, memory < 60% (over-provisioned), CPU > 80% (under-provisioned)</li>
+                <li><strong>Right-size before committing:</strong> Always right-size FIRST, then buy Reserved/Savings Plans for the optimized size</li>
+                <li><strong>Graviton (ARM):</strong> 20-40% better price/performance for many workloads. Test compatibility first</li>
+                <li><strong>Scheduled scaling:</strong> Scale down dev/staging environments outside business hours (save 60%+ on non-prod)</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h4>S3 Storage Classes</h4>
+            <table>
+                <thead>
+                    <tr><th>Class</th><th>Access Pattern</th><th>Cost (approx/GB/mo)</th><th>Retrieval</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>S3 Standard</td><td>Frequent access</td><td>$0.023</td><td>Instant, no fee</td></tr>
+                    <tr><td>S3 Intelligent-Tiering</td><td>Unknown/changing</td><td>$0.023 + monitoring fee</td><td>Instant, auto-moves</td></tr>
+                    <tr><td>S3 Standard-IA</td><td>Infrequent (>30 days)</td><td>$0.0125</td><td>Instant, per-GB fee</td></tr>
+                    <tr><td>S3 One Zone-IA</td><td>Infrequent, non-critical</td><td>$0.01</td><td>Instant, per-GB fee</td></tr>
+                    <tr><td>S3 Glacier Instant</td><td>Rare, need fast access</td><td>$0.004</td><td>Milliseconds, per-GB fee</td></tr>
+                    <tr><td>S3 Glacier Flexible</td><td>Archives (minutes-hours)</td><td>$0.0036</td><td>1-12 hours</td></tr>
+                    <tr><td>S3 Glacier Deep Archive</td><td>Compliance archives</td><td>$0.00099</td><td>12-48 hours</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card card-warning">
+            <h4>Data Transfer Cost (Often Overlooked)</h4>
+            <ul>
+                <li><strong>Inbound:</strong> Free (data INTO AWS)</li>
+                <li><strong>Outbound to internet:</strong> $0.09/GB (first 10TB/month) - use CloudFront ($0.085/GB with free tier)</li>
+                <li><strong>Cross-AZ:</strong> $0.01/GB each direction ($0.02 round-trip) - significant for chatty microservices</li>
+                <li><strong>Cross-Region:</strong> $0.02/GB - minimize cross-region data replication where possible</li>
+                <li><strong>NAT Gateway:</strong> $0.045/GB processed + $0.045/hr - often the biggest surprise on bills</li>
+                <li><strong>VPC endpoints:</strong> $0.01/GB (vs $0.045 for NAT) - use for S3, DynamoDB, ECR, etc.</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 3. Kubernetes Cost -->
+        <!-- ============================================ -->
+        <h2>3. Kubernetes Cost</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">Where Cost Hides in Kubernetes</div>
+            <pre>
+  +---------------------------------------------------------------+
+  |                    KUBERNETES CLUSTER                           |
+  |                                                                |
+  |  +------------------+  +------------------+  +--------------+  |
+  |  | Node 1 (m5.2xl)  |  | Node 2 (m5.2xl)  |  | Node 3       |  |
+  |  | 8 CPU / 32GB     |  | 8 CPU / 32GB     |  | (IDLE!)      |  |
+  |  |                  |  |                  |  | 8 CPU/32GB   |  |
+  |  | [Pod A]          |  | [Pod C]          |  |              |  |
+  |  | req: 4CPU/16GB   |  | req: 2CPU/8GB    |  | No pods      |  |
+  |  | actual: 0.5CPU/2G|  | actual: 1CPU/4GB |  | scheduled    |  |
+  |  |                  |  |                  |  | $$$$ wasted  |  |
+  |  | [Pod B]          |  | [orphaned PV]    |  |              |  |
+  |  | req: 2CPU/8GB    |  | 100GB gp2        |  |              |  |
+  |  | actual: 0.3CPU/1G|  | (unused!)        |  |              |  |
+  |  +------------------+  +------------------+  +--------------+  |
+  +---------------------------------------------------------------+
+
+  HIDDEN COSTS:
+  1. Over-provisioned requests: Pod A requests 4 CPU but uses 0.5
+     -> 3.5 CPU reserved but wasted (node cannot schedule other pods)
+  2. Idle nodes: Node 3 has no pods but still costs $$$
+     -> Cluster Autoscaler not configured or min_nodes too high
+  3. Orphaned PVs: PVC deleted but PV retained (reclaimPolicy: Retain)
+     -> 100GB EBS volume billing with no user
+  4. Oversized nodes: Using m5.2xlarge when m5.xlarge would suffice
+  5. No spot: All on-demand when workloads are fault-tolerant
+            </pre>
+        </div>
+
+        <div class="card">
+            <h4>Kubecost Overview</h4>
+            <ul>
+                <li><strong>What:</strong> Open-source tool that provides real-time cost monitoring and allocation for K8s</li>
+                <li><strong>Cost allocation:</strong> Breaks down cost by namespace, deployment, label, team, or custom grouping</li>
+                <li><strong>Idle cost:</strong> Shows resources reserved but unused (the gap between requests and actual usage)</li>
+                <li><strong>Recommendations:</strong> Suggests right-sized resource requests/limits based on actual usage</li>
+                <li><strong>Efficiency score:</strong> Ratio of resources used vs. resources requested (target: 60-80%)</li>
+                <li><strong>Network cost:</strong> Tracks cross-zone and internet egress cost per pod/service</li>
+                <li><strong>Integration:</strong> Works with Prometheus metrics, can export to custom dashboards</li>
+            </ul>
+        </div>
+
+        <div class="cmd">helm install kubecost kubecost/cost-analyzer --namespace kubecost --create-namespace --set prometheus.server.enabled=false --set prometheus.server.external.url=http://prometheus-server.monitoring:9090</div>
+
+        <!-- ============================================ -->
+        <!-- 4. Spot Instances -->
+        <!-- ============================================ -->
+        <h2>4. Spot Instances</h2>
+
+        <div class="card card-info">
+            <h4>How Spot Instances Work</h4>
+            <ul>
+                <li><strong>Pricing:</strong> Spare EC2 capacity at 60-90% discount. Price fluctuates based on supply/demand</li>
+                <li><strong>Interruption:</strong> AWS can reclaim with 2-minute warning (via instance metadata or EventBridge)</li>
+                <li><strong>Capacity pools:</strong> Each instance type + AZ is a separate pool with its own availability</li>
+                <li><strong>No bidding (anymore):</strong> You pay the current spot price (max price = on-demand by default)</li>
+                <li><strong>Rebalancing:</strong> New signal: "rebalance recommendation" gives earlier notice than 2-min interruption</li>
+            </ul>
+        </div>
+
+        <div class="card card-success">
+            <h4>Spot Best Practices</h4>
+            <ul>
+                <li><strong>Diversify instance types:</strong> Use 10+ instance types across 3+ AZs to minimize interruption probability</li>
+                <li><strong>Capacity-optimized allocation:</strong> AWS picks pools with most available capacity (reduces interruption)</li>
+                <li><strong>Graceful shutdown:</strong> Handle SIGTERM, drain connections, checkpoint state within 2 minutes</li>
+                <li><strong>Mix with on-demand:</strong> Run baseline on on-demand/reserved, burst with spot (e.g., 30% OD + 70% spot)</li>
+                <li><strong>Karpenter:</strong> Automatically diversifies instance types and handles interruption/replacement</li>
+                <li><strong>Workload suitability:</strong> Stateless services, batch processing, CI/CD workers, dev/test environments</li>
+            </ul>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">EKS Managed Node Group with Spot (eksctl)</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+            <pre>
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+metadata:
+  name: production-cluster
+  region: us-east-1
+
+managedNodeGroups:
+  # On-demand baseline for critical workloads
+  - name: on-demand-baseline
+    instanceTypes: ["m6i.xlarge"]
+    minSize: 3
+    maxSize: 6
+    desiredCapacity: 3
+    labels:
+      lifecycle: on-demand
+      workload-type: critical
+    taints:
+      - key: dedicated
+        value: critical
+        effect: NoSchedule
+
+  # Spot instances for fault-tolerant workloads
+  - name: spot-workers
+    instanceTypes:
+      - m6i.xlarge
+      - m6i.2xlarge
+      - m5.xlarge
+      - m5.2xlarge
+      - m5a.xlarge
+      - m5a.2xlarge
+      - c6i.xlarge
+      - c6i.2xlarge
+      - c5.xlarge
+      - c5a.xlarge
+    spot: true
+    minSize: 2
+    maxSize: 20
+    desiredCapacity: 5
+    labels:
+      lifecycle: spot
+      workload-type: general
+    tags:
+      k8s.io/cluster-autoscaler/node-template/label/lifecycle: spot
+---
+# Karpenter Provisioner for Spot (alternative to managed node groups)
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
+metadata:
+  name: spot-pool
+spec:
+  template:
+    spec:
+      requirements:
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["spot"]
+        - key: node.kubernetes.io/instance-type
+          operator: In
+          values:
+            - m6i.xlarge
+            - m6i.2xlarge
+            - m5.xlarge
+            - m5.2xlarge
+            - c6i.xlarge
+            - c6i.2xlarge
+            - r6i.xlarge
+        - key: topology.kubernetes.io/zone
+          operator: In
+          values: ["us-east-1a", "us-east-1b", "us-east-1c"]
+      nodeClassRef:
+        name: default
+  limits:
+    cpu: "100"
+    memory: 400Gi
+  disruption:
+    consolidationPolicy: WhenUnderutilized
+    expireAfter: 720h   # Replace nodes after 30 days
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 5. Right-Sizing -->
+        <!-- ============================================ -->
+        <h2>5. Right-Sizing</h2>
+
+        <div class="card">
+            <h4>VPA (Vertical Pod Autoscaler) Recommendations</h4>
+            <ul>
+                <li><strong>Mode: Off</strong> - Only provides recommendations, does not change resources (safe for production)</li>
+                <li><strong>Mode: Auto</strong> - Automatically updates resource requests (restarts pods - use with caution)</li>
+                <li><strong>How it works:</strong> Observes actual CPU/memory usage over time, recommends optimal requests</li>
+                <li><strong>Limitations:</strong> Cannot run simultaneously with HPA on CPU (conflicting decisions)</li>
+                <li><strong>Target utilization:</strong> VPA targets ~90th percentile of actual usage as the recommended request</li>
+            </ul>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">VPA Configuration</span>
+                <span class="tag tag-green">K8s</span>
+            </div>
+            <pre>
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: my-app-vpa
+  namespace: production
+spec:
+  targetRef:
+    apiVersion: "apps/v1"
+    kind: Deployment
+    name: my-app
+  updatePolicy:
+    updateMode: "Off"   # Recommendation only (safest)
+  resourcePolicy:
+    containerPolicies:
+      - containerName: "my-app"
+        minAllowed:
+          cpu: 50m
+          memory: 64Mi
+        maxAllowed:
+          cpu: 2000m
+          memory: 4Gi
+        controlledResources: ["cpu", "memory"]
+        controlledValues: RequestsOnly
+---
+# Check VPA recommendations:
+# kubectl describe vpa my-app-vpa
+# Output shows:
+#   Lower Bound:    cpu: 100m, memory: 128Mi
+#   Target:         cpu: 250m, memory: 512Mi   <-- Use this
+#   Upper Bound:    cpu: 500m, memory: 1Gi
+#   Uncapped Target: cpu: 250m, memory: 512Mi
+            </pre>
+        </div>
+
+        <div class="card">
+            <h4>Goldilocks Tool</h4>
+            <ul>
+                <li><strong>What:</strong> Creates VPA objects for all deployments in a namespace, presents recommendations in a dashboard</li>
+                <li><strong>Install:</strong> <code>helm install goldilocks fairwinds-stable/goldilocks -n goldilocks</code></li>
+                <li><strong>Enable per namespace:</strong> <code>kubectl label ns production goldilocks.fairwinds.com/enabled=true</code></li>
+                <li><strong>Dashboard:</strong> Shows current requests/limits vs recommended for every container</li>
+                <li><strong>Savings estimate:</strong> Shows how much you would save by applying recommendations</li>
+            </ul>
+        </div>
+
+        <div class="card card-warning">
+            <h4>CPU Throttling vs Over-Provisioning Trade-Off</h4>
+            <ul>
+                <li><strong>Throttling:</strong> When a container hits its CPU limit, the kernel throttles it (CFS quota). Causes latency spikes</li>
+                <li><strong>Detection:</strong> <code>rate(container_cpu_cfs_throttled_periods_total[5m]) / rate(container_cpu_cfs_periods_total[5m]) > 0.25</code></li>
+                <li><strong>Strategy 1 - No CPU limits:</strong> Set requests only (for scheduling), remove limits. Pods can burst. Risk: noisy neighbor</li>
+                <li><strong>Strategy 2 - High limits:</strong> Set limits to 2-4x request. Allows burst without throttling in most cases</li>
+                <li><strong>Strategy 3 - Burstable with monitoring:</strong> Remove limits but alert on sustained high CPU that could affect neighbors</li>
+                <li><strong>Memory:</strong> ALWAYS set memory limits (OOM kill is better than node instability from memory pressure)</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 6. Resource Efficiency -->
+        <!-- ============================================ -->
+        <h2>6. Resource Efficiency</h2>
+
+        <div class="card">
+            <h4>Requests vs Limits and QoS Classes</h4>
+            <table>
+                <thead>
+                    <tr><th>QoS Class</th><th>Configuration</th><th>Eviction Priority</th><th>Cost Impact</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Guaranteed</strong></td>
+                        <td>requests == limits (for all containers)</td>
+                        <td>Last to be evicted</td>
+                        <td>Highest (reserves exact resources)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Burstable</strong></td>
+                        <td>requests &lt; limits (at least one container)</td>
+                        <td>Evicted after BestEffort</td>
+                        <td>Medium (can over-commit)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>BestEffort</strong></td>
+                        <td>No requests or limits set</td>
+                        <td>First to be evicted</td>
+                        <td>Lowest (but risky)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">LimitRange for Namespace Defaults</span>
+                <span class="tag tag-blue">K8s</span>
+            </div>
+            <pre>
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: resource-defaults
+  namespace: production
+spec:
+  limits:
+    - type: Container
+      default:           # Default limits if none specified
+        cpu: 500m
+        memory: 512Mi
+      defaultRequest:    # Default requests if none specified
+        cpu: 100m
+        memory: 128Mi
+      min:               # Minimum allowed
+        cpu: 50m
+        memory: 64Mi
+      max:               # Maximum allowed
+        cpu: 4000m
+        memory: 8Gi
+    - type: Pod
+      max:
+        cpu: 8000m
+        memory: 16Gi
+---
+# ResourceQuota to cap total namespace usage
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: namespace-quota
+  namespace: development
+spec:
+  hard:
+    requests.cpu: "20"
+    requests.memory: 40Gi
+    limits.cpu: "40"
+    limits.memory: 80Gi
+    persistentvolumeclaims: "10"
+    pods: "50"
+            </pre>
+        </div>
+
+        <div class="point">
+            <div class="point-num">1</div>
+            <div class="point-content">
+                <div class="point-title">Set requests based on P95 actual usage (from VPA/monitoring)</div>
+                <p>If your container typically uses 200m CPU, set request to 250m (not 1000m). This allows the scheduler to pack more pods per node.</p>
+            </div>
+        </div>
+
+        <div class="point">
+            <div class="point-num green">2</div>
+            <div class="point-content">
+                <div class="point-title">Consider removing CPU limits for non-noisy-neighbor environments</div>
+                <p>CPU throttling causes latency. If cluster has good namespace isolation or dedicated node pools, CPU limits may cause more harm than good.</p>
+            </div>
+        </div>
+
+        <div class="point">
+            <div class="point-num purple">3</div>
+            <div class="point-content">
+                <div class="point-title">Always set memory limits (slightly above request)</div>
+                <p>Memory is incompressible - OOM kill is the only recourse. Set limit to 1.2-1.5x request to allow burst without risking node stability.</p>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 7. Storage Cost -->
+        <!-- ============================================ -->
+        <h2>7. Storage Cost</h2>
+
+        <div class="card">
+            <h4>EBS Volume Optimization</h4>
+            <table>
+                <thead>
+                    <tr><th>Type</th><th>Cost ($/GB/mo)</th><th>IOPS</th><th>Throughput</th><th>Use Case</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>gp3</td><td>$0.08</td><td>3000 baseline (free)</td><td>125 MB/s (free)</td><td>General purpose (REPLACE gp2)</td></tr>
+                    <tr><td>gp2</td><td>$0.10</td><td>Burst: 3000, baseline: 3*GB</td><td>Linked to IOPS</td><td>Legacy - migrate to gp3</td></tr>
+                    <tr><td>io2</td><td>$0.125 + $0.065/IOPS</td><td>Up to 64,000</td><td>1,000 MB/s</td><td>High-performance databases</td></tr>
+                    <tr><td>st1 (HDD)</td><td>$0.045</td><td>500 IOPS max</td><td>500 MB/s</td><td>Sequential reads (logs, analytics)</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card card-warning">
+            <h4>Common Storage Waste</h4>
+            <ul>
+                <li><strong>Unused EBS volumes:</strong> Volumes detached from terminated instances still incur cost. Script to find: <code>aws ec2 describe-volumes --filters "Name=status,Values=available"</code></li>
+                <li><strong>Over-sized volumes:</strong> Provisioned 100GB but using 10GB. EBS charges for provisioned size, not used space</li>
+                <li><strong>Old snapshots:</strong> Accumulate over time. Use lifecycle policies: <code>aws dlm create-lifecycle-policy</code></li>
+                <li><strong>gp2 -> gp3 migration:</strong> gp3 is 20% cheaper AND has better baseline performance (3000 IOPS vs 100 for small gp2). No downtime to migrate</li>
+                <li><strong>Orphaned PVs in K8s:</strong> PVC deleted but PV retained (<code>persistentVolumeReclaimPolicy: Retain</code>). Script to audit: compare PV list with PVC bindings</li>
+            </ul>
+        </div>
+
+        <div class="cmd">aws ec2 describe-volumes --filters "Name=status,Values=available" --query "Volumes[*].{ID:VolumeId,Size:Size,Created:CreateTime}" --output table</div>
+
+        <div class="card">
+            <h4>S3 Cost Optimization</h4>
+            <ul>
+                <li><strong>Intelligent-Tiering:</strong> Automatically moves objects between access tiers. Best when access patterns are unknown. Small monitoring fee per object</li>
+                <li><strong>Lifecycle rules:</strong> Transition objects to cheaper classes based on age (e.g., IA after 30 days, Glacier after 90)</li>
+                <li><strong>Multipart upload cleanup:</strong> Incomplete multipart uploads accumulate. Add lifecycle rule to abort after 7 days</li>
+                <li><strong>Object versioning cost:</strong> Each version is a full copy. Use lifecycle rules to expire old versions after N days</li>
+                <li><strong>Compression:</strong> Compress before upload (gzip logs before S3). Reduces storage AND transfer cost</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 8. Network Cost -->
+        <!-- ============================================ -->
+        <h2>8. Network Cost</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">Data Transfer Cost Map</div>
+            <pre>
+                           INTERNET
+                              |
+                              | Outbound: $0.09/GB
+                              | (CloudFront: $0.085/GB)
+                              | Inbound: FREE
+                              |
+  +---------------------------+---------------------------+
+  |                        VPC                             |
+  |                                                        |
+  |  +----------+  same AZ   +----------+                 |
+  |  | Service A | ---------> | Service B |  FREE          |
+  |  +----------+  (free)    +----------+                 |
+  |       |                        |                       |
+  |       | cross-AZ              | cross-AZ              |
+  |       | $0.01/GB              | $0.01/GB              |
+  |       v                        v                       |
+  |  +----------+            +----------+                 |
+  |  | Service C |            | Service D |                |
+  |  | (AZ-b)   |            | (AZ-c)   |                |
+  |  +----------+            +----------+                 |
+  |       |                                                |
+  |       |  +------------------+                          |
+  |       +->| NAT Gateway      |-> Internet               |
+  |          | $0.045/hr         |   $0.045/GB processed   |
+  |          +------------------+                          |
+  |       |                                                |
+  |       |  +------------------+                          |
+  |       +->| VPC Endpoint     |-> S3/DynamoDB/ECR        |
+  |          | $0.01/GB         |   (vs $0.045 via NAT)    |
+  |          | $0.01/hr (IF)    |                          |
+  |          +------------------+                          |
+  +--------------------------------------------------------+
+
+  KEY SAVINGS:
+  - VPC Endpoint for S3:    saves $0.035/GB vs NAT Gateway
+  - VPC Endpoint for ECR:   saves on image pulls (significant at scale)
+  - Topology-aware routing: keeps traffic in same AZ (saves $0.02/GB RT)
+  - CloudFront for static: cheaper than direct egress + caching
+            </pre>
+        </div>
+
+        <div class="card card-danger">
+            <h4>NAT Gateway - The Silent Cost Killer</h4>
+            <ul>
+                <li><strong>Hourly charge:</strong> $0.045/hr per NAT Gateway ($32/month per AZ just for existing)</li>
+                <li><strong>Data processing:</strong> $0.045/GB through NAT - adds up fast with container image pulls, apt updates, external API calls</li>
+                <li><strong>Common surprise:</strong> 3 AZs x $32/month + 1TB/month processing = $141/month just for NAT (before any useful traffic)</li>
+                <li><strong>Mitigation:</strong>
+                    <ul>
+                        <li>VPC endpoints for AWS services (S3, ECR, DynamoDB, STS, SSM)</li>
+                        <li>ECR pull-through cache (reduces internet pulls)</li>
+                        <li>Private subnets only where needed (not every service needs internet egress)</li>
+                        <li>Consider NAT instances for dev environments (cheaper, less reliable)</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h4>VPC Endpoints - Cost Savings</h4>
+            <table>
+                <thead>
+                    <tr><th>Service</th><th>Endpoint Type</th><th>Cost</th><th>NAT Alternative Cost</th><th>Savings</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>S3</td><td>Gateway (free!)</td><td>$0/hr, $0/GB</td><td>$0.045/GB</td><td>100% on data transfer</td></tr>
+                    <tr><td>DynamoDB</td><td>Gateway (free!)</td><td>$0/hr, $0/GB</td><td>$0.045/GB</td><td>100% on data transfer</td></tr>
+                    <tr><td>ECR</td><td>Interface</td><td>$0.01/hr + $0.01/GB</td><td>$0.045/GB</td><td>~78% on data transfer</td></tr>
+                    <tr><td>STS</td><td>Interface</td><td>$0.01/hr + $0.01/GB</td><td>$0.045/GB</td><td>~78% per call</td></tr>
+                    <tr><td>CloudWatch</td><td>Interface</td><td>$0.01/hr + $0.01/GB</td><td>$0.045/GB</td><td>~78% on logs/metrics</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 9. Tagging Strategy -->
+        <!-- ============================================ -->
+        <h2>9. Tagging Strategy</h2>
+
+        <div class="card card-info">
+            <h4>Required Tags (Enforce via SCP/AWS Config)</h4>
+            <table>
+                <thead>
+                    <tr><th>Tag Key</th><th>Purpose</th><th>Example Values</th><th>Enforcement</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>team</code></td><td>Cost ownership / chargeback</td><td>platform, backend, data, ml</td><td>Required at creation</td></tr>
+                    <tr><td><code>environment</code></td><td>Identify prod vs non-prod for policies</td><td>production, staging, development</td><td>Required at creation</td></tr>
+                    <tr><td><code>project</code></td><td>Associate with business initiative</td><td>checkout-v2, search-rewrite</td><td>Required at creation</td></tr>
+                    <tr><td><code>cost-center</code></td><td>Financial allocation code</td><td>CC-1234, ENG-PLATFORM</td><td>Required for prod</td></tr>
+                    <tr><td><code>managed-by</code></td><td>Who/what manages the resource</td><td>terraform, helm, manual</td><td>Recommended</td></tr>
+                    <tr><td><code>auto-shutdown</code></td><td>Can this be shut down off-hours?</td><td>true, false</td><td>Required for non-prod</td></tr>
+                    <tr><td><code>data-classification</code></td><td>Security/compliance requirements</td><td>public, internal, confidential, restricted</td><td>Required for storage</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Tag Enforcement - AWS Config Rule</span>
+                <span class="tag tag-orange">AWS Config</span>
+            </div>
+            <pre>
+# AWS Config Rule: check for required tags
+resource "aws_config_config_rule" "required_tags" {
+  name = "required-tags"
+
+  source {
+    owner             = "AWS"
+    source_identifier = "REQUIRED_TAGS"
+  }
+
+  input_parameters = jsonencode({
+    tag1Key   = "team"
+    tag2Key   = "environment"
+    tag3Key   = "project"
+    tag4Key   = "cost-center"
+  })
+
+  scope {
+    compliance_resource_types = [
+      "AWS::EC2::Instance",
+      "AWS::RDS::DBInstance",
+      "AWS::S3::Bucket",
+      "AWS::EKS::Cluster",
+      "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    ]
+  }
+}
+
+# SCP to prevent resource creation without tags
+resource "aws_organizations_policy" "require_tags" {
+  name    = "require-cost-tags"
+  content = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "DenyEC2WithoutTags"
+        Effect    = "Deny"
+        Action    = ["ec2:RunInstances"]
+        Resource  = ["arn:aws:ec2:*:*:instance/*"]
+        Condition = {
+          "Null" = {
+            "aws:RequestTag/team"        = "true"
+            "aws:RequestTag/environment" = "true"
+          }
+        }
+      }
+    ]
+  })
+}
+            </pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">K8s Labels for Cost Allocation</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+            <pre>
+# Pod labels used by Kubecost for cost allocation
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-api
+  namespace: production
+  labels:
+    app.kubernetes.io/name: payment-api
+    app.kubernetes.io/team: backend        # -> cost allocation
+    app.kubernetes.io/cost-center: CC-1234 # -> chargeback
+    app.kubernetes.io/environment: production
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: payment-api
+        app.kubernetes.io/team: backend
+        app.kubernetes.io/cost-center: CC-1234
+
+# Kubecost allocation config (values.yaml)
+# kubecostModel:
+#   allocationLabels:
+#     - app.kubernetes.io/team
+#     - app.kubernetes.io/cost-center
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 10. Cost Monitoring -->
+        <!-- ============================================ -->
+        <h2>10. Cost Monitoring</h2>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>AWS Cost Tools</h4>
+                <ul>
+                    <li><strong>Cost Explorer:</strong> Visualize, understand, and manage costs. Filter by service, tag, account. Forecast future spend</li>
+                    <li><strong>AWS Budgets:</strong> Set custom budgets with alerts at 50%, 80%, 100% thresholds. Alert via email/SNS/Slack</li>
+                    <li><strong>Cost Anomaly Detection:</strong> ML-based unusual spend detection. Alerts on unexpected spikes per service/account</li>
+                    <li><strong>Compute Optimizer:</strong> Recommends optimal instance types based on utilization metrics</li>
+                    <li><strong>Trusted Advisor:</strong> Identifies idle resources, underutilized instances, unused EBS/EIPs</li>
+                    <li><strong>CUR (Cost & Usage Report):</strong> Detailed line-item billing data to S3. Use Athena to query</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h4>K8s Cost Monitoring</h4>
+                <ul>
+                    <li><strong>Kubecost:</strong> Real-time cost per namespace/deployment/pod. Efficiency scoring, recommendations</li>
+                    <li><strong>OpenCost:</strong> CNCF project (open-source Kubecost core). Cost allocation API</li>
+                    <li><strong>Prometheus metrics:</strong>
+                        <ul>
+                            <li><code>kube_pod_container_resource_requests</code> (what is reserved)</li>
+                            <li><code>container_cpu_usage_seconds_total</code> (what is used)</li>
+                            <li>Gap between these = waste</li>
+                        </ul>
+                    </li>
+                    <li><strong>Custom dashboard:</strong> Cost per namespace, idle resources, request vs actual efficiency</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <h4>Showback vs Chargeback</h4>
+            <table>
+                <thead>
+                    <tr><th>Approach</th><th>Description</th><th>Maturity Level</th><th>Pros</th><th>Cons</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Showback</strong></td>
+                        <td>Show teams their costs (informational only)</td>
+                        <td>Starting point</td>
+                        <td>No friction, builds awareness</td>
+                        <td>No accountability pressure</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Chargeback</strong></td>
+                        <td>Actually bill teams from their budget</td>
+                        <td>Mature FinOps</td>
+                        <td>Strong incentive to optimize</td>
+                        <td>Needs accurate tagging, causes friction</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">AWS Budget Alert (Terraform)</span>
+                <span class="tag tag-orange">Terraform</span>
+            </div>
+            <pre>
+resource "aws_budgets_budget" "monthly_cost" {
+  name              = "monthly-total-cost"
+  budget_type       = "COST"
+  limit_amount      = "10000"
+  limit_unit        = "USD"
+  time_unit         = "MONTHLY"
+  time_period_start = "2024-01-01_00:00"
+
+  cost_filter {
+    name   = "TagKeyValue"
+    values = ["user:environment$production"]
+  }
+
+  notification {
+    comparison_operator       = "GREATER_THAN"
+    threshold                 = 80
+    threshold_type            = "PERCENTAGE"
+    notification_type         = "FORECASTED"
+    subscriber_email_addresses = ["platform-team@company.com"]
+    subscriber_sns_topic_arns  = [aws_sns_topic.budget_alerts.arn]
+  }
+
+  notification {
+    comparison_operator       = "GREATER_THAN"
+    threshold                 = 100
+    threshold_type            = "PERCENTAGE"
+    notification_type         = "ACTUAL"
+    subscriber_email_addresses = ["engineering-leads@company.com"]
+    subscriber_sns_topic_arns  = [aws_sns_topic.budget_alerts.arn]
+  }
+}
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 11. Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>11. Interview Q&A</h2>
+
+        <div class="qa">
+            <div class="q">Q: Compare Spot vs Reserved Instances vs On-Demand. When would you use each?</div>
+            <div class="a"><strong>A:</strong> <strong>On-Demand:</strong> Pay per hour, no commitment. Use for spiky/unpredictable workloads, initial development, anything you cannot predict. <strong>Reserved/Savings Plans:</strong> 1-3 year commitment for 30-72% discount. Use for steady-state baseline workloads (databases, core services that run 24/7). Buy AFTER right-sizing. Compute Savings Plans are most flexible (covers EC2+Fargate+Lambda). <strong>Spot:</strong> 60-90% discount but can be interrupted with 2-min notice. Use for fault-tolerant workloads: batch processing, CI/CD, stateless web workers, data pipelines. <strong>Optimal strategy:</strong> Cover baseline with Savings Plans (70-80% of steady usage), use On-Demand for predicted peaks, use Spot for fault-tolerant burst capacity.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: What are your top Kubernetes cost optimization techniques?</div>
+            <div class="a"><strong>A:</strong> (1) <strong>Right-size requests:</strong> Use VPA recommendations to set requests based on actual usage (biggest single saving - often 40-60% over-provisioned). (2) <strong>Cluster Autoscaler / Karpenter:</strong> Scale nodes down when pods don't need them. Set appropriate scale-down thresholds. (3) <strong>Spot instances:</strong> Run 50-70% of fault-tolerant workloads on spot for 60-90% savings. (4) <strong>Namespace resource quotas:</strong> Prevent teams from over-requesting. (5) <strong>Schedule non-prod shutdown:</strong> Scale dev/staging to 0 replicas outside business hours (save ~65%). (6) <strong>Cleanup orphans:</strong> Script to find unused PVCs, old ConfigMaps/Secrets, completed Jobs. (7) <strong>Bin-packing:</strong> Choose node sizes that match workload patterns; avoid small pods on large nodes.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: How do you approach right-sizing an existing cluster?</div>
+            <div class="a"><strong>A:</strong> (1) <strong>Measure first:</strong> Deploy VPA in recommendation-only mode + Kubecost for 2+ weeks to gather actual usage data. (2) <strong>Identify waste:</strong> Look for pods where request >> actual (e.g., 1 CPU requested, 100m used). Sort by absolute waste (biggest savings first). (3) <strong>Start with non-critical:</strong> Apply right-sizing to dev/staging first, validate no performance impact. (4) <strong>Gradual production rollout:</strong> Reduce requests by 20-30% at a time, monitor for throttling or OOM. (5) <strong>Verify with load testing:</strong> Ensure right-sized values handle peak traffic (not just average). (6) <strong>Automate:</strong> Set up Goldilocks dashboard, regular review cadence (monthly), alert on efficiency score dropping. (7) <strong>Then commit:</strong> Once stable, buy Savings Plans for the optimized capacity.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: How can you reduce data transfer costs in AWS?</div>
+            <div class="a"><strong>A:</strong> (1) <strong>VPC Endpoints:</strong> Gateway endpoints (S3, DynamoDB) are free and eliminate NAT charges. Interface endpoints cost less than NAT for high-volume services (ECR, CloudWatch). (2) <strong>Same-AZ traffic:</strong> Use topology-aware routing in K8s (topology.kubernetes.io/zone) to keep pod-to-pod traffic within AZ ($0 vs $0.02 cross-AZ). (3) <strong>CloudFront:</strong> Serve static assets via CDN - cheaper than direct egress + reduces origin load. (4) <strong>Compression:</strong> Compress API responses, log streams, data in transit. (5) <strong>NAT reduction:</strong> Use ECR pull-through cache, S3 gateway endpoint, private link for frequently-accessed services. (6) <strong>Architecture:</strong> Co-locate communicating services in same AZ, use multi-region only where needed.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: What tagging strategy would you implement for a growing organization?</div>
+            <div class="a"><strong>A:</strong> (1) <strong>Mandatory tags:</strong> Enforce <code>team</code>, <code>environment</code>, <code>project</code>, <code>cost-center</code> via SCP (prevent resource creation without them). (2) <strong>Enforcement layers:</strong> SCP for hard block, AWS Config for compliance reporting, Terraform variables for IaC resources. (3) <strong>Automation:</strong> Tag inheritance (from CloudFormation/Terraform), auto-tagging Lambda for resources that slip through. (4) <strong>K8s mapping:</strong> Map K8s namespace labels to AWS tags via Kubecost or custom tooling. (5) <strong>Governance:</strong> Monthly compliance report showing untagged resources, escalation process for teams not meeting tag requirements. (6) <strong>Evolution:</strong> Start simple (3-4 tags), add more as FinOps matures. Don't over-engineer initially.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: How do you build a FinOps culture in engineering teams?</div>
+            <div class="a"><strong>A:</strong> (1) <strong>Visibility first:</strong> Show teams their spend weekly (Slack bot with cost summary, Grafana dashboard). People cannot optimize what they cannot see. (2) <strong>Make it easy:</strong> Provide self-service tools (Kubecost dashboard, right-sizing recommendations), not just reports. (3) <strong>Ownership:</strong> Each team owns their namespace/account budget. Include cost efficiency in sprint reviews. (4) <strong>Incentives:</strong> Celebrate cost savings in all-hands, gamify with cost-reduction challenges. (5) <strong>No blame:</strong> Frame as optimization opportunity, not punishment. Everyone over-provisions initially. (6) <strong>Architecture reviews:</strong> Include cost estimate in design docs ("this design costs ~$X/month"). (7) <strong>FinOps champion:</strong> Embedded engineer per team who drives cost awareness and training.</div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 12. Scenarios -->
+        <!-- ============================================ -->
+        <h2>12. Troubleshooting Scenarios</h2>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!!</span>
+                <span class="title">Scenario: Monthly Bill Spike (30% Increase)</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptoms:</strong> AWS bill jumped from $50K to $65K this month with no known infrastructure changes.</p>
+
+                <div class="scenario-step"><span class="step-num">1.</span> <span>Open Cost Explorer: Filter by service, compare this month vs last month. Identify which service(s) increased</span></div>
+                <div class="scenario-step"><span class="step-num">2.</span> <span>Drill down by tag: Use <code>team</code> and <code>project</code> tags to identify which team's resources grew</span></div>
+                <div class="scenario-step"><span class="step-num">3.</span> <span>Check Cost Anomaly Detection: See if it flagged the spike and which resources caused it</span></div>
+                <div class="scenario-step"><span class="step-num">4.</span> <span><strong>Common causes:</strong> (a) Data transfer spike (video/logs), (b) New service deployed without cost review, (c) Auto-scaling over-reacted, (d) Forgotten resources from testing/experiments, (e) Spot interruption caused fallback to on-demand</span></div>
+                <div class="scenario-step"><span class="step-num">5.</span> <span>Check for untagged resources: CUR query for resources without team tag in the spike period</span></div>
+                <div class="scenario-step"><span class="step-num">6.</span> <span>Check NAT Gateway / Data Transfer: Often overlooked. Filter Cost Explorer by "EC2-Other" for data transfer line items</span></div>
+                <div class="scenario-step"><span class="step-num">7.</span> <span><strong>Immediate actions:</strong> Terminate idle resources, scale down over-provisioned services, set budget alerts at lower thresholds</span></div>
+                <div class="scenario-step"><span class="step-num">8.</span> <span><strong>Prevention:</strong> Set forecasted budget alerts (alert when forecast exceeds budget), weekly cost review meetings, anomaly detection with Slack notification</span></div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!!</span>
+                <span class="title">Scenario: Idle Cluster Resources</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptoms:</strong> Kubecost shows 60% cluster idle cost. Nodes are running but pods are using fraction of allocated resources.</p>
+
+                <div class="scenario-step"><span class="step-num">1.</span> <span>Identify idle: Check Kubecost "idle" metric. This is the gap between allocatable node resources and pod requests</span></div>
+                <div class="scenario-step"><span class="step-num">2.</span> <span>Check Cluster Autoscaler: Is it configured? Are there scale-down delays too long? Check <code>--scale-down-utilization-threshold</code> (default 0.5)</span></div>
+                <div class="scenario-step"><span class="step-num">3.</span> <span>Check for pods preventing scale-down: PodDisruptionBudgets, pods without controllers, pods with local storage, kube-system pods</span></div>
+                <div class="scenario-step"><span class="step-num">4.</span> <span>Check minimum node count: <code>minSize</code> in node group may be too high for actual workload</span></div>
+                <div class="scenario-step"><span class="step-num">5.</span> <span>Right-size pod requests: If pods request 1 CPU but use 100m, that reserved 900m blocks node scale-down</span></div>
+                <div class="scenario-step"><span class="step-num">6.</span> <span><strong>Fix:</strong> (a) Lower minSize to 1-2, (b) Right-size pod requests (VPA), (c) Use Karpenter for better bin-packing, (d) Set scale-down-delay to 5m not 30m, (e) Consolidate workloads to fewer, fuller nodes</span></div>
+                <div class="scenario-step"><span class="step-num">7.</span> <span><strong>Target:</strong> 60-80% node utilization is healthy. Below 40% means significant waste</span></div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!!</span>
+                <span class="title">Scenario: Over-Provisioned Dev Environments</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptoms:</strong> Dev and staging environments running 24/7 identical to production. Costing 40% of total cloud spend for non-production use.</p>
+
+                <div class="scenario-step"><span class="step-num">1.</span> <span>Audit: Compare prod vs non-prod spend in Cost Explorer (filter by environment tag)</span></div>
+                <div class="scenario-step"><span class="step-num">2.</span> <span><strong>Schedule shutdown:</strong> Use AWS Instance Scheduler or CronJobs to scale to 0 outside business hours (6pm-8am, weekends). Saves ~65%</span></div>
+                <div class="scenario-step"><span class="step-num">3.</span> <span><strong>Reduce replicas:</strong> Dev does not need 3 replicas or multi-AZ. Single replica, single AZ for dev</span></div>
+                <div class="scenario-step"><span class="step-num">4.</span> <span><strong>Smaller instances:</strong> Dev can use t3.medium where prod uses m5.2xlarge. Use separate node pools per environment</span></div>
+                <div class="scenario-step"><span class="step-num">5.</span> <span><strong>Spot for non-prod:</strong> Run all dev/staging on 100% spot instances (interruption is acceptable)</span></div>
+                <div class="scenario-step"><span class="step-num">6.</span> <span><strong>Ephemeral environments:</strong> Replace persistent dev environments with on-demand preview environments that spin up per-PR and tear down after merge</span></div>
+                <div class="scenario-step"><span class="step-num">7.</span> <span><strong>Resource quotas:</strong> Set namespace ResourceQuotas for dev (much lower than prod). Enforce with LimitRange</span></div>
+                <div class="scenario-step"><span class="step-num">8.</span> <span><strong>Target:</strong> Non-production should be <20% of total spend (ideally 10-15%)</span></div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!!</span>
+                <span class="title">Scenario: NAT Gateway Cost Surprise ($3K/month)</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptoms:</strong> Monthly NAT Gateway charges unexpectedly high. "EC2-Other" line in Cost Explorer shows $3K in data processing fees.</p>
+
+                <div class="scenario-step"><span class="step-num">1.</span> <span>Enable VPC Flow Logs: Identify which private subnet IPs are sending the most traffic through NAT</span></div>
+                <div class="scenario-step"><span class="step-num">2.</span> <span>Check top talkers: Filter flow logs by NAT Gateway ENI. Group by source IP + destination to find heaviest flows</span></div>
+                <div class="scenario-step"><span class="step-num">3.</span> <span><strong>Common culprits:</strong> (a) ECR image pulls (large images, many nodes, frequent deployments), (b) S3 access without gateway endpoint, (c) External API calls from every pod, (d) Logging/metrics to external SaaS (Datadog, Splunk)</span></div>
+                <div class="scenario-step"><span class="step-num">4.</span> <span><strong>Fix - ECR:</strong> Add VPC endpoint for ECR (dkr + api). Use ECR pull-through cache. Reduce image sizes</span></div>
+                <div class="scenario-step"><span class="step-num">5.</span> <span><strong>Fix - S3:</strong> Add S3 Gateway endpoint (FREE, takes 30 seconds to create). Route table update, no code changes</span></div>
+                <div class="scenario-step"><span class="step-num">6.</span> <span><strong>Fix - External APIs:</strong> Cache responses where possible. Consider moving integration to services with direct internet access only where needed</span></div>
+                <div class="scenario-step"><span class="step-num">7.</span> <span><strong>Monitor:</strong> Alert on <code>NATGateway BytesOutToDestination</code> CloudWatch metric exceeding threshold. Set up weekly cost review for network line items</span></div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        <p>Cost & FinOps Reference - DevOps/SRE Interview Preparation</p>
+    </footer>
+
+</body>
+</html>

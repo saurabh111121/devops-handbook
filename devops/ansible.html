@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ansible - DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html" class="active">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; <a href="../index.html">DevOps</a> &gt; Ansible
+        </div>
+
+        <h1>Ansible</h1>
+        <p class="subtitle">Agentless automation - configuration management, application deployment, and orchestration</p>
+
+        <!-- ============================================ -->
+        <!-- 1. What is Ansible -->
+        <!-- ============================================ -->
+        <h2>1. What is Ansible</h2>
+
+        <div class="card card-info">
+            <h4>Core Characteristics</h4>
+            <ul>
+                <li><strong>Agentless:</strong> No software to install on managed nodes. Uses SSH (Linux) or WinRM (Windows).</li>
+                <li><strong>Push-Based:</strong> Control node pushes configuration to managed nodes (vs. pull-based like Puppet/Chef).</li>
+                <li><strong>Idempotent:</strong> Running the same playbook multiple times produces the same result without side effects.</li>
+                <li><strong>Declarative:</strong> You describe the desired state; Ansible figures out how to get there.</li>
+                <li><strong>YAML-Based:</strong> Human-readable configuration (no custom DSL to learn).</li>
+            </ul>
+        </div>
+
+        <h3>Architecture</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Ansible Architecture</div>
+<pre>
++---------------------------+
+|      Control Node         |
+|  (Your workstation/CI)    |
+|                           |
+|  +---------------------+  |
+|  | Ansible Engine      |  |
+|  |   - Playbooks       |  |
+|  |   - Inventory       |  |
+|  |   - Modules         |  |
+|  |   - Plugins         |  |
+|  +---------------------+  |
++------------||--------------+
+             ||
+             || SSH / WinRM (no agent required)
+             ||
+    +--------||--------+--------+--------+
+    |        ||        |        |        |
+    v        v         v        v        v
++-------+ +-------+ +-------+ +-------+ +-------+
+| Web 1 | | Web 2 | | DB 1  | | DB 2  | | Cache |
++-------+ +-------+ +-------+ +-------+ +-------+
+  Managed Nodes (Linux/Windows servers, network devices, cloud resources)
+
+Flow:
+  1. Control node reads inventory (which hosts to manage)
+  2. Reads playbook (what to do)
+  3. Connects via SSH to managed nodes
+  4. Executes modules on managed nodes
+  5. Reports results back to control node
+  6. Modules are copied, executed, then removed (no residue)
+</pre>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Control Node Requirements</h4>
+                <ul>
+                    <li>Python 3.9+ installed</li>
+                    <li>Ansible package installed (<code>pip install ansible</code>)</li>
+                    <li>SSH access to managed nodes</li>
+                    <li>Can be your laptop, a CI server, or a dedicated Ansible controller</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Managed Node Requirements</h4>
+                <ul>
+                    <li>Python 2.7+ or 3.5+ (most modules)</li>
+                    <li>SSH server running (sshd)</li>
+                    <li>No Ansible installation needed</li>
+                    <li>User with appropriate privileges (sudo)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 2. Inventory -->
+        <!-- ============================================ -->
+        <h2>2. Inventory</h2>
+
+        <div class="card">
+            <h4>What is Inventory?</h4>
+            <p>The inventory defines <strong>which hosts</strong> Ansible manages. It can be a static file (INI or YAML) or dynamically generated from cloud providers, CMDBs, or scripts.</p>
+        </div>
+
+        <h3>Static Inventory (INI Format)</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">inventory/hosts.ini</span>
+                <span class="tag tag-green">INI</span>
+            </div>
+<pre>
+[webservers]
+web1.example.com ansible_host=10.0.1.10
+web2.example.com ansible_host=10.0.1.11
+
+[dbservers]
+db1.example.com ansible_host=10.0.2.10 ansible_user=dbadmin
+db2.example.com ansible_host=10.0.2.11 ansible_user=dbadmin
+
+[loadbalancers]
+lb1.example.com ansible_host=10.0.0.10
+
+[production:children]
+webservers
+dbservers
+loadbalancers
+
+[production:vars]
+ansible_ssh_private_key_file=~/.ssh/prod_key
+ansible_python_interpreter=/usr/bin/python3
+</pre>
+        </div>
+
+        <h3>Static Inventory (YAML Format)</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">inventory/hosts.yml</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+all:
+  children:
+    webservers:
+      hosts:
+        web1.example.com:
+          ansible_host: 10.0.1.10
+          http_port: 8080
+        web2.example.com:
+          ansible_host: 10.0.1.11
+          http_port: 8080
+      vars:
+        nginx_version: "1.24"
+    dbservers:
+      hosts:
+        db1.example.com:
+          ansible_host: 10.0.2.10
+          postgres_port: 5432
+        db2.example.com:
+          ansible_host: 10.0.2.11
+          postgres_port: 5432
+      vars:
+        ansible_user: dbadmin
+        db_engine: postgresql
+    production:
+      children:
+        webservers:
+        dbservers:
+      vars:
+        env: production
+        ansible_ssh_private_key_file: ~/.ssh/prod_key
+</pre>
+        </div>
+
+        <h3>Dynamic Inventory</h3>
+
+        <div class="card">
+            <h4>AWS Dynamic Inventory</h4>
+            <p>Automatically discover EC2 instances based on tags, regions, or other attributes.</p>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">inventory/aws_ec2.yml</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+plugin: amazon.aws.aws_ec2
+regions:
+  - us-east-1
+  - us-west-2
+filters:
+  tag:Environment:
+    - production
+  instance-state-name:
+    - running
+keyed_groups:
+  - key: tags.Role
+    prefix: role
+  - key: placement.region
+    prefix: region
+hostnames:
+  - private-ip-address
+compose:
+  ansible_host: private_ip_address
+  ansible_user: "'ec2-user'"
+</pre>
+        </div>
+
+        <h3>Host Variables & Group Variables</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">inventory/group_vars/webservers.yml</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+---
+nginx_worker_processes: auto
+nginx_worker_connections: 1024
+app_port: 8080
+log_level: info
+ssl_enabled: true
+ssl_cert_path: /etc/ssl/certs/app.crt
+ssl_key_path: /etc/ssl/private/app.key
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">inventory/host_vars/web1.example.com.yml</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+---
+# Host-specific overrides
+nginx_worker_processes: 4
+is_primary: true
+custom_vhosts:
+  - domain: api.example.com
+    upstream_port: 3000
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 3. Playbooks -->
+        <!-- ============================================ -->
+        <h2>3. Playbooks</h2>
+
+        <div class="card">
+            <h4>Playbook Structure</h4>
+            <p>A playbook is a YAML file containing one or more <strong>plays</strong>. Each play targets a group of hosts and defines a list of <strong>tasks</strong> to execute in order.</p>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">Playbook Anatomy</div>
+<pre>
+Playbook (YAML file)
+  |
+  +-- Play 1 (hosts: webservers)
+  |     |-- vars:
+  |     |-- tasks:
+  |     |     |-- Task 1 (module: apt)
+  |     |     |-- Task 2 (module: template)
+  |     |     +-- Task 3 (module: service)
+  |     +-- handlers:
+  |           +-- Handler 1 (restart nginx)
+  |
+  +-- Play 2 (hosts: dbservers)
+        |-- vars:
+        |-- tasks:
+        |     |-- Task 1 (module: apt)
+        |     +-- Task 2 (module: postgresql_db)
+        +-- handlers:
+              +-- Handler 1 (restart postgresql)
+</pre>
+        </div>
+
+        <h3>Complete Playbook Example</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">playbooks/deploy-nginx.yml</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+---
+- name: Deploy and configure Nginx web server
+  hosts: webservers
+  become: true
+  vars:
+    nginx_port: 80
+    nginx_server_name: "{{ inventory_hostname }}"
+    app_root: /var/www/app
+    nginx_worker_processes: "{{ ansible_processor_vcpus }}"
+
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install Nginx
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+      notify: Start Nginx
+
+    - name: Install required packages
+      ansible.builtin.apt:
+        name:
+          - curl
+          - vim
+          - htop
+          - certbot
+        state: present
+
+    - name: Create application directory
+      ansible.builtin.file:
+        path: "{{ app_root }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+
+    - name: Deploy Nginx configuration
+      ansible.builtin.template:
+        src: templates/nginx.conf.j2
+        dest: /etc/nginx/sites-available/default
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload Nginx
+      when: nginx_port is defined
+
+    - name: Deploy application index page
+      ansible.builtin.copy:
+        content: |
+          &lt;html&gt;
+            &lt;body&gt;
+              &lt;h1&gt;Welcome to {{ nginx_server_name }}&lt;/h1&gt;
+              &lt;p&gt;Deployed by Ansible&lt;/p&gt;
+            &lt;/body&gt;
+          &lt;/html&gt;
+        dest: "{{ app_root }}/index.html"
+        owner: www-data
+        group: www-data
+        mode: '0644'
+
+    - name: Ensure Nginx is enabled and started
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+
+    - name: Open firewall port for HTTP
+      ansible.builtin.ufw:
+        rule: allow
+        port: "{{ nginx_port }}"
+        proto: tcp
+      when: ansible_os_family == "Debian"
+
+    - name: Verify Nginx is responding
+      ansible.builtin.uri:
+        url: "http://localhost:{{ nginx_port }}"
+        status_code: 200
+      register: result
+      retries: 3
+      delay: 5
+      until: result.status == 200
+
+  handlers:
+    - name: Start Nginx
+      ansible.builtin.service:
+        name: nginx
+        state: started
+
+    - name: Reload Nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
+
+    - name: Restart Nginx
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
+</pre>
+        </div>
+
+        <h3>Variables, Conditionals & Loops</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">playbooks/users.yml (conditionals and loops)</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+---
+- name: Manage system users
+  hosts: all
+  become: true
+  vars:
+    users:
+      - name: deploy
+        groups: [sudo, docker]
+        shell: /bin/bash
+        state: present
+      - name: monitor
+        groups: [docker]
+        shell: /bin/bash
+        state: present
+      - name: olduser
+        state: absent
+
+  tasks:
+    - name: Create or remove users
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        groups: "{{ item.groups | default([]) }}"
+        shell: "{{ item.shell | default('/bin/bash') }}"
+        state: "{{ item.state }}"
+        create_home: "{{ true if item.state == 'present' else omit }}"
+      loop: "{{ users }}"
+      when: item.name != "root"
+
+    - name: Add SSH keys for present users
+      ansible.posix.authorized_key:
+        user: "{{ item.name }}"
+        key: "{{ lookup('file', 'files/ssh_keys/' + item.name + '.pub') }}"
+        state: present
+      loop: "{{ users | selectattr('state', 'equalto', 'present') | list }}"
+      ignore_errors: true
+
+    - name: Install packages based on OS family
+      ansible.builtin.package:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - git
+        - curl
+        - wget
+      when: ansible_os_family in ['Debian', 'RedHat']
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 4. Roles -->
+        <!-- ============================================ -->
+        <h2>4. Roles</h2>
+
+        <div class="card">
+            <h4>What are Roles?</h4>
+            <p>Roles are a way to organize playbooks into reusable, shareable components. They provide a standardized directory structure that automatically loads vars, tasks, handlers, templates, and files.</p>
+        </div>
+
+        <h3>Role Directory Structure</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Standard Role Layout</div>
+<pre>
+roles/
+  nginx/
+  +-- defaults/
+  |     +-- main.yml          # Default variables (lowest priority)
+  +-- vars/
+  |     +-- main.yml          # Role variables (higher priority)
+  +-- tasks/
+  |     +-- main.yml          # Main task list
+  |     +-- install.yml       # Included task file
+  |     +-- configure.yml     # Included task file
+  +-- handlers/
+  |     +-- main.yml          # Handler definitions
+  +-- templates/
+  |     +-- nginx.conf.j2     # Jinja2 templates
+  |     +-- vhost.conf.j2
+  +-- files/
+  |     +-- custom-502.html   # Static files to copy
+  +-- meta/
+  |     +-- main.yml          # Role metadata & dependencies
+  +-- tests/
+  |     +-- test.yml          # Test playbook
+  +-- molecule/               # Molecule test scenarios
+        +-- default/
+              +-- molecule.yml
+              +-- converge.yml
+              +-- verify.yml
+</pre>
+        </div>
+
+        <h3>Example Role</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">roles/nginx/defaults/main.yml</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+---
+nginx_port: 80
+nginx_worker_processes: auto
+nginx_worker_connections: 1024
+nginx_server_name: "_"
+nginx_root: /var/www/html
+nginx_access_log: /var/log/nginx/access.log
+nginx_error_log: /var/log/nginx/error.log
+nginx_ssl_enabled: false
+nginx_ssl_certificate: ""
+nginx_ssl_certificate_key: ""
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">roles/nginx/tasks/main.yml</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+---
+- name: Include OS-specific variables
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+
+- name: Install Nginx
+  ansible.builtin.include_tasks: install.yml
+
+- name: Configure Nginx
+  ansible.builtin.include_tasks: configure.yml
+  tags: [nginx, configure]
+
+- name: Ensure Nginx is running
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true
+  tags: [nginx, service]
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">roles/nginx/meta/main.yml</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+---
+galaxy_info:
+  author: DevOps Team
+  description: Install and configure Nginx
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions: [focal, jammy]
+    - name: Debian
+      versions: [bullseye, bookworm]
+
+dependencies:
+  - role: common
+  - role: firewall
+    vars:
+      firewall_allowed_ports:
+        - "{{ nginx_port }}/tcp"
+</pre>
+        </div>
+
+        <h3>Using Roles in a Playbook</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">site.yml</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+---
+- name: Configure web servers
+  hosts: webservers
+  become: true
+  roles:
+    - common
+    - role: nginx
+      vars:
+        nginx_port: 443
+        nginx_ssl_enabled: true
+    - role: app
+      tags: [app, deploy]
+
+- name: Configure database servers
+  hosts: dbservers
+  become: true
+  roles:
+    - common
+    - postgresql
+    - monitoring
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 5. Modules -->
+        <!-- ============================================ -->
+        <h2>5. Modules</h2>
+
+        <div class="card">
+            <h4>What are Modules?</h4>
+            <p>Modules are the units of work in Ansible. Each module handles a specific task (install a package, copy a file, manage a service). Ansible ships with thousands of modules organized into collections.</p>
+        </div>
+
+        <table>
+            <tr>
+                <th>Module</th>
+                <th>Purpose</th>
+                <th>Example Usage</th>
+            </tr>
+            <tr>
+                <td><code>apt</code></td>
+                <td>Manage Debian/Ubuntu packages</td>
+                <td><code>apt: name=nginx state=present</code></td>
+            </tr>
+            <tr>
+                <td><code>yum</code> / <code>dnf</code></td>
+                <td>Manage RHEL/CentOS packages</td>
+                <td><code>dnf: name=httpd state=latest</code></td>
+            </tr>
+            <tr>
+                <td><code>copy</code></td>
+                <td>Copy files to remote hosts</td>
+                <td><code>copy: src=app.conf dest=/etc/app/</code></td>
+            </tr>
+            <tr>
+                <td><code>template</code></td>
+                <td>Render Jinja2 templates to remote</td>
+                <td><code>template: src=nginx.conf.j2 dest=/etc/nginx/nginx.conf</code></td>
+            </tr>
+            <tr>
+                <td><code>service</code></td>
+                <td>Manage system services</td>
+                <td><code>service: name=nginx state=restarted</code></td>
+            </tr>
+            <tr>
+                <td><code>file</code></td>
+                <td>Manage files, directories, symlinks</td>
+                <td><code>file: path=/opt/app state=directory mode='0755'</code></td>
+            </tr>
+            <tr>
+                <td><code>user</code></td>
+                <td>Manage user accounts</td>
+                <td><code>user: name=deploy groups=sudo</code></td>
+            </tr>
+            <tr>
+                <td><code>shell</code></td>
+                <td>Run shell commands (not idempotent)</td>
+                <td><code>shell: /opt/app/migrate.sh</code></td>
+            </tr>
+            <tr>
+                <td><code>command</code></td>
+                <td>Run commands (no shell features)</td>
+                <td><code>command: /usr/bin/make install</code></td>
+            </tr>
+            <tr>
+                <td><code>lineinfile</code></td>
+                <td>Ensure a line in a file</td>
+                <td><code>lineinfile: path=/etc/hosts line="10.0.0.1 app"</code></td>
+            </tr>
+            <tr>
+                <td><code>docker_container</code></td>
+                <td>Manage Docker containers</td>
+                <td><code>docker_container: name=app image=myapp:latest</code></td>
+            </tr>
+            <tr>
+                <td><code>k8s</code></td>
+                <td>Manage Kubernetes resources</td>
+                <td><code>k8s: state=present src=deployment.yml</code></td>
+            </tr>
+        </table>
+
+        <!-- ============================================ -->
+        <!-- 6. Templates -->
+        <!-- ============================================ -->
+        <h2>6. Templates (Jinja2)</h2>
+
+        <div class="card">
+            <h4>Jinja2 Basics</h4>
+            <ul>
+                <li><code>{{ variable }}</code> - Output a variable value</li>
+                <li><code>{% for item in list %}</code> - Loop construct</li>
+                <li><code>{% if condition %}</code> - Conditional</li>
+                <li><code>{# comment #}</code> - Comment (not rendered)</li>
+                <li><code>{{ var | default('fallback') }}</code> - Filters</li>
+            </ul>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">templates/nginx.conf.j2</span>
+                <span class="tag tag-purple">Jinja2</span>
+            </div>
+<pre>
+{# Nginx configuration managed by Ansible - DO NOT EDIT MANUALLY #}
+
+worker_processes {{ nginx_worker_processes }};
+error_log {{ nginx_error_log }};
+pid /run/nginx.pid;
+
+events {
+    worker_connections {{ nginx_worker_connections }};
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    log_format main '$remote_addr - $remote_user [$time_local] '
+                    '"$request" $status $body_bytes_sent '
+                    '"$http_referer" "$http_user_agent"';
+
+    access_log {{ nginx_access_log }} main;
+
+    sendfile on;
+    keepalive_timeout 65;
+
+{% if nginx_ssl_enabled %}
+    # SSL Configuration
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+{% endif %}
+
+{% for vhost in nginx_vhosts | default([]) %}
+    server {
+        listen {{ vhost.port | default(80) }};
+        server_name {{ vhost.server_name }};
+        root {{ vhost.root | default(nginx_root) }};
+
+{% if vhost.ssl | default(false) %}
+        listen 443 ssl;
+        ssl_certificate {{ vhost.ssl_cert }};
+        ssl_certificate_key {{ vhost.ssl_key }};
+{% endif %}
+
+{% if vhost.locations is defined %}
+{% for location in vhost.locations %}
+        location {{ location.path }} {
+            proxy_pass {{ location.proxy_pass }};
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+{% if location.websocket | default(false) %}
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+{% endif %}
+        }
+{% endfor %}
+{% endif %}
+    }
+{% endfor %}
+
+{% if nginx_vhosts is not defined or nginx_vhosts | length == 0 %}
+    server {
+        listen {{ nginx_port }};
+        server_name {{ nginx_server_name }};
+        root {{ nginx_root }};
+
+        location / {
+            try_files $uri $uri/ =404;
+        }
+    }
+{% endif %}
+}
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 7. Ansible Vault -->
+        <!-- ============================================ -->
+        <h2>7. Ansible Vault</h2>
+
+        <div class="card card-danger">
+            <h4>Never commit plain-text secrets!</h4>
+            <p>Ansible Vault encrypts sensitive data (passwords, API keys, certificates) so they can be safely stored in version control alongside your playbooks.</p>
+        </div>
+
+        <h3>Vault Commands</h3>
+
+        <div class="card">
+            <div class="cmd">ansible-vault create secrets.yml</div>
+            <p>Create a new encrypted file (opens editor).</p>
+            <div class="cmd">ansible-vault encrypt existing-file.yml</div>
+            <p>Encrypt an existing file in-place.</p>
+            <div class="cmd">ansible-vault decrypt secrets.yml</div>
+            <p>Decrypt a file (use carefully, re-encrypt after editing).</p>
+            <div class="cmd">ansible-vault edit secrets.yml</div>
+            <p>Edit encrypted file in-place (decrypts, opens editor, re-encrypts).</p>
+            <div class="cmd">ansible-vault view secrets.yml</div>
+            <p>View encrypted file contents without decrypting on disk.</p>
+        </div>
+
+        <h3>encrypt_string (Inline Encryption)</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Encrypt a single variable</span>
+                <span class="tag tag-green">Shell</span>
+            </div>
+<pre>
+# Encrypt a string for use in a YAML file
+ansible-vault encrypt_string 'SuperSecretPassword123' --name 'db_password'
+
+# Output (paste into your vars file):
+db_password: !vault |
+  $ANSIBLE_VAULT;1.1;AES256
+  613436386535383739363...
+  363438343064623535363...
+</pre>
+        </div>
+
+        <h3>Using Vault in Playbooks</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Running playbook with vault</span>
+                <span class="tag tag-green">Shell</span>
+            </div>
+<pre>
+# Prompt for vault password
+ansible-playbook site.yml --ask-vault-pass
+
+# Use a password file (for CI/CD)
+ansible-playbook site.yml --vault-password-file ~/.vault_pass
+
+# Multiple vault IDs (for different environments)
+ansible-playbook site.yml \
+  --vault-id prod@~/.vault_pass_prod \
+  --vault-id dev@~/.vault_pass_dev
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">group_vars/production/vault.yml (encrypted)</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+---
+vault_db_password: "SuperSecretPassword123"
+vault_api_key: "ak_live_abc123def456"
+vault_ssl_private_key: |
+  -----BEGIN PRIVATE KEY-----
+  MIIEvgIBADANBgkqhkiG9...
+  -----END PRIVATE KEY-----
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">group_vars/production/vars.yml (references vault vars)</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+---
+# Convention: prefix vault variables with vault_
+# Then reference them in regular vars for clarity
+db_password: "{{ vault_db_password }}"
+api_key: "{{ vault_api_key }}"
+ssl_private_key: "{{ vault_ssl_private_key }}"
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 8. Ansible vs Terraform -->
+        <!-- ============================================ -->
+        <h2>8. Ansible vs Terraform</h2>
+
+        <table>
+            <tr>
+                <th>Aspect</th>
+                <th>Ansible</th>
+                <th>Terraform</th>
+            </tr>
+            <tr>
+                <td><strong>Primary Purpose</strong></td>
+                <td>Configuration management & app deployment</td>
+                <td>Infrastructure provisioning</td>
+            </tr>
+            <tr>
+                <td><strong>Approach</strong></td>
+                <td>Procedural (tasks run in order)</td>
+                <td>Declarative (desired state, dependency graph)</td>
+            </tr>
+            <tr>
+                <td><strong>Infrastructure Type</strong></td>
+                <td>Mutable (modify in place)</td>
+                <td>Immutable (destroy and recreate)</td>
+            </tr>
+            <tr>
+                <td><strong>State Management</strong></td>
+                <td>Stateless (no state file)</td>
+                <td>Stateful (terraform.tfstate tracks resources)</td>
+            </tr>
+            <tr>
+                <td><strong>Agent</strong></td>
+                <td>Agentless (SSH/WinRM)</td>
+                <td>Agentless (API calls)</td>
+            </tr>
+            <tr>
+                <td><strong>Language</strong></td>
+                <td>YAML (playbooks)</td>
+                <td>HCL (HashiCorp Configuration Language)</td>
+            </tr>
+            <tr>
+                <td><strong>Idempotency</strong></td>
+                <td>Module-dependent (most are idempotent)</td>
+                <td>Built-in (plan/apply lifecycle)</td>
+            </tr>
+            <tr>
+                <td><strong>Best For</strong></td>
+                <td>OS config, app deploy, patching, orchestration</td>
+                <td>Cloud infra, networking, managed services</td>
+            </tr>
+            <tr>
+                <td><strong>Complementary Use</strong></td>
+                <td colspan="2" style="text-align:center;">Terraform provisions infrastructure, Ansible configures it</td>
+            </tr>
+        </table>
+
+        <div class="card card-info">
+            <h4>Common Pattern: Terraform + Ansible Together</h4>
+            <p>Use Terraform to provision VMs/networking/cloud resources, then use Ansible to configure the OS, deploy applications, and manage ongoing configuration. Terraform outputs (IP addresses, DNS names) feed into Ansible's dynamic inventory.</p>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 9. Best Practices -->
+        <!-- ============================================ -->
+        <h2>9. Best Practices</h2>
+
+        <div class="grid-2">
+            <div class="card card-success">
+                <h4>Idempotency</h4>
+                <ul>
+                    <li>Use modules instead of <code>shell</code>/<code>command</code></li>
+                    <li>Add <code>creates:</code> or <code>removes:</code> to shell tasks</li>
+                    <li>Use <code>changed_when</code> and <code>failed_when</code> for custom logic</li>
+                    <li>Test with <code>--check</code> mode (dry run)</li>
+                </ul>
+            </div>
+            <div class="card card-success">
+                <h4>Tags & Organization</h4>
+                <ul>
+                    <li>Tag tasks for selective execution</li>
+                    <li>Use <code>ansible-playbook site.yml --tags deploy</code></li>
+                    <li>Group related tasks into roles</li>
+                    <li>Use <code>include_tasks</code> for logical separation</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card card-success">
+                <h4>Handlers</h4>
+                <ul>
+                    <li>Use handlers for service restarts (only trigger on change)</li>
+                    <li>Handlers run at end of play (or on <code>flush_handlers</code>)</li>
+                    <li>Name handlers clearly: "Restart Nginx"</li>
+                    <li>Use <code>listen</code> for multiple triggers on one handler</li>
+                </ul>
+            </div>
+            <div class="card card-success">
+                <h4>Testing with Molecule</h4>
+                <ul>
+                    <li>Use Molecule for role testing</li>
+                    <li>Test against multiple OS versions</li>
+                    <li>Use Docker or Vagrant as test drivers</li>
+                    <li>Include lint, syntax, converge, verify, idempotence steps</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>Recommended Directory Structure</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Production Ansible Project Layout</div>
+<pre>
+ansible-project/
++-- ansible.cfg              # Ansible configuration
++-- requirements.yml         # Galaxy role/collection dependencies
++-- site.yml                 # Main playbook (imports all plays)
++-- playbooks/
+|     +-- webservers.yml
+|     +-- dbservers.yml
+|     +-- monitoring.yml
++-- inventory/
+|     +-- production/
+|     |     +-- hosts.yml
+|     |     +-- group_vars/
+|     |     |     +-- all.yml
+|     |     |     +-- webservers.yml
+|     |     |     +-- dbservers/
+|     |     |           +-- vars.yml
+|     |     |           +-- vault.yml    # Encrypted
+|     |     +-- host_vars/
+|     +-- staging/
+|           +-- hosts.yml
+|           +-- group_vars/
++-- roles/
+|     +-- common/
+|     +-- nginx/
+|     +-- postgresql/
+|     +-- monitoring/
++-- files/                   # Shared static files
++-- templates/               # Shared templates
++-- filter_plugins/          # Custom Jinja2 filters
++-- molecule/                # Project-level tests
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 10. Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>10. Interview Q&A</h2>
+
+        <div class="qa">
+            <div class="q">Q1: What is Ansible and how does it differ from other configuration management tools?</div>
+            <div class="a">
+                <p>Ansible is an <strong>agentless</strong>, push-based automation tool that uses SSH to configure systems. Unlike Chef and Puppet (which require agents on managed nodes and use a pull model), Ansible has zero footprint on target systems. It uses simple YAML playbooks instead of Ruby (Chef) or a custom DSL (Puppet), making it easier to learn. It's also procedural but idempotent, meaning tasks execute in order but repeated runs don't cause unintended changes.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q2: What does idempotency mean in the context of Ansible?</div>
+            <div class="a">
+                <p>Idempotency means running a playbook multiple times produces the same end state without side effects. For example, <code>apt: name=nginx state=present</code> will install Nginx on the first run but do nothing on subsequent runs if it's already installed. This is critical for <strong>safe re-runs</strong> - you can run a playbook after a failure without worrying about duplicate actions. Non-idempotent modules like <code>shell</code> require guards (<code>creates:</code>, <code>when:</code>) to achieve idempotency.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q3: What is the difference between a playbook and a role?</div>
+            <div class="a">
+                <p>A <strong>playbook</strong> is a YAML file that defines plays (target hosts + tasks). A <strong>role</strong> is a reusable, structured package of tasks, variables, templates, handlers, and files organized in a standard directory layout. Roles promote reuse and separation of concerns - a playbook orchestrates which roles to apply to which hosts. Think of a playbook as the "recipe" and roles as the "ingredients."</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q4: How does Ansible compare to Terraform?</div>
+            <div class="a">
+                <p>They serve different but complementary purposes. <strong>Terraform</strong> excels at provisioning cloud infrastructure (VMs, networks, databases) using a declarative approach with state tracking. <strong>Ansible</strong> excels at configuring those resources (installing software, deploying apps, managing configs). In practice, teams use both: Terraform creates the infrastructure, then Ansible configures it. Terraform is immutable (destroy/recreate); Ansible is mutable (modify in place).</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q5: How do you handle secrets in Ansible?</div>
+            <div class="a">
+                <p>Use <strong>Ansible Vault</strong> to encrypt sensitive data. You can encrypt entire files (<code>ansible-vault encrypt</code>) or individual variables (<code>ansible-vault encrypt_string</code>). Best practice: keep vault-encrypted vars in separate files (e.g., <code>vault.yml</code>) and reference them from regular var files. For CI/CD, use <code>--vault-password-file</code> pointing to a file loaded from a secrets manager. Never commit vault passwords to git.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q6: What is dynamic inventory and when would you use it?</div>
+            <div class="a">
+                <p>Dynamic inventory automatically discovers hosts from external sources (AWS EC2, GCP, Azure, Kubernetes, LDAP) instead of maintaining static host lists. Use it when your infrastructure is dynamic (auto-scaling groups, ephemeral containers), when host counts change frequently, or when you want a single source of truth. Ansible provides inventory plugins (<code>amazon.aws.aws_ec2</code>, <code>azure.azcollection.azure_rm</code>) that query cloud APIs and group hosts by tags, regions, or other attributes.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q7: What are handlers and how do they differ from regular tasks?</div>
+            <div class="a">
+                <p>Handlers are tasks that only run when <strong>notified</strong> by another task that reports a change. They're typically used for service restarts/reloads. Key differences: 1) Handlers run at the <strong>end of a play</strong> (not immediately when notified). 2) They run only <strong>once</strong> even if notified multiple times. 3) They only run if at least one notifying task made a change. This prevents unnecessary service restarts when config hasn't actually changed.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q8: How do you test Ansible roles?</div>
+            <div class="a">
+                <p>Use <strong>Molecule</strong>, the standard testing framework for Ansible roles. It provides a full test lifecycle: lint (yamllint, ansible-lint), syntax check, create (spin up test instances via Docker/Vagrant/cloud), converge (run the role), idempotence (run again to verify no changes), verify (run assertions with testinfra/goss), and destroy (cleanup). This enables TDD for infrastructure code and CI/CD integration.</p>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 11. Scenarios -->
+        <!-- ============================================ -->
+        <h2>11. Real-World Scenarios</h2>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#9888;</span>
+                <span class="title">Scenario: Playbook Failing on One Host</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Situation:</strong> A playbook runs successfully on 9 of 10 hosts but fails on one with a package installation error.</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span><strong>Run with verbose output</strong> to get detailed error messages:</span>
+                </div>
+                <div class="cmd">ansible-playbook site.yml --limit failed-host -vvv</div>
+
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span><strong>Check the host's facts</strong> (OS version might differ):</span>
+                </div>
+                <div class="cmd">ansible failed-host -m ansible.builtin.setup -a "filter=ansible_distribution*"</div>
+
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span><strong>Common causes:</strong> Different OS version, stale package cache, disk full, different Python version, network connectivity to package repos.</span>
+                </div>
+
+                <div class="scenario-step">
+                    <span class="step-num">4.</span>
+                    <span><strong>Fix:</strong> Add a conditional or pre-task to handle the edge case:</span>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header"><span class="filename">Conditional task</span></div>
+<pre>
+- name: Update apt cache (Debian/Ubuntu)
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+
+- name: Update yum cache (RHEL/CentOS)
+  ansible.builtin.yum:
+    update_cache: true
+  when: ansible_os_family == "RedHat"
+</pre>
+                </div>
+
+                <div class="scenario-step">
+                    <span class="step-num">5.</span>
+                    <span><strong>Retry just the failed host:</strong></span>
+                </div>
+                <div class="cmd">ansible-playbook site.yml --limit @site.retry</div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#128295;</span>
+                <span class="title">Scenario: Handling Different Operating Systems</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Situation:</strong> Your fleet has both Ubuntu and CentOS servers. You need a role that works on both.</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span><strong>Use OS-specific variable files:</strong></span>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header"><span class="filename">roles/webserver/vars/Debian.yml</span></div>
+<pre>
+---
+package_name: nginx
+service_name: nginx
+config_path: /etc/nginx/sites-available/default
+</pre>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header"><span class="filename">roles/webserver/vars/RedHat.yml</span></div>
+<pre>
+---
+package_name: nginx
+service_name: nginx
+config_path: /etc/nginx/conf.d/default.conf
+</pre>
+                </div>
+
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span><strong>Load variables dynamically based on OS facts:</strong></span>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header"><span class="filename">roles/webserver/tasks/main.yml</span></div>
+<pre>
+- name: Load OS-specific variables
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+
+- name: Install web server package
+  ansible.builtin.package:
+    name: "{{ package_name }}"
+    state: present
+</pre>
+                </div>
+
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span><strong>Use the generic <code>package</code> module</strong> instead of <code>apt</code>/<code>yum</code> when possible for cross-platform compatibility.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#128274;</span>
+                <span class="title">Scenario: Managing Secrets Across Environments</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Situation:</strong> You need different secrets for dev, staging, and production, all stored securely in Git.</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span><strong>Structure vault files per environment:</strong></span>
+                </div>
+
+                <div class="diagram">
+<pre>
+inventory/
+  production/
+    group_vars/
+      all/
+        vars.yml         # db_password: "{{ vault_db_password }}"
+        vault.yml        # vault_db_password: (encrypted)
+  staging/
+    group_vars/
+      all/
+        vars.yml
+        vault.yml
+</pre>
+                </div>
+
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span><strong>Use different vault passwords per environment:</strong></span>
+                </div>
+                <div class="cmd">ansible-playbook -i inventory/production site.yml --vault-id prod@vault_pass_prod</div>
+                <div class="cmd">ansible-playbook -i inventory/staging site.yml --vault-id staging@vault_pass_staging</div>
+
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span><strong>For CI/CD</strong>, store vault passwords in your CI secrets store (GitHub Secrets, GitLab CI variables, AWS Secrets Manager) and write to a temp file during pipeline execution.</span>
+                </div>
+
+                <div class="scenario-step">
+                    <span class="step-num">4.</span>
+                    <span><strong>Alternative: External lookup plugins</strong> - retrieve secrets at runtime from HashiCorp Vault, AWS Secrets Manager, or Azure Key Vault using lookup plugins:</span>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header"><span class="filename">Using HashiCorp Vault lookup</span></div>
+<pre>
+- name: Get database password from HashiCorp Vault
+  set_fact:
+    db_password: "{{ lookup('hashi_vault', 'secret/data/production/db:password') }}"
+</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            Ansible Reference | K8s/DevOps/SRE Study Guide | 2026
+        </footer>
+
+    </div>
+
+</body>
+</html>

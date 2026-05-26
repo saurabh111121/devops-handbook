@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes Troubleshooting | K8s/DevOps/SRE</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html" class="active">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+<div class="container">
+
+    <div class="breadcrumb">
+        <a href="../index.html">Home</a> &gt; Troubleshooting
+    </div>
+
+    <h1>Kubernetes Troubleshooting Guide</h1>
+    <p class="subtitle">The most practical page in this reference. Real scenarios, exact commands, root causes, and fixes for every common Kubernetes failure you will encounter in production.</p>
+
+    <!-- ============================================================ -->
+    <!-- ESSENTIAL DEBUG COMMANDS -->
+    <!-- ============================================================ -->
+
+    <h2>1. Essential Debug Commands</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Command</th>
+                <th>Purpose</th>
+                <th>Exact Syntax</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>get</code></td>
+                <td>List resources with status at a glance</td>
+                <td><code>kubectl get pods -n &lt;ns&gt; -o wide</code></td>
+            </tr>
+            <tr>
+                <td><code>describe</code></td>
+                <td>Detailed info including events and conditions</td>
+                <td><code>kubectl describe pod &lt;name&gt; -n &lt;ns&gt;</code></td>
+            </tr>
+            <tr>
+                <td><code>logs</code></td>
+                <td>Container stdout/stderr (current and previous)</td>
+                <td><code>kubectl logs &lt;pod&gt; -c &lt;container&gt; -n &lt;ns&gt; --previous</code></td>
+            </tr>
+            <tr>
+                <td><code>exec</code></td>
+                <td>Run commands inside a running container</td>
+                <td><code>kubectl exec -it &lt;pod&gt; -n &lt;ns&gt; -- /bin/sh</code></td>
+            </tr>
+            <tr>
+                <td><code>events</code></td>
+                <td>Cluster-wide or namespace events sorted by time</td>
+                <td><code>kubectl get events -n &lt;ns&gt; --sort-by='.lastTimestamp'</code></td>
+            </tr>
+            <tr>
+                <td><code>top</code></td>
+                <td>CPU/memory usage of pods or nodes</td>
+                <td><code>kubectl top pods -n &lt;ns&gt; --sort-by=memory</code></td>
+            </tr>
+            <tr>
+                <td><code>debug</code></td>
+                <td>Attach ephemeral debug container to running pod</td>
+                <td><code>kubectl debug -it &lt;pod&gt; --image=busybox --target=&lt;container&gt;</code></td>
+            </tr>
+            <tr>
+                <td><code>port-forward</code></td>
+                <td>Forward local port to pod/service for testing</td>
+                <td><code>kubectl port-forward svc/&lt;name&gt; 8080:80 -n &lt;ns&gt;</code></td>
+            </tr>
+            <tr>
+                <td><code>auth can-i</code></td>
+                <td>Check RBAC permissions for any user/SA</td>
+                <td><code>kubectl auth can-i get pods --as=system:serviceaccount:&lt;ns&gt;:&lt;sa&gt;</code></td>
+            </tr>
+            <tr>
+                <td><code>get endpoints</code></td>
+                <td>Verify Service has backends registered</td>
+                <td><code>kubectl get endpoints &lt;service-name&gt; -n &lt;ns&gt;</code></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- ============================================================ -->
+    <!-- POD TROUBLESHOOTING -->
+    <!-- ============================================================ -->
+
+    <h2>2. Pod Troubleshooting</h2>
+
+    <!-- CrashLoopBackOff -->
+    <h3>Scenario: CrashLoopBackOff</h3>
+
+    <div class="card card-danger">
+        <p><strong>Problem:</strong> Pod starts, crashes, restarts, crashes again with exponential backoff (10s, 20s, 40s... up to 5 minutes).</p>
+        <p><strong>What You See:</strong></p>
+    </div>
+
+    <pre><code>$ kubectl get pods
+NAME          READY   STATUS             RESTARTS      AGE
+my-app-xyz    0/1     CrashLoopBackOff   5 (2m ago)    8m</code></pre>
+
+    <p><strong>Debug Steps:</strong></p>
+    <pre><code># 1. Check the PREVIOUS container's logs (current container may have no output yet)
+kubectl logs my-app-xyz --previous
+
+# 2. If no previous logs, check current logs
+kubectl logs my-app-xyz
+
+# 3. Check events for the pod
+kubectl describe pod my-app-xyz | tail -20
+
+# 4. Check exit code (reveals WHY it crashed)
+kubectl get pod my-app-xyz -o jsonpath='{.status.containerStatuses[0].lastState.terminated.exitCode}'
+# Exit code 1 = application error
+# Exit code 137 = OOMKilled (SIGKILL)
+# Exit code 139 = Segfault (SIGSEGV)
+
+# 5. If the app starts but crashes quickly, exec into it to debug
+kubectl run debug --image=my-app:1.0 --command -- sleep 3600
+kubectl exec -it debug -- /bin/sh
+
+# 6. Check if config/secrets are mounted correctly
+kubectl exec my-app-xyz -- cat /etc/config/app.yaml 2>/dev/null || echo "Container crashed too fast"
+
+# 7. Check resource limits (might be OOM before it logs anything)
+kubectl describe pod my-app-xyz | grep -A 3 "Limits"</code></pre>
+
+    <div class="card card-info">
+        <p><strong>Root Causes:</strong> Application startup error, missing config/environment variable, database connection failure, wrong command/args in pod spec, insufficient memory causing OOM on startup.</p>
+        <p><strong>Fix:</strong> Fix the application error shown in logs. If OOM, increase memory limits. If missing config, mount the ConfigMap/Secret correctly.</p>
+        <p><strong>Prevention:</strong> Use init containers to wait for dependencies. Add startup probes with generous failure thresholds. Test container images locally before deploying.</p>
+    </div>
+
+    <!-- ImagePullBackOff -->
+    <h3>Scenario: ImagePullBackOff</h3>
+
+    <div class="card card-danger">
+        <p><strong>Problem:</strong> Kubernetes cannot pull the container image from the registry.</p>
+        <p><strong>What You See:</strong></p>
+    </div>
+
+    <pre><code>$ kubectl get pods
+NAME          READY   STATUS             RESTARTS   AGE
+my-app-xyz    0/1     ImagePullBackOff   0          3m
+
+$ kubectl describe pod my-app-xyz
+Events:
+  Warning  Failed   pull image "myregistry.io/app:v2.1": rpc error: ...
+  Warning  Failed   Error: ErrImagePull
+  Normal   BackOff  Back-off pulling image "myregistry.io/app:v2.1"</code></pre>
+
+    <p><strong>Debug Steps:</strong></p>
+    <pre><code># 1. Check the exact image name and tag
+kubectl get pod my-app-xyz -o jsonpath='{.spec.containers[0].image}'
+
+# 2. Check events for the specific error message
+kubectl describe pod my-app-xyz | grep -A 5 "Events"
+
+# 3. Common errors and what they mean:
+#    "unauthorized" = wrong/missing credentials
+#    "not found"    = image or tag doesn't exist
+#    "timeout"      = network issue reaching registry
+
+# 4. Check imagePullSecrets are configured
+kubectl get pod my-app-xyz -o jsonpath='{.spec.imagePullSecrets}'
+
+# 5. Verify the secret exists and has correct data
+kubectl get secret regcred -o jsonpath='{.data.\.dockerconfigjson}' | base64 -d
+
+# 6. Test pulling the image manually on the node (if you have access)
+crictl pull myregistry.io/app:v2.1
+
+# 7. Verify the image exists in the registry
+# For ECR:
+aws ecr describe-images --repository-name app --image-ids imageTag=v2.1
+# For Docker Hub:
+curl -s "https://hub.docker.com/v2/repositories/library/nginx/tags/latest"
+
+# 8. Check if the node can reach the registry (network/firewall)
+kubectl debug node/worker-1 -it --image=busybox -- nslookup myregistry.io</code></pre>
+
+    <div class="card card-info">
+        <p><strong>Root Causes:</strong> Typo in image name/tag, image tag doesn't exist, missing or expired imagePullSecret, private registry without credentials, network policy blocking egress to registry.</p>
+        <p><strong>Fix:</strong> Correct image name, create/update imagePullSecret, verify image exists in registry.</p>
+        <p><strong>Prevention:</strong> Use image digest instead of mutable tags. Automate credential rotation. Use admission webhooks to validate image references.</p>
+    </div>
+
+    <!-- Pending -->
+    <h3>Scenario: Pod Stuck in Pending</h3>
+
+    <div class="card card-danger">
+        <p><strong>Problem:</strong> Pod stays in Pending state indefinitely -- the scheduler cannot place it on any node.</p>
+        <p><strong>What You See:</strong></p>
+    </div>
+
+    <pre><code>$ kubectl get pods
+NAME          READY   STATUS    RESTARTS   AGE
+my-app-xyz    0/1     Pending   0          10m</code></pre>
+
+    <p><strong>Debug Steps:</strong></p>
+    <pre><code># 1. Check WHY the scheduler can't place it
+kubectl describe pod my-app-xyz | grep -A 10 "Events"
+# Look for: "FailedScheduling" event with reason
+
+# 2. Common scheduling failure messages:
+#    "Insufficient cpu"        = no node has enough CPU
+#    "Insufficient memory"     = no node has enough memory
+#    "node(s) had taint"       = all nodes have taints pod doesn't tolerate
+#    "persistentvolumeclaim not found" = PVC doesn't exist
+#    "no nodes match selector" = nodeSelector/affinity doesn't match any node
+
+# 3. Check node resources
+kubectl describe nodes | grep -A 5 "Allocated resources"
+kubectl top nodes
+
+# 4. Check if pod has nodeSelector or affinity that can't be satisfied
+kubectl get pod my-app-xyz -o jsonpath='{.spec.nodeSelector}'
+kubectl get pod my-app-xyz -o jsonpath='{.spec.affinity}'
+
+# 5. Check node taints
+kubectl get nodes -o custom-columns=NAME:.metadata.name,TAINTS:.spec.taints
+
+# 6. Check if PVC is bound (storage issue)
+kubectl get pvc -n &lt;ns&gt;
+
+# 7. Check if ResourceQuota is blocking
+kubectl describe resourcequota -n &lt;ns&gt;
+
+# 8. Check scheduler logs (if nothing else helps)
+kubectl logs -n kube-system -l component=kube-scheduler --tail=50</code></pre>
+
+    <div class="card card-info">
+        <p><strong>Root Causes:</strong> Insufficient cluster resources, unsatisfiable nodeSelector/affinity, unbound PVC, taints with no matching tolerations, ResourceQuota exceeded.</p>
+        <p><strong>Fix:</strong> Scale up cluster, adjust resource requests, add tolerations, fix PVC, relax affinity rules.</p>
+        <p><strong>Prevention:</strong> Set up cluster autoscaler. Use PodDisruptionBudgets. Monitor cluster capacity with alerts at 80% utilization.</p>
+    </div>
+
+    <!-- Terminating Stuck -->
+    <h3>Scenario: Pod Stuck in Terminating</h3>
+
+    <div class="card card-danger">
+        <p><strong>Problem:</strong> Pod stays in Terminating state and won't go away.</p>
+        <p><strong>What You See:</strong></p>
+    </div>
+
+    <pre><code>$ kubectl get pods
+NAME          READY   STATUS        RESTARTS   AGE
+my-app-xyz    1/1     Terminating   0          45m</code></pre>
+
+    <p><strong>Debug Steps:</strong></p>
+    <pre><code># 1. Check how long it's been terminating and why
+kubectl describe pod my-app-xyz | grep -E "(Deletion|Grace|Finalizers)"
+
+# 2. Check if there are finalizers preventing deletion
+kubectl get pod my-app-xyz -o jsonpath='{.metadata.finalizers}'
+
+# 3. Check if preStop hook is hanging
+kubectl get pod my-app-xyz -o jsonpath='{.spec.containers[0].lifecycle.preStop}'
+
+# 4. Check if the node is healthy (pod may be on a dead node)
+kubectl get pod my-app-xyz -o jsonpath='{.spec.nodeName}'
+kubectl get node &lt;node-name&gt;
+
+# 5. Check if volumes are failing to unmount
+kubectl describe pod my-app-xyz | grep -A 5 "Volumes"
+
+# 6. If all else fails -- force delete (USE WITH CAUTION)
+kubectl delete pod my-app-xyz --grace-period=0 --force
+
+# 7. If finalizers are blocking, remove them (USE WITH CAUTION)
+kubectl patch pod my-app-xyz -p '{"metadata":{"finalizers":null}}'</code></pre>
+
+    <div class="card card-info">
+        <p><strong>Root Causes:</strong> Finalizers that can't be resolved, preStop hook hanging, node went offline, volume unmount stuck (NFS/iSCSI), process ignoring SIGTERM.</p>
+        <p><strong>Fix:</strong> Fix the finalizer controller, remove stuck finalizers, handle SIGTERM in your application, force-delete as last resort.</p>
+        <p><strong>Prevention:</strong> Always handle SIGTERM gracefully in your app. Set appropriate <code>terminationGracePeriodSeconds</code>. Test pod shutdown behavior.</p>
+    </div>
+
+    <!-- OOMKilled -->
+    <h3>Scenario: OOMKilled</h3>
+
+    <div class="card card-danger">
+        <p><strong>Problem:</strong> Container is killed by the kernel OOM killer because it exceeded its memory limit.</p>
+        <p><strong>What You See:</strong></p>
+    </div>
+
+    <pre><code>$ kubectl get pods
+NAME          READY   STATUS      RESTARTS      AGE
+my-app-xyz    0/1     OOMKilled   3 (30s ago)   5m
+
+$ kubectl describe pod my-app-xyz
+    Last State:  Terminated
+      Reason:    OOMKilled
+      Exit Code: 137</code></pre>
+
+    <p><strong>Debug Steps:</strong></p>
+    <pre><code># 1. Check current memory limits
+kubectl get pod my-app-xyz -o jsonpath='{.spec.containers[0].resources.limits.memory}'
+
+# 2. Check actual memory usage before it was killed
+kubectl top pod my-app-xyz  # (if pod is running between restarts)
+
+# 3. Check historical usage with metrics-server or Prometheus
+# In Prometheus: container_memory_working_set_bytes{pod="my-app-xyz"}
+
+# 4. Check if there's a memory leak (usage grows over time)
+# Watch memory usage over time:
+watch kubectl top pod my-app-xyz
+
+# 5. Profile memory inside the container
+kubectl exec my-app-xyz -- cat /sys/fs/cgroup/memory/memory.usage_in_bytes
+kubectl exec my-app-xyz -- cat /proc/meminfo
+
+# 6. Check JVM heap settings (Java apps are common OOM culprits)
+kubectl exec my-app-xyz -- java -XX:+PrintFlagsFinal -version 2>&1 | grep -i heap
+
+# 7. Fix: increase memory limit
+kubectl patch deployment my-app -p '{"spec":{"template":{"spec":{"containers":[{"name":"app","resources":{"limits":{"memory":"512Mi"}}}]}}}}'</code></pre>
+
+    <div class="card card-info">
+        <p><strong>Root Causes:</strong> Memory limit too low for actual usage, memory leak in application, JVM heap exceeds container limit, fork bomb / subprocess spawning.</p>
+        <p><strong>Fix:</strong> Increase memory limit to match actual needs, fix memory leak, set JVM -Xmx to 75% of container limit.</p>
+        <p><strong>Prevention:</strong> Load test to determine real memory needs. Set requests = observed P95 usage, limits = 1.5x requests. Use VPA (Vertical Pod Autoscaler) for automatic right-sizing.</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SERVICE & NETWORKING -->
+    <!-- ============================================================ -->
+
+    <h2>3. Service & Networking</h2>
+
+    <!-- Service not routing -->
+    <h3>Scenario: Service Not Routing (Empty Endpoints)</h3>
+
+    <div class="card card-danger">
+        <p><strong>Problem:</strong> Service exists but no traffic reaches the pods. Endpoints list is empty.</p>
+        <p><strong>What You See:</strong></p>
+    </div>
+
+    <pre><code>$ kubectl get endpoints my-service
+NAME         ENDPOINTS   AGE
+my-service   &lt;none&gt;      5m
+
+$ curl http://my-service:8080
+# Connection refused or timeout</code></pre>
+
+    <p><strong>Debug Steps:</strong></p>
+    <pre><code># 1. Check the Service selector
+kubectl get svc my-service -o jsonpath='{.spec.selector}'
+# Output: {"app":"my-app"}
+
+# 2. Check pod labels -- do they MATCH the selector?
+kubectl get pods --show-labels | grep my-app
+# Common issue: selector says "app: my-app" but pod has "app: myapp" (no hyphen)
+
+# 3. Check if pods exist and are Ready
+kubectl get pods -l app=my-app
+# Pods must be in Running state AND pass readiness probe
+
+# 4. Check readiness probe status
+kubectl describe pod &lt;pod-name&gt; | grep -A 5 "Readiness"
+
+# 5. Verify port alignment: Service port → targetPort → containerPort
+kubectl get svc my-service -o yaml | grep -A 5 "ports:"
+kubectl get pod &lt;pod-name&gt; -o jsonpath='{.spec.containers[0].ports}'
+
+# 6. Test the pod directly (bypass Service)
+kubectl port-forward pod/&lt;pod-name&gt; 8080:8080
+curl http://localhost:8080
+
+# 7. Check if NetworkPolicy is blocking traffic
+kubectl get networkpolicies -n &lt;ns&gt;
+
+# 8. Fix: correct the label mismatch
+kubectl label pod &lt;pod-name&gt; app=my-app --overwrite</code></pre>
+
+    <div class="card card-info">
+        <p><strong>Root Causes:</strong> Label selector mismatch between Service and Pod, pods not passing readiness probe, pods not in Running state, wrong namespace.</p>
+        <p><strong>Fix:</strong> Align labels, fix readiness probe, ensure pods are healthy.</p>
+        <p><strong>Prevention:</strong> Always use the same label in Deployment template and Service selector. Use <code>kubectl get endpoints</code> in your deployment verification.</p>
+    </div>
+
+    <!-- DNS not resolving -->
+    <h3>Scenario: DNS Not Resolving</h3>
+
+    <div class="card card-danger">
+        <p><strong>Problem:</strong> Pods cannot resolve service names or external DNS.</p>
+        <p><strong>What You See:</strong></p>
+    </div>
+
+    <pre><code>$ kubectl exec my-pod -- nslookup my-service
+;; connection timed out; no servers could be reached
+
+$ kubectl exec my-pod -- cat /etc/resolv.conf
+nameserver 10.96.0.10  # This should point to kube-dns/CoreDNS</code></pre>
+
+    <p><strong>Debug Steps:</strong></p>
+    <pre><code># 1. Check if CoreDNS pods are running
+kubectl get pods -n kube-system -l k8s-app=kube-dns
+
+# 2. Check CoreDNS logs for errors
+kubectl logs -n kube-system -l k8s-app=kube-dns --tail=50
+
+# 3. Verify the DNS service exists
+kubectl get svc -n kube-system kube-dns
+# Should show ClusterIP (usually 10.96.0.10)
+
+# 4. Test DNS from inside a debug pod
+kubectl run dns-test --image=busybox:1.36 --rm -it -- nslookup kubernetes.default
+kubectl run dns-test --image=busybox:1.36 --rm -it -- nslookup my-service.my-namespace.svc.cluster.local
+
+# 5. Check if the pod's resolv.conf is correct
+kubectl exec my-pod -- cat /etc/resolv.conf
+# Should contain: nameserver &lt;kube-dns-ClusterIP&gt;
+#                 search &lt;namespace&gt;.svc.cluster.local svc.cluster.local cluster.local
+
+# 6. Check if NetworkPolicy blocks DNS (UDP port 53 to kube-system)
+kubectl get networkpolicies -n &lt;ns&gt; -o yaml | grep -A 20 "egress"
+
+# 7. Check CoreDNS ConfigMap for errors
+kubectl get configmap coredns -n kube-system -o yaml
+
+# 8. Restart CoreDNS if needed
+kubectl rollout restart deployment coredns -n kube-system</code></pre>
+
+    <div class="card card-info">
+        <p><strong>Root Causes:</strong> CoreDNS pods crashed or overloaded, NetworkPolicy blocking UDP/53 egress, wrong resolv.conf in pod (dnsPolicy misconfigured), CoreDNS ConfigMap corruption.</p>
+        <p><strong>Fix:</strong> Restart CoreDNS, fix NetworkPolicy to allow DNS, check pod dnsPolicy setting.</p>
+        <p><strong>Prevention:</strong> Monitor CoreDNS health and latency. Always allow DNS egress in NetworkPolicies. Use <code>dnsPolicy: ClusterFirst</code> (default).</p>
+    </div>
+
+    <!-- Ingress 502/503 -->
+    <h3>Scenario: Ingress Returning 502/503</h3>
+
+    <div class="card card-danger">
+        <p><strong>Problem:</strong> Ingress controller returns 502 Bad Gateway or 503 Service Unavailable.</p>
+        <p><strong>What You See:</strong></p>
+    </div>
+
+    <pre><code>$ curl -I https://my-app.example.com
+HTTP/2 502
+server: nginx
+
+# Or 503:
+HTTP/2 503
+server: nginx</code></pre>
+
+    <p><strong>Debug Steps:</strong></p>
+    <pre><code># 1. Check ingress controller logs
+kubectl logs -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx --tail=100
+
+# 2. Check the Ingress resource configuration
+kubectl describe ingress my-ingress -n &lt;ns&gt;
+
+# 3. Verify the backend Service has endpoints
+kubectl get endpoints &lt;backend-service&gt; -n &lt;ns&gt;
+# If empty -- this is your problem (see "Service not routing" above)
+
+# 4. Check if backend pods are healthy and responding
+kubectl port-forward svc/&lt;backend-service&gt; 8080:80 -n &lt;ns&gt;
+curl http://localhost:8080/healthz
+
+# 5. Check Service port matches what Ingress expects
+kubectl get svc &lt;backend-service&gt; -n &lt;ns&gt; -o yaml | grep -A 5 "ports:"
+kubectl get ingress my-ingress -n &lt;ns&gt; -o yaml | grep -A 5 "backend:"
+
+# 6. Check if TLS is misconfigured (cert/secret issues)
+kubectl get secret &lt;tls-secret&gt; -n &lt;ns&gt;
+kubectl describe ingress my-ingress | grep -A 3 "TLS"
+
+# 7. Check for annotation issues (wrong proxy settings)
+kubectl get ingress my-ingress -o jsonpath='{.metadata.annotations}'
+
+# 8. Check nginx config generated by the controller
+kubectl exec -n ingress-nginx &lt;nginx-pod&gt; -- cat /etc/nginx/nginx.conf | grep -A 10 "my-app"</code></pre>
+
+    <div class="card card-info">
+        <p><strong>Root Causes:</strong> (502) Backend pods are down or not responding on the expected port. (503) No endpoints for the backend service. TLS termination mismatch. Timeout on slow backends.</p>
+        <p><strong>Fix:</strong> Ensure backends are healthy, ports align through the chain (Ingress -> Service -> Pod), and TLS settings are correct.</p>
+        <p><strong>Prevention:</strong> Always configure readiness probes. Set appropriate proxy timeouts via annotations. Monitor ingress error rates.</p>
+    </div>
+
+    <!-- Pod can't reach internet -->
+    <h3>Scenario: Pod Cannot Reach the Internet</h3>
+
+    <div class="card card-danger">
+        <p><strong>Problem:</strong> Pod cannot make outbound connections to external services.</p>
+        <p><strong>What You See:</strong></p>
+    </div>
+
+    <pre><code>$ kubectl exec my-pod -- curl -s https://api.example.com
+# Timeout or "could not resolve host"</code></pre>
+
+    <p><strong>Debug Steps:</strong></p>
+    <pre><code># 1. Check if DNS resolution works for external names
+kubectl exec my-pod -- nslookup google.com
+
+# 2. Test raw connectivity (bypass DNS)
+kubectl exec my-pod -- wget -qO- --timeout=5 http://1.1.1.1
+
+# 3. Check NetworkPolicy egress rules
+kubectl get networkpolicies -n &lt;ns&gt; -o yaml
+# A deny-all egress policy blocks all outbound traffic
+
+# 4. Check if the node itself can reach the internet
+kubectl debug node/&lt;node-name&gt; -it --image=busybox -- wget -qO- --timeout=5 http://1.1.1.1
+
+# 5. Check NAT gateway / routing (cloud environments)
+# AWS: Check route table for 0.0.0.0/0 -> NAT Gateway
+# GKE: Check Cloud NAT configuration
+
+# 6. Check if there's a proxy configured
+kubectl exec my-pod -- env | grep -i proxy
+
+# 7. Check iptables/SNAT rules on the node
+kubectl debug node/&lt;node-name&gt; -it --image=busybox -- iptables -t nat -L POSTROUTING
+
+# 8. Fix NetworkPolicy: allow egress to external
+cat &lt;&lt;EOF | kubectl apply -f -
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-external-egress
+  namespace: &lt;ns&gt;
+spec:
+  podSelector:
+    matchLabels:
+      app: my-app
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+EOF</code></pre>
+
+    <div class="card card-info">
+        <p><strong>Root Causes:</strong> NetworkPolicy blocking egress, missing NAT gateway in private subnet, DNS not resolving external names, node routing misconfiguration.</p>
+        <p><strong>Fix:</strong> Update NetworkPolicy to allow egress, configure NAT gateway, fix DNS resolution.</p>
+        <p><strong>Prevention:</strong> Always allow DNS (port 53) in egress policies. Document which pods need external access. Test connectivity in staging before production.</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- NODE ISSUES -->
+    <!-- ============================================================ -->
+
+    <h2>4. Node Issues</h2>
+
+    <!-- Node NotReady -->
+    <h3>Scenario: Node NotReady</h3>
+
+    <div class="card card-danger">
+        <p><strong>Problem:</strong> A node transitions to NotReady state. Pods on it become unreachable.</p>
+        <p><strong>What You See:</strong></p>
+    </div>
+
+    <pre><code>$ kubectl get nodes
+NAME       STATUS     ROLES    AGE   VERSION
+worker-1   NotReady   &lt;none&gt;   30d   v1.28.2
+worker-2   Ready      &lt;none&gt;   30d   v1.28.2</code></pre>
+
+    <p><strong>Debug Steps:</strong></p>
+    <pre><code># 1. Check node conditions (tells you WHY it's NotReady)
+kubectl describe node worker-1 | grep -A 20 "Conditions:"
+# Look for: MemoryPressure, DiskPressure, PIDPressure, NetworkUnavailable
+
+# 2. Check kubelet status on the node (requires SSH or debug pod)
+kubectl debug node/worker-1 -it --image=busybox -- chroot /host systemctl status kubelet
+
+# 3. Check kubelet logs
+kubectl debug node/worker-1 -it --image=busybox -- chroot /host journalctl -u kubelet --tail=50
+
+# 4. Check container runtime status
+kubectl debug node/worker-1 -it --image=busybox -- chroot /host systemctl status containerd
+
+# 5. Check disk space
+kubectl debug node/worker-1 -it --image=busybox -- chroot /host df -h
+# / filesystem > 85% triggers DiskPressure
+
+# 6. Check if certificates expired
+kubectl debug node/worker-1 -it --image=busybox -- chroot /host openssl x509 -in /var/lib/kubelet/pki/kubelet-client-current.pem -noout -dates
+
+# 7. Check if the node can reach the API server
+kubectl debug node/worker-1 -it --image=busybox -- chroot /host curl -k https://&lt;api-server&gt;:6443/healthz
+
+# 8. Check for OOM on the node
+kubectl debug node/worker-1 -it --image=busybox -- chroot /host dmesg | grep -i "oom\|killed"
+
+# 9. What happens to pods on NotReady node:
+kubectl get pods -o wide --field-selector spec.nodeName=worker-1
+# After 5 minutes (default), pods are evicted and rescheduled</code></pre>
+
+    <div class="card card-info">
+        <p><strong>Root Causes:</strong> Kubelet crashed or can't start, container runtime (containerd) down, disk full, certificate expired, network partition (node can't reach API server), kernel panic.</p>
+        <p><strong>Fix:</strong> Restart kubelet, clean up disk space, renew certificates, fix network connectivity.</p>
+        <p><strong>Prevention:</strong> Monitor node health metrics. Set up alerts for disk usage > 80%. Use cluster autoscaler to replace unhealthy nodes. Configure automatic certificate rotation.</p>
+    </div>
+
+    <!-- Disk Pressure -->
+    <h3>Scenario: Node Disk Pressure Evictions</h3>
+
+    <div class="card card-danger">
+        <p><strong>Problem:</strong> Node starts evicting pods due to disk pressure. Workloads disappear unexpectedly.</p>
+        <p><strong>What You See:</strong></p>
+    </div>
+
+    <pre><code>$ kubectl describe node worker-1 | grep DiskPressure
+  DiskPressure   True   ...   KubeletHasDiskPressure
+
+$ kubectl get events --field-selector reason=Evicted
+LAST SEEN   TYPE      REASON    OBJECT        MESSAGE
+2m          Warning   Evicted   pod/app-xyz   The node was low on resource: ephemeral-storage</code></pre>
+
+    <p><strong>Debug Steps:</strong></p>
+    <pre><code># 1. Check disk usage on the node
+kubectl debug node/worker-1 -it --image=busybox -- chroot /host df -h
+
+# 2. Find what's consuming disk space
+kubectl debug node/worker-1 -it --image=busybox -- chroot /host du -sh /var/lib/containerd/*
+kubectl debug node/worker-1 -it --image=busybox -- chroot /host du -sh /var/log/*
+
+# 3. Check for large container logs
+kubectl debug node/worker-1 -it --image=busybox -- chroot /host find /var/log/pods -size +100M
+
+# 4. Check for unused images consuming space
+kubectl debug node/worker-1 -it --image=busybox -- chroot /host crictl images | sort -k 4 -h
+
+# 5. Clean up unused images
+kubectl debug node/worker-1 -it --image=busybox -- chroot /host crictl rmi --prune
+
+# 6. Check kubelet garbage collection settings
+kubectl debug node/worker-1 -it --image=busybox -- chroot /host cat /var/lib/kubelet/config.yaml | grep -A 5 "eviction"
+
+# 7. Check which pods were evicted and why
+kubectl get pods -A --field-selector status.phase=Failed -o json | \
+  jq '.items[] | select(.status.reason=="Evicted") | {name: .metadata.name, ns: .metadata.namespace, message: .status.message}'
+
+# 8. Clean up evicted pods
+kubectl get pods -A --field-selector status.phase=Failed | grep Evicted | \
+  awk '{print $1 " " $2}' | xargs -L1 kubectl delete pod -n</code></pre>
+
+    <div class="card card-info">
+        <p><strong>Root Causes:</strong> Container logs growing unbounded, unused container images, emptyDir volumes filling up, application writing large temp files.</p>
+        <p><strong>Fix:</strong> Implement log rotation, prune images, set emptyDir sizeLimit, increase node disk size.</p>
+        <p><strong>Prevention:</strong> Configure container log max-size in containerd config. Set <code>ephemeral-storage</code> limits on pods. Use emptyDir with sizeLimit. Monitor disk usage with alerts at 70%.</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- DEPLOYMENT ISSUES -->
+    <!-- ============================================================ -->
+
+    <h2>5. Deployment Issues</h2>
+
+    <!-- Rollout Stuck -->
+    <h3>Scenario: Rollout Stuck</h3>
+
+    <div class="card card-danger">
+        <p><strong>Problem:</strong> Deployment rollout started but never completes. Old pods keep running alongside new failing pods.</p>
+        <p><strong>What You See:</strong></p>
+    </div>
+
+    <pre><code>$ kubectl rollout status deployment/my-app
+Waiting for deployment "my-app" rollout to finish: 1 out of 3 new replicas have been updated...
+
+$ kubectl get pods
+NAME                     READY   STATUS             RESTARTS   AGE
+my-app-old-abc123        1/1     Running            0          2d
+my-app-old-def456        1/1     Running            0          2d
+my-app-old-ghi789        1/1     Running            0          2d
+my-app-new-xyz987        0/1     CrashLoopBackOff   5          10m</code></pre>
+
+    <p><strong>Debug Steps:</strong></p>
+    <pre><code># 1. Check rollout status and history
+kubectl rollout status deployment/my-app
+kubectl rollout history deployment/my-app
+
+# 2. Check the new ReplicaSet
+kubectl get rs -l app=my-app
+kubectl describe rs &lt;new-replicaset-name&gt;
+
+# 3. Check why new pods are failing (see Pod Troubleshooting above)
+kubectl logs &lt;new-pod&gt; --previous
+kubectl describe pod &lt;new-pod&gt;
+
+# 4. Check deployment strategy and progress deadline
+kubectl get deployment my-app -o jsonpath='{.spec.strategy}'
+kubectl get deployment my-app -o jsonpath='{.spec.progressDeadlineSeconds}'
+# Default is 600 seconds (10 min) -- after this, deployment reports "failed"
+
+# 5. Check deployment conditions
+kubectl get deployment my-app -o jsonpath='{.status.conditions[*].message}'
+
+# 6. ROLLBACK if the new version is broken
+kubectl rollout undo deployment/my-app
+
+# 7. Rollback to a specific revision
+kubectl rollout history deployment/my-app
+kubectl rollout undo deployment/my-app --to-revision=3
+
+# 8. Verify rollback succeeded
+kubectl rollout status deployment/my-app
+kubectl get pods -l app=my-app</code></pre>
+
+    <div class="card card-info">
+        <p><strong>Root Causes:</strong> New image has a bug (crashes on start), missing ConfigMap/Secret for new version, resource quota exhausted (can't create new pods), PDB blocking old pod termination.</p>
+        <p><strong>Fix:</strong> Rollback, fix the new image, then redeploy. Adjust resource quotas if needed.</p>
+        <p><strong>Prevention:</strong> Use canary deployments. Set <code>progressDeadlineSeconds</code> appropriately. Implement automated rollback on failed health checks. Always test in staging first.</p>
+    </div>
+
+    <!-- Rolling update causing downtime -->
+    <h3>Scenario: Rolling Update Causing Downtime</h3>
+
+    <div class="card card-danger">
+        <p><strong>Problem:</strong> During rolling update, requests are failing even though the deployment eventually succeeds.</p>
+        <p><strong>What You See:</strong></p>
+    </div>
+
+    <pre><code># Monitoring shows 5xx errors during deployment window
+# Some requests timeout, some return 502/503</code></pre>
+
+    <p><strong>Debug Steps:</strong></p>
+    <pre><code># 1. Check if readiness probe is configured
+kubectl get deployment my-app -o jsonpath='{.spec.template.spec.containers[0].readinessProbe}'
+# If empty -- pods receive traffic IMMEDIATELY, before they're ready
+
+# 2. Check deployment strategy settings
+kubectl get deployment my-app -o yaml | grep -A 10 "strategy:"
+# maxUnavailable: 0 means no downtime (always keep all old pods until new ones are ready)
+# maxSurge: 1 means one extra pod during rollout
+
+# 3. Check if there's a preStop hook for graceful shutdown
+kubectl get deployment my-app -o jsonpath='{.spec.template.spec.containers[0].lifecycle.preStop}'
+
+# 4. Check terminationGracePeriodSeconds
+kubectl get deployment my-app -o jsonpath='{.spec.template.spec.terminationGracePeriodSeconds}'
+
+# 5. Fix: Add readiness probe + graceful shutdown
+kubectl patch deployment my-app --type=json -p='[
+  {"op":"add","path":"/spec/template/spec/containers/0/readinessProbe","value":{
+    "httpGet":{"path":"/healthz","port":8080},
+    "initialDelaySeconds":5,
+    "periodSeconds":5
+  }},
+  {"op":"add","path":"/spec/template/spec/containers/0/lifecycle","value":{
+    "preStop":{"exec":{"command":["sleep","5"]}}
+  }}
+]'
+
+# 6. Fix: Set zero-downtime strategy
+kubectl patch deployment my-app -p '{
+  "spec":{"strategy":{"rollingUpdate":{"maxUnavailable":0,"maxSurge":1}}}
+}'
+
+# 7. Verify no downtime with next deployment
+kubectl rollout restart deployment/my-app
+# Monitor: while true; do curl -s -o /dev/null -w "%{http_code}\n" http://my-service:8080; sleep 0.5; done</code></pre>
+
+    <div class="card card-info">
+        <p><strong>Root Causes:</strong> Missing readiness probe (traffic sent to unready pods), no preStop hook (in-flight requests dropped during termination), maxUnavailable > 0 reducing capacity during rollout.</p>
+        <p><strong>Fix:</strong> Add readiness probe, add preStop sleep (5s), set maxUnavailable: 0, handle SIGTERM gracefully in application.</p>
+        <p><strong>Prevention:</strong> Always configure readiness probes. Use preStop hooks with sleep to allow load balancer deregistration. Set maxUnavailable: 0 for zero-downtime. Use PodDisruptionBudgets.</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- STORAGE ISSUES -->
+    <!-- ============================================================ -->
+
+    <h2>6. Storage Issues</h2>
+
+    <!-- PVC Stuck Pending -->
+    <h3>Scenario: PVC Stuck in Pending</h3>
+
+    <div class="card card-danger">
+        <p><strong>Problem:</strong> PersistentVolumeClaim stays in Pending state. Pods depending on it cannot start.</p>
+        <p><strong>What You See:</strong></p>
+    </div>
+
+    <pre><code>$ kubectl get pvc
+NAME      STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+my-data   Pending                                      gp2            5m
+
+$ kubectl describe pvc my-data
+Events:
+  Warning  ProvisioningFailed  waiting for first consumer to be created before binding</code></pre>
+
+    <p><strong>Debug Steps:</strong></p>
+    <pre><code># 1. Check PVC events for the specific failure reason
+kubectl describe pvc my-data -n &lt;ns&gt;
+
+# 2. Common event messages and meanings:
+#    "waiting for first consumer" = WaitForFirstConsumer mode (normal until pod is scheduled)
+#    "no persistent volumes available" = no matching PV exists (static provisioning)
+#    "failed to provision volume" = dynamic provisioner failed
+
+# 3. Check if StorageClass exists and has a provisioner
+kubectl get storageclass
+kubectl describe storageclass gp2
+
+# 4. Check if the provisioner pods are running
+kubectl get pods -n kube-system | grep -E "ebs-csi|efs-csi|nfs"
+
+# 5. Check provisioner logs
+kubectl logs -n kube-system -l app=ebs-csi-controller --tail=50
+
+# 6. Check if the requested size/access mode is supported
+kubectl get pvc my-data -o yaml | grep -E "storage:|accessModes"
+# EBS: only ReadWriteOnce
+# EFS: supports ReadWriteMany
+
+# 7. For WaitForFirstConsumer -- check if the pod is scheduled
+kubectl get pods -l app=my-app  # If Pending, PVC won't bind until pod is scheduled
+
+# 8. Check available PVs (static provisioning)
+kubectl get pv --sort-by=.spec.capacity.storage
+
+# 9. Check cloud provider quotas
+# AWS: Check EBS volume limits per instance type and region quotas</code></pre>
+
+    <div class="card card-info">
+        <p><strong>Root Causes:</strong> StorageClass doesn't exist, CSI driver not installed, access mode not supported by storage type, cloud quota exceeded, WaitForFirstConsumer waiting for pod scheduling, zone mismatch (EBS in us-east-1a but pod scheduled in us-east-1b).</p>
+        <p><strong>Fix:</strong> Install CSI driver, fix StorageClass name, adjust access modes, increase cloud quotas, ensure pod and PV are in the same zone.</p>
+        <p><strong>Prevention:</strong> Verify StorageClass exists before deploying. Use <code>volumeBindingMode: WaitForFirstConsumer</code> for zone-aware binding. Monitor cloud storage quotas.</p>
+    </div>
+
+    <!-- Volume Mount Permission Denied -->
+    <h3>Scenario: Volume Mount Permission Denied</h3>
+
+    <div class="card card-danger">
+        <p><strong>Problem:</strong> Container starts but cannot read or write to its mounted volume.</p>
+        <p><strong>What You See:</strong></p>
+    </div>
+
+    <pre><code>$ kubectl logs my-app
+Error: EACCES: permission denied, open '/data/app.db'
+# Or:
+mkdir: cannot create directory '/data/cache': Permission denied</code></pre>
+
+    <p><strong>Debug Steps:</strong></p>
+    <pre><code># 1. Check what UID/GID the container is running as
+kubectl exec my-app -- id
+# uid=1000(app) gid=1000(app)
+
+# 2. Check volume permissions
+kubectl exec my-app -- ls -la /data/
+# drwxr-xr-x root root  -- owned by root, app user can't write
+
+# 3. Check securityContext settings
+kubectl get pod my-app -o jsonpath='{.spec.securityContext}'
+kubectl get pod my-app -o jsonpath='{.spec.containers[0].securityContext}'
+
+# 4. Check if fsGroup is set (changes GID ownership of volumes)
+kubectl get pod my-app -o jsonpath='{.spec.securityContext.fsGroup}'
+
+# 5. Fix with fsGroup (recommended approach):
+# fsGroup sets the group ownership of ALL mounted volumes
+spec:
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000      # This makes volumes writable by the container
+
+# 6. Fix with initContainer (when fsGroup isn't enough):
+spec:
+  initContainers:
+  - name: fix-permissions
+    image: busybox
+    command: ["sh", "-c", "chown -R 1000:1000 /data && chmod 755 /data"]
+    volumeMounts:
+    - name: data
+      mountPath: /data
+    securityContext:
+      runAsUser: 0     # init container runs as root to fix perms
+
+# 7. For readOnlyRootFilesystem issues -- ensure writable paths use emptyDir
+kubectl get pod my-app -o jsonpath='{.spec.containers[0].securityContext.readOnlyRootFilesystem}'</code></pre>
+
+    <div class="card card-info">
+        <p><strong>Root Causes:</strong> Container runs as non-root but volume is owned by root, missing fsGroup in securityContext, NFS server exporting with root_squash, readOnlyRootFilesystem preventing writes to unmounted paths.</p>
+        <p><strong>Fix:</strong> Set fsGroup matching container GID, use initContainer to fix permissions, configure NFS exports correctly.</p>
+        <p><strong>Prevention:</strong> Always set fsGroup when running as non-root. Document volume ownership requirements. Test with security context in development.</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- YAML COMMON MISTAKES -->
+    <!-- ============================================================ -->
+
+    <h2>7. YAML Common Mistakes</h2>
+
+    <p>These are the most frequent YAML errors that cause debugging nightmares. Each shows the WRONG version and the CORRECT version.</p>
+
+    <!-- Mistake 1: Label Selector Mismatch -->
+    <h3>Mistake 1: Label Selector Mismatch</h3>
+
+    <div class="card card-danger">
+        <p><strong>WRONG:</strong> Service selector doesn't match pod labels -- endpoints will be empty</p>
+    </div>
+
+    <pre><code># Service selector says "my-app" but Deployment labels say "myapp"
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  selector:
+    app: my-app        # Looking for "my-app"
+  ports:
+  - port: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  selector:
+    matchLabels:
+      app: myapp       # MISMATCH! "myapp" != "my-app"
+  template:
+    metadata:
+      labels:
+        app: myapp     # This is what pods get</code></pre>
+
+    <div class="card card-success">
+        <p><strong>CORRECT:</strong> Labels must match exactly across Service, Deployment selector, and pod template</p>
+    </div>
+
+    <pre><code>apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  selector:
+    app: my-app        # Must match pod labels
+  ports:
+  - port: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  selector:
+    matchLabels:
+      app: my-app      # Must match template labels
+  template:
+    metadata:
+      labels:
+        app: my-app    # Must match Service selector AND Deployment selector</code></pre>
+
+    <!-- Mistake 2: Wrong apiVersion -->
+    <h3>Mistake 2: Wrong apiVersion</h3>
+
+    <div class="card card-danger">
+        <p><strong>WRONG:</strong> Using deprecated or non-existent apiVersion</p>
+    </div>
+
+    <pre><code># These apiVersions no longer exist in modern Kubernetes
+apiVersion: extensions/v1beta1    # REMOVED in 1.22
+kind: Ingress
+---
+apiVersion: apps/v1beta1          # REMOVED in 1.16
+kind: Deployment
+---
+apiVersion: batch/v1beta1         # REMOVED in 1.25
+kind: CronJob</code></pre>
+
+    <div class="card card-success">
+        <p><strong>CORRECT:</strong> Use current stable apiVersions</p>
+    </div>
+
+    <pre><code>apiVersion: networking.k8s.io/v1  # Ingress (since 1.19)
+kind: Ingress
+---
+apiVersion: apps/v1               # Deployment (since 1.9)
+kind: Deployment
+---
+apiVersion: batch/v1              # CronJob (since 1.21)
+kind: CronJob
+
+# Quick reference of correct apiVersions:
+# Pod, Service, ConfigMap, Secret, PVC: v1
+# Deployment, StatefulSet, DaemonSet:   apps/v1
+# Ingress, NetworkPolicy:               networking.k8s.io/v1
+# Job, CronJob:                         batch/v1
+# Role, ClusterRole, Bindings:          rbac.authorization.k8s.io/v1
+# HPA:                                  autoscaling/v2</code></pre>
+
+    <!-- Mistake 3: Resource Units -->
+    <h3>Mistake 3: Resource Units (Mi vs M)</h3>
+
+    <div class="card card-danger">
+        <p><strong>WRONG:</strong> Using "M" (megabytes, base-10) instead of "Mi" (mebibytes, base-2). Or bare numbers for CPU.</p>
+    </div>
+
+    <pre><code>resources:
+  requests:
+    memory: "128M"     # This is 128,000,000 bytes (base-10 megabytes)
+    cpu: "100"         # This is 100 CORES, not 100 millicores!
+  limits:
+    memory: "256M"     # Inconsistent with how K8s measures (it uses base-2)
+    cpu: 1             # This works but is ambiguous</code></pre>
+
+    <div class="card card-success">
+        <p><strong>CORRECT:</strong> Use "Mi" for memory (mebibytes) and "m" suffix for millicores</p>
+    </div>
+
+    <pre><code>resources:
+  requests:
+    memory: "128Mi"    # 128 mebibytes (134,217,728 bytes) -- standard K8s unit
+    cpu: "100m"        # 100 millicores = 0.1 CPU core
+  limits:
+    memory: "256Mi"    # Consistent binary unit
+    cpu: "500m"        # 500 millicores = 0.5 CPU core
+
+# Memory units: Ki (kibibytes), Mi (mebibytes), Gi (gibibytes)
+# CPU units: "100m" = 0.1 core, "1" or "1000m" = 1 core</code></pre>
+
+    <!-- Mistake 4: Port Confusion -->
+    <h3>Mistake 4: Port Confusion (targetPort vs port vs containerPort)</h3>
+
+    <div class="card card-danger">
+        <p><strong>WRONG:</strong> Misunderstanding the port chain leads to "connection refused"</p>
+    </div>
+
+    <pre><code>apiVersion: v1
+kind: Service
+spec:
+  ports:
+  - port: 80           # Clients connect to Service on port 80
+    targetPort: 80     # Service forwards to pod port 80
+---
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+      - name: app
+        ports:
+        - containerPort: 8080   # BUT the app listens on 8080!
+        # targetPort (80) != containerPort (8080) -- TRAFFIC FAILS</code></pre>
+
+    <div class="card card-success">
+        <p><strong>CORRECT:</strong> targetPort must match containerPort (the port your app actually listens on)</p>
+    </div>
+
+    <pre><code>apiVersion: v1
+kind: Service
+spec:
+  ports:
+  - port: 80             # External: clients hit Service:80
+    targetPort: 8080     # Internal: forwards to pod:8080
+    protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+      - name: app
+        ports:
+        - containerPort: 8080   # App listens on 8080 -- matches targetPort!
+
+# The chain: Client → Service:port (80) → Pod:targetPort (8080) = containerPort (8080)
+# port: what clients use to reach the Service
+# targetPort: what the Service sends traffic to on the Pod
+# containerPort: what the app actually listens on (must equal targetPort)</code></pre>
+
+    <!-- Mistake 5: Missing Readiness Probe -->
+    <h3>Mistake 5: Missing Readiness Probe Causing Downtime</h3>
+
+    <div class="card card-danger">
+        <p><strong>WRONG:</strong> No readiness probe -- pod receives traffic immediately, even during startup</p>
+    </div>
+
+    <pre><code>apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+      - name: app
+        image: my-app:1.0
+        ports:
+        - containerPort: 8080
+        # NO readiness probe!
+        # Pod gets traffic the instant container starts
+        # App takes 30 seconds to load config/warm caches
+        # Result: 30 seconds of 500 errors on every deployment</code></pre>
+
+    <div class="card card-success">
+        <p><strong>CORRECT:</strong> Always define a readiness probe -- pod only receives traffic when ready</p>
+    </div>
+
+    <pre><code>apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+      - name: app
+        image: my-app:1.0
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5    # Wait before first check
+          periodSeconds: 5          # Check every 5 seconds
+          failureThreshold: 3      # Mark unready after 3 failures
+          successThreshold: 1      # Mark ready after 1 success
+        startupProbe:               # For slow-starting apps
+          httpGet:
+            path: /healthz
+            port: 8080
+          failureThreshold: 30     # 30 * 10s = 5 minutes to start
+          periodSeconds: 10</code></pre>
+
+    <!-- Mistake 6: Volume Mount Without Volume -->
+    <h3>Mistake 6: Volume Mount Without Volume Definition</h3>
+
+    <div class="card card-danger">
+        <p><strong>WRONG:</strong> volumeMount references a volume name that doesn't exist in spec.volumes</p>
+    </div>
+
+    <pre><code>apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: app
+    volumeMounts:
+    - name: config-volume        # References "config-volume"
+      mountPath: /etc/config
+    - name: data-volume          # References "data-volume"
+      mountPath: /data
+  volumes:
+  - name: config-vol             # WRONG NAME: "config-vol" != "config-volume"
+    configMap:
+      name: app-config
+  # "data-volume" is completely missing from volumes list!
+  # Pod will fail to create with: "MountVolume.SetUp failed"</code></pre>
+
+    <div class="card card-success">
+        <p><strong>CORRECT:</strong> volumeMount names must exactly match entries in spec.volumes</p>
+    </div>
+
+    <pre><code>apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: app
+    volumeMounts:
+    - name: config-volume        # Must match volumes[].name
+      mountPath: /etc/config
+      readOnly: true
+    - name: data-volume          # Must match volumes[].name
+      mountPath: /data
+  volumes:
+  - name: config-volume          # Matches volumeMount name exactly
+    configMap:
+      name: app-config
+  - name: data-volume            # Matches volumeMount name exactly
+    persistentVolumeClaim:
+      claimName: my-data-pvc</code></pre>
+
+    <!-- Mistake 7: Secret Data Not Base64 -->
+    <h3>Mistake 7: Secret data Not Base64 (Use stringData)</h3>
+
+    <div class="card card-danger">
+        <p><strong>WRONG:</strong> Putting plaintext in the "data" field (requires base64)</p>
+    </div>
+
+    <pre><code>apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+type: Opaque
+data:
+  username: admin              # NOT base64! Will be decoded as garbled text
+  password: sup3r-s3cret      # K8s treats this AS base64, decodes it wrong
+  # When mounted, "admin" becomes binary garbage because K8s base64-decodes it</code></pre>
+
+    <div class="card card-success">
+        <p><strong>CORRECT:</strong> Use "stringData" for plaintext (auto-encodes) or properly base64-encode "data"</p>
+    </div>
+
+    <pre><code># Option 1: Use stringData (preferred -- cleaner, auto-encodes to base64)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+type: Opaque
+stringData:
+  username: admin              # Plaintext -- K8s auto-encodes to base64
+  password: sup3r-s3cret       # Plaintext -- K8s auto-encodes to base64
+
+---
+# Option 2: Use data with proper base64 encoding
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+type: Opaque
+data:
+  username: YWRtaW4=           # echo -n "admin" | base64
+  password: c3VwM3ItczNjcmV0   # echo -n "sup3r-s3cret" | base64</code></pre>
+
+    <!-- Mistake 8: Indentation Error -->
+    <h3>Mistake 8: Indentation Error</h3>
+
+    <div class="card card-danger">
+        <p><strong>WRONG:</strong> Incorrect YAML indentation -- containers under wrong parent</p>
+    </div>
+
+    <pre><code>apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+    containers:            # WRONG: should be indented under spec
+    - name: app
+      image: my-app:1.0
+      env:
+      - name: DB_HOST
+        value: postgres
+        valueFrom:         # WRONG: can't have both value AND valueFrom
+          secretKeyRef:
+            name: db-secret
+            key: host
+      ports:
+        - containerPort: 8080   # WRONG: extra indent (works but inconsistent)
+    volumes:               # WRONG: same level as containers but should be sibling
+    - name: data
+      emptyDir: {}</code></pre>
+
+    <div class="card card-success">
+        <p><strong>CORRECT:</strong> Proper indentation -- containers and volumes are siblings under spec</p>
+    </div>
+
+    <pre><code>apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:              # 6 spaces: under spec
+      - name: app
+        image: my-app:1.0
+        env:
+        - name: DB_HOST
+          valueFrom:           # Use EITHER value OR valueFrom, never both
+            secretKeyRef:
+              name: db-secret
+              key: host
+        ports:
+        - containerPort: 8080  # Same indent as env (list items under containers[])
+      volumes:                 # 6 spaces: sibling of containers, under spec
+      - name: data
+        emptyDir: {}
+
+# Rules:
+# - spec.containers and spec.volumes are siblings (same indentation)
+# - env[].value and env[].valueFrom are mutually exclusive
+# - Use 2 spaces per indent level consistently
+# - List items (-) are at same level as the key they belong to</code></pre>
+
+    <!-- ============================================================ -->
+    <!-- DEBUG FLOWCHARTS -->
+    <!-- ============================================================ -->
+
+    <h2>8. Debug Flowcharts</h2>
+
+    <h3>Flowchart: Pod Not Starting</h3>
+
+    <div class="diagram">
+        <div class="diagram-label">Pod Not Starting -- Decision Tree</div>
+        <pre>
+                         ┌─────────────────────┐
+                         │ Pod not starting?    │
+                         │ kubectl get pods     │
+                         └──────────┬──────────┘
+                                    │
+                    ┌───────────────┼────────────────┬──────────────────┐
+                    │               │                │                  │
+                    ▼               ▼                ▼                  ▼
+           ┌──────────────┐ ┌────────────┐ ┌──────────────┐  ┌──────────────┐
+           │   Pending    │ │ImagePull   │ │CrashLoop     │  │  OOMKilled   │
+           │              │ │BackOff     │ │BackOff       │  │              │
+           └──────┬───────┘ └─────┬──────┘ └──────┬───────┘  └──────┬───────┘
+                  │               │                │                  │
+                  ▼               ▼                ▼                  ▼
+         ┌────────────┐  ┌────────────┐  ┌────────────────┐  ┌────────────┐
+         │describe pod│  │Check image │  │kubectl logs    │  │Check memory│
+         │→ Events    │  │name + tag  │  │--previous      │  │limits      │
+         └─────┬──────┘  └─────┬──────┘  └───────┬────────┘  └─────┬──────┘
+               │               │                  │                  │
+      ┌────────┼────────┐      │         ┌────────┼────────┐         │
+      │        │        │      │         │        │        │         │
+      ▼        ▼        ▼      ▼         ▼        ▼        ▼         ▼
+┌─────────┐┌──────┐┌──────┐┌──────┐┌────────┐┌──────┐┌──────┐┌──────────┐
+│No nodes ││Taint ││PVC   ││Auth  ││App     ││Config││Deps  ││Increase  │
+│available││issue ││not   ││issue ││error   ││miss- ││not   ││memory    │
+│         ││      ││bound ││      ││in logs ││ing   ││ready ││limits    │
+└────┬────┘└──┬───┘└──┬───┘└──┬───┘└────┬───┘└──┬───┘└──┬───┘└──────────┘
+     │        │       │       │         │       │       │
+     ▼        ▼       ▼       ▼         ▼       ▼       ▼
+  Scale up  Add     Fix     Fix      Fix app  Mount   Add init
+  cluster  toler-  storage  image    code/    correct container
+           ation   class    pull     config   CM/Sec  to wait
+                            secret
+        </pre>
+    </div>
+
+    <h3>Flowchart: Service Not Reachable</h3>
+
+    <div class="diagram">
+        <div class="diagram-label">Service Not Reachable -- Decision Tree</div>
+        <pre>
+                     ┌────────────────────────────┐
+                     │ Can't reach Service?       │
+                     │ curl http://svc:port fails │
+                     └─────────────┬──────────────┘
+                                   │
+                                   ▼
+                     ┌────────────────────────────┐
+                     │ kubectl get endpoints &lt;svc&gt;│
+                     └─────────────┬──────────────┘
+                                   │
+                    ┌──────────────┴──────────────┐
+                    │                             │
+                    ▼                             ▼
+          ┌─────────────────┐          ┌─────────────────┐
+          │ Endpoints EMPTY │          │ Endpoints EXIST │
+          │ (no backends)   │          │ (IPs listed)    │
+          └────────┬────────┘          └────────┬────────┘
+                   │                            │
+                   ▼                            ▼
+          ┌─────────────────┐          ┌─────────────────┐
+          │Check labels:    │          │Test pod directly│
+          │svc selector vs  │          │kubectl port-fwd │
+          │pod labels match?│          │pod &lt;port&gt;       │
+          └────────┬────────┘          └────────┬────────┘
+                   │                            │
+           ┌───────┴───────┐            ┌───────┴───────┐
+           │               │            │               │
+           ▼               ▼            ▼               ▼
+    ┌─────────────┐ ┌─────────────┐ ┌────────────┐ ┌────────────┐
+    │Labels DON'T │ │Labels MATCH │ │Pod responds│ │Pod DOESN'T │
+    │match        │ │but still    │ │directly    │ │respond     │
+    │             │ │no endpoints │ │            │ │            │
+    └──────┬──────┘ └──────┬──────┘ └─────┬──────┘ └──────┬─────┘
+           │               │              │               │
+           ▼               ▼              ▼               ▼
+     Fix labels      Check if        NetworkPolicy    App not
+     to match        pods are        blocking svc→    listening on
+                     Ready           pod traffic      expected port
+                     (readiness                       (check
+                     probe failing)                   containerPort)
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- INTERVIEW SCENARIOS -->
+    <!-- ============================================================ -->
+
+    <h2>9. Interview Scenarios</h2>
+
+    <div class="card">
+        <p><strong>Q1: Walk me through how you debug a CrashLoopBackOff.</strong></p>
+        <p><strong>A:</strong> (1) <code>kubectl logs &lt;pod&gt; --previous</code> to see the last crash output. (2) <code>kubectl describe pod</code> to check exit code -- 137 means OOM, 1 means app error, 139 means segfault. (3) Check if ConfigMaps/Secrets are mounted correctly. (4) Check resource limits. (5) If the pod crashes too fast to debug, override the command with <code>sleep 3600</code> and exec in to investigate the filesystem and environment.</p>
+    </div>
+
+    <div class="card">
+        <p><strong>Q2: It's 2 AM and you get paged for a production outage. All pods are returning 503. What do you do?</strong></p>
+        <p><strong>A:</strong> (1) <code>kubectl get pods -o wide</code> -- are pods running? (2) <code>kubectl get endpoints &lt;svc&gt;</code> -- does the Service have backends? (3) If endpoints empty, check readiness probes: <code>kubectl describe pod</code>. (4) If pods are crashing, check logs for the root cause. (5) If it was a recent deployment, <code>kubectl rollout undo deployment/&lt;name&gt;</code> to restore immediately while investigating. (6) Check events: <code>kubectl get events --sort-by='.lastTimestamp'</code> for cluster-level issues. (7) Check nodes: <code>kubectl get nodes</code> -- if all NotReady, it's a cluster-level issue (API server, etcd, networking).</p>
+    </div>
+
+    <div class="card">
+        <p><strong>Q3: A team reports their application is slow. Other pods on the same node are also slow. How do you diagnose the "noisy neighbor" problem?</strong></p>
+        <p><strong>A:</strong> (1) <code>kubectl top pods --sort-by=cpu</code> on the affected node to find the resource hog. (2) <code>kubectl top nodes</code> to confirm the node is overloaded. (3) Check if the noisy pod has resource limits: <code>kubectl describe pod &lt;noisy-pod&gt; | grep -A 3 Limits</code>. If no limits, it can consume unbounded resources. (4) Fix: add resource limits to the noisy pod. (5) Prevent: use LimitRange to enforce defaults, ResourceQuota per namespace, and pod priority/preemption for critical workloads.</p>
+    </div>
+
+    <div class="card">
+        <p><strong>Q4: A deployment rollout broke production. New version has a bug. What's your response?</strong></p>
+        <p><strong>A:</strong> (1) Immediate: <code>kubectl rollout undo deployment/my-app</code> -- this rolls back to the previous working version in seconds. (2) Verify: <code>kubectl rollout status deployment/my-app</code> and monitor error rates. (3) Investigate: <code>kubectl rollout history deployment/my-app</code> to see what changed, then check logs from the failed pods. (4) Prevent recurrence: add automated canary testing, use progressive delivery (Argo Rollouts), require integration tests before deploy, set <code>progressDeadlineSeconds</code> lower for faster failure detection.</p>
+    </div>
+
+    <div class="card">
+        <p><strong>Q5: A pod can't connect to an external API. How do you troubleshoot?</strong></p>
+        <p><strong>A:</strong> (1) Exec into the pod: <code>kubectl exec -it &lt;pod&gt; -- nslookup api.example.com</code> -- test DNS. (2) If DNS fails, check CoreDNS pods and NetworkPolicy egress rules for port 53. (3) If DNS works but connection fails: <code>kubectl exec &lt;pod&gt; -- curl -v https://api.example.com</code>. (4) Check NetworkPolicy egress rules -- a deny-all blocks outbound. (5) Check if NAT gateway exists (private subnets need it). (6) Check security groups/firewall rules on the node level.</p>
+    </div>
+
+    <div class="card">
+        <p><strong>Q6: How do you debug a Service that intermittently fails (sometimes works, sometimes 502)?</strong></p>
+        <p><strong>A:</strong> Intermittent failures usually mean some backends are unhealthy: (1) <code>kubectl get endpoints &lt;svc&gt;</code> -- check if pod IPs are appearing and disappearing. (2) Check readiness probes -- a flapping probe causes the pod to be added/removed from endpoints. (3) <code>kubectl logs &lt;pod&gt;</code> on each backend during failures. (4) Check resource pressure: <code>kubectl top pods</code> -- if pods are near their CPU/memory limits, they may become unresponsive under load. (5) Check for connection draining issues during deployments (missing preStop hook).</p>
+    </div>
+
+    <div class="card">
+        <p><strong>Q7: Your cluster is running out of resources. Pods are Pending. What do you do?</strong></p>
+        <p><strong>A:</strong> (1) <code>kubectl describe nodes | grep -A 5 "Allocated resources"</code> to see current utilization. (2) <code>kubectl get pods -A --sort-by='.spec.containers[0].resources.requests.cpu'</code> to find resource hogs. (3) Check for over-provisioned pods (requests much higher than actual usage via <code>kubectl top</code>). (4) Short term: scale cluster or delete non-critical workloads. (5) Long term: implement VPA for right-sizing, HPA for dynamic scaling, cluster autoscaler for automatic node provisioning, and ResourceQuotas per namespace.</p>
+    </div>
+
+    <div class="card">
+        <p><strong>Q8: A PVC is stuck in Pending and blocking application deployment. Debug it.</strong></p>
+        <p><strong>A:</strong> (1) <code>kubectl describe pvc &lt;name&gt;</code> -- read the Events section for the exact error. (2) Check if the StorageClass exists: <code>kubectl get sc</code>. (3) Check if the CSI driver pods are running: <code>kubectl get pods -n kube-system | grep csi</code>. (4) If "WaitForFirstConsumer" -- the PVC only binds after a pod using it is scheduled, so check if the pod is Pending too. (5) Check zone constraints -- EBS volumes are zone-specific, so the PV zone must match the node zone. (6) Check cloud quotas (e.g., max EBS volumes per instance).</p>
+    </div>
+
+</div>
+
+</body>
+</html>

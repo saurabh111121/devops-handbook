@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Kubernetes, DevOps & SRE Reference</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+    <nav class="topnav">
+        <a href="index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="kubernetes-core/architecture.html">Architecture</a>
+                <a href="kubernetes-core/workloads.html">Workloads</a>
+                <a href="kubernetes-core/networking.html">Networking</a>
+                <a href="kubernetes-core/storage.html">Storage</a>
+                <a href="kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="kubernetes-core/security.html">Security</a>
+                <a href="kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="devops/git.html">Git</a>
+                <a href="devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="devops/sre.html">SRE Principles</a>
+                <a href="devops/observability.html">Observability</a>
+                <a href="devops/terraform.html">Terraform</a>
+                <a href="devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="infrastructure/databases.html">Databases</a>
+                <a href="infrastructure/message-queues.html">Message Queues</a>
+                <a href="infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="application/microservices.html">Microservices</a>
+                <a href="application/api-rest.html">API & REST</a>
+                <a href="application/scripting.html">Bash & Python</a>
+                <a href="application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Complete Kubernetes, DevOps & SRE Reference</h1>
+            <p class="subtitle">Comprehensive study guide with diagrams, YAML examples, real-world scenarios & interview prep</p>
+            <div class="stats">
+                <span>7 Categories</span> |
+                <span>32 Pages</span> |
+                <span>100+ YAML Examples</span> |
+                <span>50+ Interview Q&A</span>
+            </div>
+        </section>
+
+        <!-- Table of Contents Grid -->
+        <h2>Study Categories</h2>
+
+        <div class="toc-grid">
+
+            <!-- 1. Containers -->
+            <a href="containers/index.html" class="toc-card">
+                <h3>Containers</h3>
+                <p>Docker fundamentals, Dockerfiles, multi-stage builds, Compose, networking, volumes, security, and a complete Docker vs Kubernetes comparison.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">Docker</span>
+                    <span class="tag tag-green">Compose</span>
+                    <span class="tag tag-orange">Images</span>
+                    <span class="tag tag-red">Docker vs K8s</span>
+                </div>
+                <div class="page-count">
+                    <span>Dockerfiles, Compose, Security</span>
+                    <span class="count-badge">1 page</span>
+                </div>
+            </a>
+
+            <!-- 2. Kubernetes Core -->
+            <a href="kubernetes-core/index.html" class="toc-card">
+                <h3>Kubernetes Core</h3>
+                <p>Everything you need to understand K8s fundamentals — from cluster architecture to pod lifecycle, networking, storage, autoscaling, RBAC, and observability.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">Architecture</span>
+                    <span class="tag tag-green">Workloads</span>
+                    <span class="tag tag-orange">Networking</span>
+                    <span class="tag tag-purple">Storage</span>
+                </div>
+                <div class="page-count">
+                    <span>Architecture, Pods, Services, PV/PVC, HPA, RBAC, Probes</span>
+                    <span class="count-badge">7 pages</span>
+                </div>
+            </a>
+
+            <!-- 3. Kubernetes Advanced -->
+            <a href="kubernetes-advanced/index.html" class="toc-card">
+                <h3>Kubernetes Advanced</h3>
+                <p>Production-grade topics — deployment strategies, Helm charts, Istio service mesh, ArgoCD GitOps, and a complete troubleshooting guide with debug flowcharts.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">Helm</span>
+                    <span class="tag tag-green">Service Mesh</span>
+                    <span class="tag tag-orange">ArgoCD</span>
+                    <span class="tag tag-purple">Troubleshooting</span>
+                </div>
+                <div class="page-count">
+                    <span>Strategies, Operators, CRDs, YAML Templates</span>
+                    <span class="count-badge">5 pages</span>
+                </div>
+            </a>
+
+            <!-- 4. DevOps -->
+            <a href="devops/index.html" class="toc-card">
+                <h3>DevOps</h3>
+                <p>Developer workflows and operational practices — Git branching, CI/CD pipelines, SRE principles, observability, infrastructure as code, and configuration management.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">Git</span>
+                    <span class="tag tag-green">CI/CD</span>
+                    <span class="tag tag-orange">Terraform</span>
+                    <span class="tag tag-purple">Ansible</span>
+                </div>
+                <div class="page-count">
+                    <span>SRE, Error Budgets, DORA, GitOps</span>
+                    <span class="count-badge">6 pages</span>
+                </div>
+            </a>
+
+            <!-- 5. Infrastructure -->
+            <a href="infrastructure/index.html" class="toc-card">
+                <h3>Infrastructure</h3>
+                <p>Platform engineering foundations — Linux internals, AWS services, TLS/certificates, databases, message queues, cost optimization, and disaster recovery.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">AWS</span>
+                    <span class="tag tag-green">Linux</span>
+                    <span class="tag tag-orange">Databases</span>
+                    <span class="tag tag-red">DR</span>
+                </div>
+                <div class="page-count">
+                    <span>EKS, VPC, Kafka, TLS, Velero, FinOps</span>
+                    <span class="count-badge">7 pages</span>
+                </div>
+            </a>
+
+            <!-- 6. Application -->
+            <a href="application/index.html" class="toc-card">
+                <h3>Application</h3>
+                <p>Software architecture and tooling — microservice patterns, REST/gRPC APIs, Bash/Python scripting, Prometheus monitoring, and centralized logging stacks.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">Microservices</span>
+                    <span class="tag tag-green">APIs</span>
+                    <span class="tag tag-orange">Prometheus</span>
+                    <span class="tag tag-purple">Scripting</span>
+                </div>
+                <div class="page-count">
+                    <span>Saga, CQRS, PromQL, ELK, Loki</span>
+                    <span class="count-badge">5 pages</span>
+                </div>
+            </a>
+
+            <!-- 7. Interview -->
+            <a href="interview/index.html" class="toc-card">
+                <h3>Interview Preparation</h3>
+                <p>Ready-to-use prep material — system design questions, real-world scenario walkthroughs, gotcha questions, AWS/Cloud deep-dives, and behavioral STAR-format stories.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">System Design</span>
+                    <span class="tag tag-green">Scenarios</span>
+                    <span class="tag tag-orange">Behavioral</span>
+                    <span class="tag tag-purple">Q&A</span>
+                </div>
+                <div class="page-count">
+                    <span>Design, Debug, Gotchas, STAR Format</span>
+                    <span class="count-badge">1 page</span>
+                </div>
+            </a>
+
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            Complete Kubernetes, DevOps & SRE Reference | Built for study & interview preparation | 2026
+        </footer>
+
+    </div>
+
+</body>
+</html>

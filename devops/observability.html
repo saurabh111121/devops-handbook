@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Observability Deep Dive - DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html" class="active">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> / Observability
+        </div>
+
+        <h1>Observability Deep Dive</h1>
+        <p class="subtitle">Metrics, Logs, Traces - understanding system behavior through comprehensive telemetry</p>
+
+        <!-- ============================================ -->
+        <!-- 1. Three Pillars -->
+        <!-- ============================================ -->
+        <h2>1. Three Pillars of Observability</h2>
+
+        <div class="card card-info">
+            <h4>Observability vs Monitoring</h4>
+            <p><strong>Monitoring</strong> tells you WHEN something is wrong (predefined checks). <strong>Observability</strong> lets you ask WHY it is wrong (explore unknown unknowns). Observability is a property of your system: can you understand its internal state from external outputs?</p>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">Three Pillars Working Together</div>
+            <pre>
+  +=====================================================================+
+  |                    OBSERVABILITY                                     |
+  +=====================================================================+
+  |                                                                     |
+  |  METRICS                  LOGS                   TRACES             |
+  |  (What is happening?)     (Why is it happening?) (Where did it go?) |
+  |                                                                     |
+  |  +------------------+     +------------------+   +----------------+ |
+  |  | Aggregated       |     | Detailed event   |   | Request flow   | |
+  |  | numeric data     |     | records          |   | across services| |
+  |  |                  |     |                  |   |                | |
+  |  | - Counters       |     | - Structured     |   | - Trace ID     | |
+  |  | - Gauges         |     | - Correlation ID |   | - Spans        | |
+  |  | - Histograms     |     | - Context-rich   |   | - Latency map  | |
+  |  +--------+---------+     +--------+---------+   +-------+--------+ |
+  |           |                        |                      |         |
+  |           +------------+-----------+----------+-----------+         |
+  |                        |                      |                     |
+  |                        v                      v                     |
+  |           +------------+----------+  +--------+--------+            |
+  |           | ALERT fires:          |  | INVESTIGATE:    |            |
+  |           | "Error rate > 5%"     |  | Follow trace    |            |
+  |           |                       |  | to slow service |            |
+  |           | Check METRICS for     |  | Read LOGS for   |            |
+  |           | which service         |  | error details   |            |
+  |           +-----------------------+  +-----------------+            |
+  +=====================================================================+
+
+  WHEN TO USE EACH:
+  - Metrics: Alerting, dashboards, trends, capacity planning
+  - Logs:    Debugging specific errors, audit trails, forensics
+  - Traces:  Understanding request flow, finding bottlenecks in
+             distributed systems, identifying slow dependencies
+            </pre>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Metrics</h4>
+                <p><strong>Strengths:</strong> Cheap to store, fast to query, great for alerting and dashboards</p>
+                <p><strong>Weakness:</strong> Low cardinality - cannot tell you about a specific request</p>
+                <p><strong>Storage:</strong> Time-series databases (Prometheus, Mimir, Thanos)</p>
+            </div>
+            <div class="card">
+                <h4>Logs</h4>
+                <p><strong>Strengths:</strong> Detailed context, can be searched, supports high cardinality</p>
+                <p><strong>Weakness:</strong> Expensive to store/index at scale, can be noisy</p>
+                <p><strong>Storage:</strong> Loki, Elasticsearch, CloudWatch Logs</p>
+            </div>
+        </div>
+        <div class="card">
+            <h4>Traces</h4>
+            <p><strong>Strengths:</strong> Shows causality across services, pinpoints exact bottleneck</p>
+            <p><strong>Weakness:</strong> Sampling needed at scale, instrumentation overhead</p>
+            <p><strong>Storage:</strong> Jaeger, Tempo, X-Ray, Zipkin</p>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 2. Metrics -->
+        <!-- ============================================ -->
+        <h2>2. Metrics</h2>
+
+        <h3>Metric Types</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Behavior</th>
+                    <th>Use Case</th>
+                    <th>Example</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Counter</strong></td>
+                    <td>Monotonically increasing (only goes up, resets on restart)</td>
+                    <td>Count events</td>
+                    <td><code>http_requests_total</code>, <code>errors_total</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Gauge</strong></td>
+                    <td>Can go up or down (current value)</td>
+                    <td>Current state</td>
+                    <td><code>temperature</code>, <code>queue_depth</code>, <code>active_connections</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Histogram</strong></td>
+                    <td>Counts observations in configurable buckets</td>
+                    <td>Distributions (latency, size)</td>
+                    <td><code>request_duration_seconds</code> with buckets [0.01, 0.05, 0.1, 0.5, 1]</td>
+                </tr>
+                <tr>
+                    <td><strong>Summary</strong></td>
+                    <td>Client-side calculated quantiles</td>
+                    <td>Pre-calculated percentiles</td>
+                    <td><code>request_duration{quantile="0.99"}</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="card card-warning">
+            <h4>Histogram vs Summary</h4>
+            <ul>
+                <li><strong>Histogram:</strong> Server-side calculation, can aggregate across instances, configurable buckets, use <code>histogram_quantile()</code></li>
+                <li><strong>Summary:</strong> Client-side calculation, CANNOT aggregate across instances (mathematically incorrect), pre-calculated quantiles</li>
+                <li><strong>Best practice:</strong> Use Histograms. They are aggregatable and more flexible.</li>
+            </ul>
+        </div>
+
+        <h3>PromQL Examples</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Prometheus Queries (PromQL)</span>
+                <span class="tag tag-blue">PromQL</span>
+            </div>
+            <pre>
+# Request rate (per second) over last 5 minutes
+rate(http_requests_total[5m])
+
+# Error rate as percentage
+sum(rate(http_requests_total{status=~"5.."}[5m]))
+  / sum(rate(http_requests_total[5m])) * 100
+
+# 99th percentile latency from histogram
+histogram_quantile(0.99, sum(rate(request_duration_seconds_bucket[5m])) by (le))
+
+# P99 latency by service
+histogram_quantile(0.99,
+  sum(rate(request_duration_seconds_bucket[5m])) by (le, service)
+)
+
+# CPU usage per pod (container metrics from cAdvisor)
+sum(rate(container_cpu_usage_seconds_total{namespace="production"}[5m])) by (pod)
+
+# Memory usage percentage
+container_memory_usage_bytes / container_spec_memory_limit_bytes * 100
+
+# Availability (successful requests / total)
+sum(rate(http_requests_total{status!~"5.."}[30d]))
+  / sum(rate(http_requests_total[30d])) * 100
+
+# Burn rate: how fast are we consuming error budget?
+# 1x = consuming at exactly SLO rate. 14.4x = 100% budget in 1 hour
+(
+  sum(rate(http_requests_total{status=~"5.."}[1h]))
+  / sum(rate(http_requests_total[1h]))
+) / (1 - 0.999)  # where 0.999 is the SLO
+
+# Saturation: disk will be full in 4 hours at current rate
+predict_linear(node_filesystem_avail_bytes[1h], 4*3600) < 0
+            </pre>
+        </div>
+
+        <h3>USE Method vs RED Method</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Method</th>
+                    <th>Focus</th>
+                    <th>Metrics</th>
+                    <th>Best For</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>USE</strong></td>
+                    <td>Infrastructure / Resources</td>
+                    <td><strong>U</strong>tilization, <strong>S</strong>aturation, <strong>E</strong>rrors</td>
+                    <td>CPU, Memory, Disk, Network (hardware/infra)</td>
+                </tr>
+                <tr>
+                    <td><strong>RED</strong></td>
+                    <td>Services / Requests</td>
+                    <td><strong>R</strong>ate, <strong>E</strong>rrors, <strong>D</strong>uration</td>
+                    <td>Microservices, APIs, request-driven systems</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>USE Method (Infrastructure)</h4>
+                <p>For every resource (CPU, memory, disk, network):</p>
+                <ul>
+                    <li><strong>Utilization:</strong> % time resource is busy (or % capacity used)</li>
+                    <li><strong>Saturation:</strong> Amount of work queued (waiting). Resource is overloaded when saturated</li>
+                    <li><strong>Errors:</strong> Count of error events (hardware errors, dropped packets)</li>
+                </ul>
+                <p><em>Example: CPU utilization 95%, run queue length 8, zero errors</em></p>
+            </div>
+            <div class="card">
+                <h4>RED Method (Services)</h4>
+                <p>For every service:</p>
+                <ul>
+                    <li><strong>Rate:</strong> Requests per second</li>
+                    <li><strong>Errors:</strong> Failed requests per second (or error %)</li>
+                    <li><strong>Duration:</strong> Time per request (latency distribution - p50, p95, p99)</li>
+                </ul>
+                <p><em>Example: 1000 rps, 0.5% errors, p99 latency 250ms</em></p>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 3. Logs -->
+        <!-- ============================================ -->
+        <h2>3. Logs</h2>
+
+        <h3>Structured vs Unstructured Logging</h3>
+
+        <div class="grid-2">
+            <div class="card card-warning">
+                <h4>Unstructured (Bad)</h4>
+                <pre>2024-01-15 10:23:45 ERROR Failed to process order 12345 for user john@example.com - timeout after 30s connecting to payment-service</pre>
+                <p>Hard to parse, inconsistent format, difficult to search/filter programmatically.</p>
+            </div>
+            <div class="card card-success">
+                <h4>Structured (Good)</h4>
+                <pre>{
+  "timestamp": "2024-01-15T10:23:45Z",
+  "level": "ERROR",
+  "service": "order-service",
+  "trace_id": "abc123def456",
+  "message": "Failed to process order",
+  "order_id": "12345",
+  "user_id": "john@example.com",
+  "error": "timeout",
+  "dependency": "payment-service",
+  "timeout_ms": 30000
+}</pre>
+                <p>Machine-parseable, filterable, correlatable via trace_id.</p>
+            </div>
+        </div>
+
+        <h3>Log Levels</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Level</th>
+                    <th>When to Use</th>
+                    <th>Production Default?</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>FATAL</strong></td>
+                    <td>Application cannot continue. Requires immediate human intervention.</td>
+                    <td>Always enabled</td>
+                </tr>
+                <tr>
+                    <td><strong>ERROR</strong></td>
+                    <td>Operation failed. Something is broken but app continues.</td>
+                    <td>Always enabled</td>
+                </tr>
+                <tr>
+                    <td><strong>WARN</strong></td>
+                    <td>Unexpected situation but not an error. Potential issue.</td>
+                    <td>Enabled</td>
+                </tr>
+                <tr>
+                    <td><strong>INFO</strong></td>
+                    <td>Normal significant events (startup, shutdown, config loaded).</td>
+                    <td>Enabled</td>
+                </tr>
+                <tr>
+                    <td><strong>DEBUG</strong></td>
+                    <td>Detailed information for diagnosing problems.</td>
+                    <td>Disabled (enable per-request or temporarily)</td>
+                </tr>
+                <tr>
+                    <td><strong>TRACE</strong></td>
+                    <td>Very detailed, granular logging for deep troubleshooting.</td>
+                    <td>Disabled</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Correlation IDs</h3>
+
+        <div class="card">
+            <h4>How Correlation Works</h4>
+            <p>A unique ID (trace_id or correlation_id) is generated at the entry point (API gateway) and propagated through all services via HTTP headers. Every log line includes this ID, allowing you to find ALL logs for a single request across all services.</p>
+            <ul>
+                <li><strong>Header:</strong> <code>X-Request-ID</code> or <code>traceparent</code> (W3C standard)</li>
+                <li><strong>Propagation:</strong> Each service reads the header and includes it in logs + passes to downstream calls</li>
+                <li><strong>Query:</strong> Search logs by trace_id to see the full request journey</li>
+            </ul>
+        </div>
+
+        <h3>Centralized Logging Architecture</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Centralized Logging Pipeline</div>
+            <pre>
+  +----------+   +----------+   +----------+
+  | Service  |   | Service  |   | Service  |
+  |    A     |   |    B     |   |    C     |
+  +----+-----+   +----+-----+   +----+-----+
+       |              |              |
+       v              v              v
+  +------------------------------------------+
+  |        Log Collectors / Agents           |
+  | (Fluentd, Fluent Bit, Vector, Filebeat) |
+  |                                          |
+  | - Tail container stdout/stderr           |
+  | - Parse and enrich (add labels)          |
+  | - Buffer and batch                       |
+  +--------------------+---------------------+
+                       |
+                       v
+  +--------------------+---------------------+
+  |          Log Aggregator / Pipeline       |
+  |    (Kafka, Kinesis - for buffering)      |
+  +--------------------+---------------------+
+                       |
+                       v
+  +--------------------+---------------------+
+  |          Storage & Indexing              |
+  |  +---------------+  +----------------+  |
+  |  | Elasticsearch |  | Grafana Loki   |  |
+  |  | (Full-text    |  | (Label-based   |  |
+  |  |  indexing)    |  |  log grep)     |  |
+  |  +---------------+  +----------------+  |
+  +--------------------+---------------------+
+                       |
+                       v
+  +--------------------+---------------------+
+  |          Query & Visualization          |
+  |    (Kibana / Grafana)                   |
+  +------------------------------------------+
+            </pre>
+        </div>
+
+        <h3>ELK vs Loki</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Aspect</th>
+                    <th>ELK (Elasticsearch + Kibana)</th>
+                    <th>Grafana Loki</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Indexing</strong></td>
+                    <td>Full-text indexing of all log content</td>
+                    <td>Only indexes labels (metadata), stores log lines as compressed chunks</td>
+                </tr>
+                <tr>
+                    <td><strong>Storage Cost</strong></td>
+                    <td>High (indexes are large)</td>
+                    <td>Low (like Prometheus for logs)</td>
+                </tr>
+                <tr>
+                    <td><strong>Query Speed</strong></td>
+                    <td>Fast for any search pattern</td>
+                    <td>Fast for label filters, slower for full-text grep</td>
+                </tr>
+                <tr>
+                    <td><strong>Scalability</strong></td>
+                    <td>Complex (shard management, JVM tuning)</td>
+                    <td>Simple horizontal scaling</td>
+                </tr>
+                <tr>
+                    <td><strong>Operations</strong></td>
+                    <td>Heavy (JVM, index lifecycle, cluster management)</td>
+                    <td>Lightweight (single binary or microservices mode)</td>
+                </tr>
+                <tr>
+                    <td><strong>Best For</strong></td>
+                    <td>Full-text search, compliance, high-cardinality fields</td>
+                    <td>Kubernetes-native, cost-effective, Grafana ecosystem</td>
+                </tr>
+                <tr>
+                    <td><strong>Agent</strong></td>
+                    <td>Filebeat / Logstash</td>
+                    <td>Promtail / Grafana Agent</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ============================================ -->
+        <!-- 4. Traces -->
+        <!-- ============================================ -->
+        <h2>4. Traces</h2>
+
+        <div class="card card-info">
+            <h4>Distributed Tracing Concepts</h4>
+            <ul>
+                <li><strong>Trace:</strong> The entire journey of a request through all services (identified by a unique trace ID)</li>
+                <li><strong>Span:</strong> A single unit of work within a trace (one service call, one DB query). Has start time, duration, metadata</li>
+                <li><strong>Parent-Child:</strong> Spans have parent relationships forming a tree/DAG</li>
+                <li><strong>Context Propagation:</strong> Trace/span IDs passed between services via HTTP headers (<code>traceparent</code> W3C standard)</li>
+                <li><strong>Baggage:</strong> Key-value pairs propagated across service boundaries (user_id, tenant_id)</li>
+            </ul>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">Distributed Trace Example</div>
+            <pre>
+  Trace ID: abc-123-def-456
+  ============================================================
+
+  [API Gateway]  |==========================================|  250ms
+                       |
+  [Auth Service] |=====|                                       30ms
+                             |
+  [Order Service]            |==========================|      180ms
+                                  |              |
+  [Inventory DB]                  |=====|                      40ms
+                                              |
+  [Payment Svc]                               |=========|     80ms
+                                                   |
+  [Payment GW]                                     |====|     50ms
+
+  Timeline: 0ms -----> 50ms -----> 100ms -----> 200ms -----> 250ms
+
+  Each bar is a SPAN. The entire picture is a TRACE.
+  Spans have:
+    - service name
+    - operation name
+    - start time + duration
+    - status (OK/ERROR)
+    - attributes (http.method, db.statement, etc.)
+    - events (logs attached to span)
+            </pre>
+        </div>
+
+        <h3>OpenTelemetry Architecture</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">OpenTelemetry (OTel) Architecture</div>
+            <pre>
+  +----------+   +----------+   +----------+
+  | Service  |   | Service  |   | Service  |
+  | (OTel    |   | (OTel    |   | (OTel    |
+  |  SDK)    |   |  SDK)    |   |  SDK)    |
+  +----+-----+   +----+-----+   +----+-----+
+       |              |              |
+       | OTLP         | OTLP         | OTLP
+       v              v              v
+  +------------------------------------------+
+  |        OpenTelemetry Collector           |
+  |                                          |
+  |  Receivers:  OTLP, Jaeger, Zipkin,      |
+  |              Prometheus                  |
+  |                                          |
+  |  Processors: Batch, Filter, Tail        |
+  |              Sampling, Attributes        |
+  |                                          |
+  |  Exporters:  Multiple backends          |
+  +---+----------------+----------------+---+
+      |                |                |
+      v                v                v
+  +--------+    +-----------+    +----------+
+  | Jaeger |    | Prometheus|    | Loki     |
+  | Tempo  |    | Mimir     |    |          |
+  |(Traces)|    | (Metrics) |    | (Logs)   |
+  +--------+    +-----------+    +----------+
+
+  OTel SDK provides:
+  - Auto-instrumentation (HTTP, gRPC, DB clients)
+  - Manual instrumentation API
+  - Context propagation (W3C TraceContext)
+  - Unified API for metrics, logs, and traces
+            </pre>
+        </div>
+
+        <div class="card">
+            <h4>Jaeger UI - What You See</h4>
+            <ul>
+                <li><strong>Service Graph:</strong> Visual map of which services call which (topology)</li>
+                <li><strong>Trace Search:</strong> Find traces by service, operation, duration, tags</li>
+                <li><strong>Trace Timeline:</strong> Waterfall view showing span hierarchy and timing</li>
+                <li><strong>Span Details:</strong> Tags (metadata), logs (events), process info for each span</li>
+                <li><strong>Compare:</strong> Side-by-side comparison of two traces (find what changed)</li>
+                <li><strong>Sampling:</strong> Head-based (decide at start) or tail-based (decide at end, keeps errors/slow traces)</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 5. Alerting Strategy -->
+        <!-- ============================================ -->
+        <h2>5. Alerting Strategy</h2>
+
+        <div class="card card-info">
+            <h4>Alert on Symptoms, Not Causes</h4>
+            <ul>
+                <li><strong>Symptom (Good):</strong> "Error rate > 1%" or "P99 latency > 500ms" -- user-facing impact</li>
+                <li><strong>Cause (Bad):</strong> "CPU > 80%" -- might not affect users at all</li>
+                <li><strong>Why:</strong> Cause-based alerts are noisy (high CPU might be normal during batch jobs). Symptom-based alerts only fire when users are actually affected.</li>
+            </ul>
+        </div>
+
+        <h3>SLO-Based Alerting with Burn Rate</h3>
+
+        <div class="card">
+            <h4>Burn Rate Concept</h4>
+            <p>Burn rate measures how fast you are consuming your error budget relative to the SLO.</p>
+            <ul>
+                <li><strong>1x burn rate:</strong> Consuming budget at exactly the rate that will exhaust it in the SLO window (e.g., 30 days)</li>
+                <li><strong>2x burn rate:</strong> Will exhaust budget in 15 days</li>
+                <li><strong>14.4x burn rate:</strong> Will exhaust budget in ~2 days (alerting threshold)</li>
+            </ul>
+            <p><strong>Formula:</strong> <code>burn_rate = (error_rate_observed) / (1 - SLO)</code></p>
+            <p><strong>Example:</strong> SLO = 99.9%, observed error rate = 1.44% -> burn_rate = 0.0144 / 0.001 = 14.4x</p>
+        </div>
+
+        <h3>Multi-Window Burn Rate Alerts</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Severity</th>
+                    <th>Burn Rate</th>
+                    <th>Long Window</th>
+                    <th>Short Window</th>
+                    <th>Budget Consumed</th>
+                    <th>Response</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>P1 - Critical</strong></td>
+                    <td>14.4x</td>
+                    <td>1 hour</td>
+                    <td>5 min</td>
+                    <td>2% in 1 hour</td>
+                    <td>Page on-call immediately</td>
+                </tr>
+                <tr>
+                    <td><strong>P2 - High</strong></td>
+                    <td>6x</td>
+                    <td>6 hours</td>
+                    <td>30 min</td>
+                    <td>5% in 6 hours</td>
+                    <td>Page on-call (business hours)</td>
+                </tr>
+                <tr>
+                    <td><strong>P3 - Medium</strong></td>
+                    <td>3x</td>
+                    <td>1 day</td>
+                    <td>2 hours</td>
+                    <td>10% in 1 day</td>
+                    <td>Ticket, fix within 24h</td>
+                </tr>
+                <tr>
+                    <td><strong>P4 - Low</strong></td>
+                    <td>1x</td>
+                    <td>3 days</td>
+                    <td>6 hours</td>
+                    <td>10% in 3 days</td>
+                    <td>Ticket, fix within sprint</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="card card-warning">
+            <h4>Avoiding Alert Fatigue</h4>
+            <ul>
+                <li><strong>Every alert must be actionable:</strong> If you cannot do anything about it, delete the alert</li>
+                <li><strong>Use multi-window:</strong> Short window prevents stale alerts, long window prevents flapping</li>
+                <li><strong>Proper routing:</strong> Only page for user-facing issues. Tickets for the rest</li>
+                <li><strong>Regular review:</strong> Delete alerts that have not fired or were always ignored</li>
+                <li><strong>Aggregate:</strong> One alert for "payments service degraded" not 50 individual pod alerts</li>
+            </ul>
+        </div>
+
+        <h3>Alertmanager Configuration</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">alertmanager.yaml</span>
+                <span class="tag tag-blue">Alertmanager</span>
+            </div>
+            <pre>
+global:
+  resolve_timeout: 5m
+  slack_api_url: 'https://hooks.slack.com/services/xxx/yyy/zzz'
+
+# Routing tree
+route:
+  receiver: 'default-slack'
+  group_by: ['alertname', 'service', 'namespace']
+  group_wait: 30s         # Wait before sending first notification
+  group_interval: 5m      # Wait before sending updates
+  repeat_interval: 4h     # Re-notify interval
+
+  routes:
+    # P1: Page immediately
+    - match:
+        severity: critical
+      receiver: 'pagerduty-critical'
+      group_wait: 10s
+      repeat_interval: 1h
+
+    # P2: Page during business hours
+    - match:
+        severity: high
+      receiver: 'pagerduty-high'
+      active_time_intervals:
+        - business-hours
+
+    # P3: Slack + ticket
+    - match:
+        severity: medium
+      receiver: 'slack-and-ticket'
+      repeat_interval: 12h
+
+    # P4: Slack only
+    - match:
+        severity: low
+      receiver: 'default-slack'
+      repeat_interval: 24h
+
+receivers:
+  - name: 'pagerduty-critical'
+    pagerduty_configs:
+      - service_key: 'YOUR_PD_KEY'
+        severity: critical
+
+  - name: 'pagerduty-high'
+    pagerduty_configs:
+      - service_key: 'YOUR_PD_KEY'
+        severity: high
+
+  - name: 'slack-and-ticket'
+    slack_configs:
+      - channel: '#alerts-medium'
+        title: '{{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+    webhook_configs:
+      - url: 'http://ticket-creator/api/create'
+
+  - name: 'default-slack'
+    slack_configs:
+      - channel: '#alerts-low'
+        title: '{{ .GroupLabels.alertname }}'
+
+# Inhibition: suppress related alerts
+inhibit_rules:
+  - source_match:
+      severity: critical
+    target_match:
+      severity: high
+    equal: ['service']  # If critical fires for a service, suppress high for same service
+            </pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">prometheus-alert-rules.yaml</span>
+                <span class="tag tag-green">PrometheusRule</span>
+            </div>
+            <pre>
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: slo-alerts
+  namespace: monitoring
+spec:
+  groups:
+    - name: slo.rules
+      rules:
+        # P1: 14.4x burn rate over 1h AND 5m
+        - alert: HighErrorBurnRate_Critical
+          expr: |
+            (
+              sum(rate(http_requests_total{status=~"5.."}[1h]))
+              / sum(rate(http_requests_total[1h]))
+            ) > (14.4 * 0.001)
+            AND
+            (
+              sum(rate(http_requests_total{status=~"5.."}[5m]))
+              / sum(rate(http_requests_total[5m]))
+            ) > (14.4 * 0.001)
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "High error burn rate (14.4x) - SLO at risk"
+            description: "Error rate consuming budget at 14.4x. Will exhaust 30-day budget in ~2 days."
+
+        # P2: 6x burn rate over 6h AND 30m
+        - alert: HighErrorBurnRate_High
+          expr: |
+            (
+              sum(rate(http_requests_total{status=~"5.."}[6h]))
+              / sum(rate(http_requests_total[6h]))
+            ) > (6 * 0.001)
+            AND
+            (
+              sum(rate(http_requests_total{status=~"5.."}[30m]))
+              / sum(rate(http_requests_total[30m]))
+            ) > (6 * 0.001)
+          for: 5m
+          labels:
+            severity: high
+          annotations:
+            summary: "Elevated error burn rate (6x)"
+            description: "Error rate consuming budget at 6x. Will exhaust in ~5 days."
+
+        # Latency SLO
+        - alert: HighLatencyBurnRate
+          expr: |
+            (
+              1 - (
+                sum(rate(request_duration_seconds_bucket{le="0.3"}[1h]))
+                / sum(rate(request_duration_seconds_count[1h]))
+              )
+            ) > (14.4 * 0.001)
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "P99 latency SLO burning fast"
+            description: "More than 1.44% of requests exceeding 300ms threshold."
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 6. Dashboards -->
+        <!-- ============================================ -->
+        <h2>6. Dashboards</h2>
+
+        <h3>Four Golden Signals</h3>
+
+        <div class="card card-info">
+            <h4>Google SRE's Four Golden Signals</h4>
+            <p>If you can only measure four things, measure these:</p>
+            <ol>
+                <li><strong>Latency:</strong> Time to service a request (distinguish successful vs failed request latency)</li>
+                <li><strong>Traffic:</strong> Demand on your system (requests/sec, sessions, transactions)</li>
+                <li><strong>Errors:</strong> Rate of failed requests (explicit 5xx, implicit wrong content, policy-based like >1s = error)</li>
+                <li><strong>Saturation:</strong> How "full" your system is (CPU, memory, queue depth). Predict before hitting 100%</li>
+            </ol>
+        </div>
+
+        <h3>RED Dashboard Layout</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">RED Dashboard (Service-Level)</div>
+            <pre>
+  +================================================================+
+  |  SERVICE: order-service         Environment: Production        |
+  +================================================================+
+  |                                                                |
+  |  +-- Rate -------------------+  +-- Errors -----------------+ |
+  |  |                           |  |                           | |
+  |  |  Current: 1,234 req/s     |  |  Current: 0.3%            | |
+  |  |                           |  |                           | |
+  |  |     /\    /\              |  |                    _      | |
+  |  |    /  \  /  \   /\       |  |  _______________/ \___  | |
+  |  |   /    \/    \ /  \      |  |                           | |
+  |  |  /            v    \     |  |  SLO: < 0.1% -------- X  | |
+  |  +---------------------------+  +---------------------------+ |
+  |                                                                |
+  |  +-- Duration (Latency) -----+  +-- Saturation -------------+ |
+  |  |                           |  |                           | |
+  |  |  P50: 45ms               |  |  CPU: 65%                 | |
+  |  |  P95: 120ms              |  |  Memory: 72%              | |
+  |  |  P99: 340ms              |  |  Connections: 450/1000    | |
+  |  |                           |  |                           | |
+  |  |  P99 ---___   ___/       |  |  ______/------             | |
+  |  |  P95 --------___         |  |  Memory -----              | |
+  |  |  P50 _______________     |  |                           | |
+  |  +---------------------------+  +---------------------------+ |
+  |                                                                |
+  |  +-- Top Endpoints by Latency -----+  +-- Recent Errors ---+ |
+  |  | POST /api/orders    P99: 450ms   |  | 10:23 - timeout   | |
+  |  | GET  /api/orders/:id P99: 80ms   |  | 10:22 - 503       | |
+  |  | GET  /api/health     P99: 5ms    |  | 10:21 - timeout   | |
+  |  +----------------------------------+  +--------------------+ |
+  +================================================================+
+            </pre>
+        </div>
+
+        <h3>USE Dashboard Layout</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">USE Dashboard (Infrastructure)</div>
+            <pre>
+  +================================================================+
+  |  NODE: worker-node-01       Cluster: production-us-east-1      |
+  +================================================================+
+  |                                                                |
+  |  +-- CPU --------------------------------+                     |
+  |  | Utilization: 73%  | Saturation: 2.1   | Errors: 0          |
+  |  | (% time busy)     | (run queue len)   | (CPU errors)       |
+  |  +-------------------------------------------+                |
+  |                                                                |
+  |  +-- Memory -----------------------------+                     |
+  |  | Utilization: 85%  | Saturation: 150MB | Errors: 2 OOM      |
+  |  | (% used)          | (swap used)       | (OOM kills today)  |
+  |  +-------------------------------------------+                |
+  |                                                                |
+  |  +-- Disk I/O ---------------------------+                     |
+  |  | Utilization: 45%  | Saturation: 12    | Errors: 0          |
+  |  | (% time busy)     | (queue depth)     | (disk errors)      |
+  |  +-------------------------------------------+                |
+  |                                                                |
+  |  +-- Network ----------------------------+                     |
+  |  | Utilization: 2Gbps| Saturation: 0     | Errors: 12         |
+  |  | (bandwidth used)  | (dropped pkts)    | (interface errors)  |
+  |  +-------------------------------------------+                |
+  |                                                                |
+  +================================================================+
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 7. Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>7. Interview Q&A</h2>
+
+        <div class="card">
+            <h4>Q1: What are the three pillars of observability and how do they complement each other?</h4>
+            <p><strong>Answer:</strong> Metrics, Logs, and Traces. They work together: Metrics ALERT you that something is wrong (high error rate), Traces help you LOCATE where in the request path the problem occurs (which service/dependency), Logs help you UNDERSTAND the specific error details (stack trace, context). Workflow: metric alert fires -> check dashboard -> find affected service -> look at traces for that service -> find slow span -> read logs for that span's service to find root cause.</p>
+        </div>
+
+        <div class="card">
+            <h4>Q2: Explain the USE method vs the RED method. When do you use each?</h4>
+            <p><strong>Answer:</strong> USE (Utilization, Saturation, Errors) is for infrastructure resources: for every resource (CPU, memory, disk, network), check these three. It tells you if a resource is the bottleneck. RED (Rate, Errors, Duration) is for services/endpoints: for every microservice, monitor these three. It tells you if users are affected. Use USE for infrastructure debugging ("is the node the problem?") and RED for service monitoring ("are users experiencing issues?"). In practice, you need both: RED dashboard detects symptoms, USE dashboard helps identify which resource constraint is the cause.</p>
+        </div>
+
+        <div class="card">
+            <h4>Q3: How would you implement alerting that does not cause alert fatigue?</h4>
+            <p><strong>Answer:</strong> (1) Alert on symptoms, not causes (user-impacting issues only). (2) Use SLO-based alerting with burn rates - only page when error budget is being consumed too fast. (3) Multi-window approach: require both long window (real signal) AND short window (still happening) to avoid stale or flapping alerts. (4) Severity routing: P1 pages immediately, P2 pages during business hours, P3/P4 create tickets. (5) Inhibition rules: if parent alert fires, suppress child alerts. (6) Regular pruning: review and delete alerts not actioned in 30 days.</p>
+        </div>
+
+        <div class="card">
+            <h4>Q4: What is alert fatigue and why is it dangerous?</h4>
+            <p><strong>Answer:</strong> Alert fatigue occurs when teams receive so many alerts (most non-actionable) that they start ignoring them. Dangerous because: (1) Real incidents get lost in noise, (2) On-call engineers burn out and morale drops, (3) Response time increases because alerts are dismissed without investigation, (4) Creates a "boy who cried wolf" culture. Root causes: alerting on causes not symptoms, too-low thresholds, no deduplication, missing inhibition. Fix: ruthlessly delete non-actionable alerts, raise thresholds, implement proper grouping and routing.</p>
+        </div>
+
+        <div class="card">
+            <h4>Q5: What is the difference between observability and monitoring?</h4>
+            <p><strong>Answer:</strong> Monitoring is about known-unknowns: you define what to check in advance (is CPU high? is the service responding?). It tells you WHEN things break but only for predefined scenarios. Observability is about unknown-unknowns: your system emits rich telemetry (metrics, logs, traces) that lets you ask arbitrary questions to debug novel issues you have never seen before. Example: monitoring says "error rate high". Observability lets you drill down: "which endpoint? which user segment? which dependency? what changed in the last deploy?" without having predefined those exact queries.</p>
+        </div>
+
+        <div class="card">
+            <h4>Q6: How does distributed tracing work and when would you use it?</h4>
+            <p><strong>Answer:</strong> A unique trace ID is generated at the system entry point and propagated via HTTP headers (W3C traceparent) through all downstream service calls. Each service creates spans (units of work) with timing, parent relationships, and metadata. These are collected by an agent (OTel Collector) and stored (Jaeger/Tempo). Use when: debugging latency in multi-service requests, understanding request flow in microservices, finding which dependency is causing timeouts, or identifying N+1 query patterns. Key challenge: sampling at scale (can't store every trace).</p>
+        </div>
+
+        <div class="card">
+            <h4>Q7: How would you set up observability for a new microservice from scratch?</h4>
+            <p><strong>Answer:</strong> (1) Instrument with OpenTelemetry SDK for auto-instrumentation (HTTP, gRPC, DB clients), adding custom spans for business logic. (2) Emit structured JSON logs with trace_id, service name, and relevant context. (3) Expose Prometheus metrics: RED metrics (request rate, error rate, duration histogram) + business metrics. (4) Deploy OTel Collector as sidecar or DaemonSet. (5) Create RED dashboard in Grafana. (6) Set up SLO-based alerts with burn rates. (7) Add to service mesh for golden signals without code changes.</p>
+        </div>
+
+        <div class="card">
+            <h4>Q8: Explain burn rate alerting and why it is better than threshold-based alerting.</h4>
+            <p><strong>Answer:</strong> Threshold alerting (e.g., "error rate > 1%") is static and either too sensitive (alerts on brief spikes) or too slow (misses gradual degradation). Burn rate measures how fast you are consuming your error budget: burn_rate = observed_error_rate / (1 - SLO). A 14.4x burn rate means you will exhaust your 30-day budget in ~2 days. Benefits: (1) Directly tied to SLOs and user impact, (2) Multi-window avoids flapping, (3) Different severities for different burn rates, (4) Works equally well for brief outages and slow degradations. Google SRE book recommends this as the standard approach.</p>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 8. Scenarios -->
+        <!-- ============================================ -->
+        <h2>8. Scenarios</h2>
+
+        <div class="card card-warning">
+            <h4>Scenario 1: Alert Storm Diagnosis</h4>
+            <p><strong>Situation:</strong> On-call engineer receives 47 alerts in 5 minutes across multiple services. PagerDuty is firing continuously.</p>
+            <p><strong>Approach:</strong></p>
+            <ol>
+                <li><strong>Don't panic. Group and triage:</strong> Look at alert timestamps - which fired FIRST? That's likely the root cause. Others are cascading effects.</li>
+                <li><strong>Check shared dependencies:</strong> If multiple services are failing, look at what they share (database, cache, network, cloud provider).</li>
+                <li><strong>Check infrastructure:</strong> USE dashboard for the underlying nodes - is there a resource constraint?</li>
+                <li><strong>Timeline correlation:</strong> Was there a deployment in the last 30 minutes? DNS change? Certificate expiry?</li>
+                <li><strong>Immediate action:</strong> If recent deploy is identified, initiate rollback. If infrastructure issue, scale or failover.</li>
+            </ol>
+            <p><strong>Post-incident:</strong> Fix alerting: add inhibition rules (if DB alert fires, suppress all service alerts that depend on it). Group related alerts. Review if the storm could have been a single meaningful alert.</p>
+        </div>
+
+        <div class="card card-warning">
+            <h4>Scenario 2: Missing Metrics After Deployment</h4>
+            <p><strong>Situation:</strong> After deploying a new version of order-service, Grafana dashboards show "No Data" for all custom metrics. The service appears to be running and serving traffic.</p>
+            <p><strong>Investigation:</strong></p>
+            <ol>
+                <li><strong>Check service is exposing metrics:</strong> <code>kubectl port-forward pod/order-svc-xxx 8080</code> then <code>curl localhost:8080/metrics</code>. Are metrics being emitted?</li>
+                <li><strong>Check Prometheus targets:</strong> Prometheus UI -> Status -> Targets. Is the pod being scraped? Is it showing UP?</li>
+                <li><strong>Check annotations/labels:</strong> Did the deployment change pod labels? ServiceMonitor selectors must match.</li>
+                <li><strong>Check port:</strong> Did the metrics port change? (e.g., moved from 8080 to 9090). Update ServiceMonitor.</li>
+                <li><strong>Check metric names:</strong> Did the library update rename metrics? (e.g., <code>http_request_duration</code> -> <code>http_request_duration_seconds</code>)</li>
+            </ol>
+            <p><strong>Root cause:</strong> Often a label selector mismatch between new pods and ServiceMonitor, or a metrics library upgrade that changed metric names.</p>
+        </div>
+
+        <div class="card card-warning">
+            <h4>Scenario 3: Slow Service Investigation Using All Three Pillars</h4>
+            <p><strong>Situation:</strong> Users report the checkout page is slow. P99 latency increased from 200ms to 2.5s in the last hour.</p>
+            <p><strong>Investigation using all 3 pillars:</strong></p>
+            <ol>
+                <li><strong>METRICS (What is happening?):</strong>
+                    <ul>
+                        <li>RED dashboard confirms: order-service P99 = 2.5s (was 200ms)</li>
+                        <li>Rate is normal (not a traffic spike)</li>
+                        <li>Error rate slightly elevated (timeouts)</li>
+                        <li>USE dashboard: order-service CPU normal, but inventory-service connection pool at 100% saturation</li>
+                    </ul>
+                </li>
+                <li><strong>TRACES (Where is the bottleneck?):</strong>
+                    <ul>
+                        <li>Find a slow trace for the checkout endpoint</li>
+                        <li>Waterfall shows: order-service -> inventory-service call taking 2.2s (normally 50ms)</li>
+                        <li>The inventory-service span shows it is waiting on a database query</li>
+                    </ul>
+                </li>
+                <li><strong>LOGS (Why is it slow?):</strong>
+                    <ul>
+                        <li>Filter inventory-service logs by trace_id from the slow trace</li>
+                        <li>Find: "WARN: Full table scan on inventory.products - missing index on sku_code"</li>
+                        <li>Correlate with deployment log: new query added without index in last deploy</li>
+                    </ul>
+                </li>
+            </ol>
+            <p><strong>Resolution:</strong> Add the missing database index. P99 drops back to 200ms. Create alert for query duration to catch this earlier.</p>
+        </div>
+
+    </div>
+
+</body>
+</html>

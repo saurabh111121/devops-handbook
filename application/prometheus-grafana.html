@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prometheus & Grafana - DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html" class="active">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> / <a href="../index.html">Application</a> / Prometheus & Grafana
+        </div>
+
+        <h1>Prometheus & Grafana</h1>
+        <p class="subtitle">Metrics collection, PromQL mastery, alerting pipelines, and dashboard best practices for production observability</p>
+
+        <!-- ============================================ -->
+        <!-- 1. Prometheus Architecture -->
+        <!-- ============================================ -->
+        <h2>1. Prometheus Architecture</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">Prometheus Architecture Overview</div>
+            <pre>
+  +-----------------+     +-----------------+     +-----------------+
+  |   Targets       |     |   Targets       |     |   Targets       |
+  |  (App /metrics) |     | (Node Exporter) |     | (cAdvisor)      |
+  +--------+--------+     +--------+--------+     +--------+--------+
+           |                        |                        |
+           +------------------------+------------------------+
+                                    |
+                         HTTP GET /metrics (Pull)
+                                    |
+                                    v
+                    +-------------------------------+
+                    |        PROMETHEUS SERVER       |
+                    |  +-------------------------+  |
+                    |  |   Service Discovery     |  |
+                    |  |  (K8s, Consul, DNS,     |  |
+                    |  |   file_sd, EC2, etc.)   |  |
+                    |  +-------------------------+  |
+                    |  |   Scrape Manager        |  |
+                    |  +-------------------------+  |
+                    |  |   TSDB (Time Series DB) |  |
+                    |  |   - WAL (Write-Ahead)   |  |
+                    |  |   - Blocks (2h chunks)  |  |
+                    |  |   - Compaction          |  |
+                    |  +-------------------------+  |
+                    |  |   PromQL Engine         |  |
+                    |  +-------------------------+  |
+                    |  |   Rule Manager          |  |
+                    |  |  (Recording + Alerting) |  |
+                    |  +-------------------------+  |
+                    +------+----------------+-------+
+                           |                |
+              +------------+                +------------+
+              |                                          |
+              v                                          v
+  +-----------+----------+              +---------------+-----------+
+  |    ALERTMANAGER      |              |         GRAFANA           |
+  |  - Routing           |              |  - Dashboards             |
+  |  - Grouping          |              |  - PromQL queries         |
+  |  - Inhibition        |              |  - Variables/Templates    |
+  |  - Silencing         |              |  - Alerting (optional)    |
+  +---+------+------+---+              +---------------------------+
+      |      |      |
+      v      v      v
+   Slack  PagerDuty  Email
+            </pre>
+        </div>
+
+        <div class="card card-info">
+            <h4>Pull-Based Model</h4>
+            <ul>
+                <li><strong>Pull vs Push:</strong> Prometheus scrapes targets at configured intervals (default 15s-30s). Targets expose an HTTP endpoint (<code>/metrics</code>) in Prometheus exposition format</li>
+                <li><strong>Advantages:</strong> Easier to detect target health (failed scrape = target down), no need for targets to know about Prometheus, central configuration control</li>
+                <li><strong>Pushgateway:</strong> For short-lived batch jobs that cannot be scraped, push metrics to a Pushgateway which Prometheus scrapes</li>
+                <li><strong>Scrape interval:</strong> Configurable per-job; typically 15s for infrastructure, 30s for applications</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h4>Service Discovery</h4>
+            <p>Prometheus automatically discovers targets to scrape:</p>
+            <ul>
+                <li><strong>kubernetes_sd_configs:</strong> Discovers pods, services, endpoints, nodes, ingresses from K8s API</li>
+                <li><strong>consul_sd_configs:</strong> Discovers services registered in Consul</li>
+                <li><strong>dns_sd_configs:</strong> Discovers via DNS SRV records</li>
+                <li><strong>ec2_sd_configs:</strong> Discovers EC2 instances by tags/filters</li>
+                <li><strong>file_sd_configs:</strong> Reads targets from JSON/YAML files (simplest, good for static targets)</li>
+                <li><strong>relabeling:</strong> Transform discovered labels before scraping (<code>relabel_configs</code>) or before storage (<code>metric_relabel_configs</code>)</li>
+            </ul>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">prometheus.yml - Basic Configuration</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+            <pre>
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+rule_files:
+  - "recording_rules.yml"
+  - "alerting_rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+scrape_configs:
+  - job_name: 'kubernetes-pods'
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      # Only scrape pods with annotation prometheus.io/scrape: "true"
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      # Use custom port from annotation
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        target_label: __address__
+        regex: (.+)
+        replacement: ${1}:${2}
+      # Use custom path from annotation
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+
+  - job_name: 'node-exporter'
+    kubernetes_sd_configs:
+      - role: endpoints
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: node-exporter
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 2. Metrics Types -->
+        <!-- ============================================ -->
+        <h2>2. Metrics Types</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Behavior</th>
+                    <th>When to Use</th>
+                    <th>Example</th>
+                    <th>Common Functions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Counter</strong></td>
+                    <td>Monotonically increasing (only goes up, resets on restart)</td>
+                    <td>Counting events: requests, errors, bytes sent</td>
+                    <td><code>http_requests_total</code></td>
+                    <td><code>rate()</code>, <code>increase()</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Gauge</strong></td>
+                    <td>Can go up or down</td>
+                    <td>Current state: temperature, memory usage, queue size</td>
+                    <td><code>node_memory_available_bytes</code></td>
+                    <td><code>avg_over_time()</code>, <code>max_over_time()</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Histogram</strong></td>
+                    <td>Counts observations in configurable buckets + sum + count</td>
+                    <td>Latency distributions, request sizes (when you need percentiles)</td>
+                    <td><code>http_request_duration_seconds_bucket</code></td>
+                    <td><code>histogram_quantile()</code>, <code>rate()</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Summary</strong></td>
+                    <td>Pre-calculated quantiles on client side + sum + count</td>
+                    <td>When you need exact quantiles but cannot aggregate across instances</td>
+                    <td><code>go_gc_duration_seconds{quantile="0.99"}</code></td>
+                    <td>Direct read (cannot aggregate)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="card card-warning">
+            <h4>Histogram vs Summary</h4>
+            <ul>
+                <li><strong>Histogram:</strong> Preferred for most cases. Server-side calculation allows aggregation across instances. Choose bucket boundaries carefully (they cannot be changed retroactively)</li>
+                <li><strong>Summary:</strong> Client-side calculation means exact quantiles but CANNOT be aggregated across instances. Use only when you need exact values from a single instance</li>
+                <li><strong>Rule of thumb:</strong> Always use histograms unless you have a specific reason not to</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 3. PromQL -->
+        <!-- ============================================ -->
+        <h2>3. PromQL (Prometheus Query Language)</h2>
+
+        <h3>Selectors and Matchers</h3>
+
+        <div class="card">
+            <ul>
+                <li><code>http_requests_total</code> - instant vector: all time series with this name</li>
+                <li><code>http_requests_total{method="GET"}</code> - label matcher (exact)</li>
+                <li><code>http_requests_total{method=~"GET|POST"}</code> - regex matcher</li>
+                <li><code>http_requests_total{method!="DELETE"}</code> - negative matcher</li>
+                <li><code>http_requests_total{status=~"5.."}</code> - regex for 5xx errors</li>
+                <li><code>http_requests_total[5m]</code> - range vector: last 5 minutes of samples</li>
+                <li><code>http_requests_total offset 1h</code> - time offset: value from 1 hour ago</li>
+            </ul>
+        </div>
+
+        <h3>Key Functions</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Function</th>
+                    <th>Input</th>
+                    <th>Description</th>
+                    <th>Use Case</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>rate(v[t])</code></td>
+                    <td>Range vector (counter)</td>
+                    <td>Per-second average rate of increase over time window</td>
+                    <td>Request rate, error rate</td>
+                </tr>
+                <tr>
+                    <td><code>irate(v[t])</code></td>
+                    <td>Range vector (counter)</td>
+                    <td>Instant rate based on last two data points</td>
+                    <td>Volatile/spiky metrics</td>
+                </tr>
+                <tr>
+                    <td><code>increase(v[t])</code></td>
+                    <td>Range vector (counter)</td>
+                    <td>Total increase over time window (rate * seconds)</td>
+                    <td>Total requests in last hour</td>
+                </tr>
+                <tr>
+                    <td><code>histogram_quantile(q, v)</code></td>
+                    <td>Quantile + histogram buckets</td>
+                    <td>Calculate quantile from histogram</td>
+                    <td>p50, p95, p99 latency</td>
+                </tr>
+                <tr>
+                    <td><code>avg_over_time(v[t])</code></td>
+                    <td>Range vector</td>
+                    <td>Average value over time window</td>
+                    <td>Smoothing gauges</td>
+                </tr>
+                <tr>
+                    <td><code>max_over_time(v[t])</code></td>
+                    <td>Range vector</td>
+                    <td>Maximum value in time window</td>
+                    <td>Peak memory usage</td>
+                </tr>
+                <tr>
+                    <td><code>predict_linear(v[t], s)</code></td>
+                    <td>Range vector + seconds</td>
+                    <td>Predicts value s seconds from now using linear regression</td>
+                    <td>Disk full prediction</td>
+                </tr>
+                <tr>
+                    <td><code>delta(v[t])</code></td>
+                    <td>Range vector (gauge)</td>
+                    <td>Difference between first and last value in range</td>
+                    <td>Temperature change</td>
+                </tr>
+                <tr>
+                    <td><code>absent(v)</code></td>
+                    <td>Instant vector</td>
+                    <td>Returns 1 if no time series match, empty otherwise</td>
+                    <td>Alerting on missing metrics</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Aggregation Operators</h3>
+
+        <div class="card">
+            <ul>
+                <li><code>sum(rate(http_requests_total[5m])) by (service)</code> - total request rate per service</li>
+                <li><code>avg(node_cpu_seconds_total) by (instance)</code> - average CPU per node</li>
+                <li><code>max(container_memory_usage_bytes) by (pod)</code> - peak memory per pod</li>
+                <li><code>min</code>, <code>count</code>, <code>stddev</code>, <code>topk(k, v)</code>, <code>bottomk(k, v)</code>, <code>quantile(q, v)</code></li>
+                <li><code>count_values("version", build_info)</code> - count unique label values</li>
+                <li><code>without</code> vs <code>by</code>: <code>sum without (instance)(rate(...))</code> aggregates across all instances</li>
+            </ul>
+        </div>
+
+        <h3>Practical PromQL Examples (15+)</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">PromQL - Error Rate</span>
+                <span class="tag tag-red">Alerts</span>
+            </div>
+            <pre>
+# Error rate as percentage (5xx responses / total responses)
+sum(rate(http_requests_total{status=~"5.."}[5m]))
+/
+sum(rate(http_requests_total[5m]))
+* 100
+
+# Error rate per service
+sum(rate(http_requests_total{status=~"5.."}[5m])) by (service)
+/
+sum(rate(http_requests_total[5m])) by (service)
+            </pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">PromQL - P99 Latency</span>
+                <span class="tag tag-purple">Latency</span>
+            </div>
+            <pre>
+# P99 latency across all instances
+histogram_quantile(0.99,
+  sum(rate(http_request_duration_seconds_bucket[5m])) by (le)
+)
+
+# P99 latency per service
+histogram_quantile(0.99,
+  sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service)
+)
+
+# P50 (median) latency
+histogram_quantile(0.50,
+  sum(rate(http_request_duration_seconds_bucket[5m])) by (le)
+)
+            </pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">PromQL - CPU Usage</span>
+                <span class="tag tag-green">Resources</span>
+            </div>
+            <pre>
+# CPU usage percentage per node
+100 - (avg by (instance) (
+  irate(node_cpu_seconds_total{mode="idle"}[5m])
+) * 100)
+
+# CPU usage per pod (container-level)
+sum(rate(container_cpu_usage_seconds_total{container!="POD",container!=""}[5m]))
+by (namespace, pod)
+
+# CPU throttling percentage
+sum(rate(container_cpu_cfs_throttled_periods_total[5m]))
+/
+sum(rate(container_cpu_cfs_periods_total[5m]))
+by (namespace, pod) * 100
+            </pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">PromQL - Memory Usage</span>
+                <span class="tag tag-green">Resources</span>
+            </div>
+            <pre>
+# Memory usage percentage per node
+(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100
+
+# Memory usage per pod vs request
+sum(container_memory_working_set_bytes{container!="POD",container!=""})
+by (namespace, pod)
+/
+sum(kube_pod_container_resource_requests{resource="memory"})
+by (namespace, pod)
+* 100
+
+# OOM risk: pods using > 90% of their memory limit
+sum(container_memory_working_set_bytes{container!=""}) by (namespace, pod)
+/
+sum(kube_pod_container_resource_limits{resource="memory"}) by (namespace, pod)
+> 0.9
+            </pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">PromQL - Request Rate and Availability</span>
+                <span class="tag tag-blue">SLI/SLO</span>
+            </div>
+            <pre>
+# Request rate (requests per second)
+sum(rate(http_requests_total[5m])) by (service)
+
+# Availability (non-5xx / total)
+1 - (
+  sum(rate(http_requests_total{status=~"5.."}[30d]))
+  /
+  sum(rate(http_requests_total[30d]))
+)
+
+# Request rate increase compared to 1 hour ago
+sum(rate(http_requests_total[5m]))
+/
+sum(rate(http_requests_total[5m] offset 1h))
+
+# Saturation: requests approaching capacity
+sum(rate(http_requests_total[5m])) by (instance)
+/
+max_over_time(http_requests_capacity[1h]) by (instance)
+            </pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">PromQL - Kubernetes Specific</span>
+                <span class="tag tag-orange">K8s</span>
+            </div>
+            <pre>
+# Pod restart count (increasing restarts = crashing)
+increase(kube_pod_container_status_restarts_total[1h]) > 3
+
+# Pods not ready
+kube_pod_status_ready{condition="false"} == 1
+
+# Deployment replicas mismatch
+kube_deployment_spec_replicas != kube_deployment_status_available_replicas
+
+# HPA at max replicas
+kube_horizontalpodautoscaler_status_current_replicas
+==
+kube_horizontalpodautoscaler_spec_max_replicas
+
+# PVC usage percentage (requires kubelet metrics)
+kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes * 100 > 80
+
+# Node disk will fill in 4 hours (predictive)
+predict_linear(node_filesystem_avail_bytes{mountpoint="/"}[6h], 4*3600) < 0
+
+# Container waiting (CrashLoopBackOff detection)
+kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"} > 0
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 4. Instrumentation -->
+        <!-- ============================================ -->
+        <h2>4. Instrumentation</h2>
+
+        <div class="card card-info">
+            <h4>The /metrics Endpoint</h4>
+            <p>Every target Prometheus scrapes must expose an HTTP endpoint (default <code>/metrics</code>) that returns metrics in Prometheus exposition format:</p>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Exposition Format Example</span>
+                <span class="tag tag-blue">Text</span>
+            </div>
+            <pre>
+# HELP http_requests_total Total number of HTTP requests
+# TYPE http_requests_total counter
+http_requests_total{method="GET",status="200"} 1234
+http_requests_total{method="POST",status="201"} 567
+http_requests_total{method="GET",status="500"} 12
+
+# HELP http_request_duration_seconds Request latency histogram
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{le="0.005"} 1000
+http_request_duration_seconds_bucket{le="0.01"} 1500
+http_request_duration_seconds_bucket{le="0.025"} 1800
+http_request_duration_seconds_bucket{le="0.05"} 1900
+http_request_duration_seconds_bucket{le="0.1"} 1950
+http_request_duration_seconds_bucket{le="+Inf"} 2000
+http_request_duration_seconds_sum 45.23
+http_request_duration_seconds_count 2000
+            </pre>
+        </div>
+
+        <div class="grid-2">
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="filename">Python - prometheus_client</span>
+                    <span class="tag tag-green">Python</span>
+                </div>
+                <pre>
+from prometheus_client import (
+    Counter, Histogram, Gauge,
+    start_http_server, Summary
+)
+import time
+
+# Define metrics
+REQUEST_COUNT = Counter(
+    'http_requests_total',
+    'Total HTTP requests',
+    ['method', 'endpoint', 'status']
+)
+
+REQUEST_LATENCY = Histogram(
+    'http_request_duration_seconds',
+    'Request latency in seconds',
+    ['method', 'endpoint'],
+    buckets=[.005, .01, .025, .05,
+             .1, .25, .5, 1, 2.5, 5]
+)
+
+IN_PROGRESS = Gauge(
+    'http_requests_in_progress',
+    'Requests currently being processed'
+)
+
+# Instrument your code
+@REQUEST_LATENCY.labels(
+    method='GET', endpoint='/api/users'
+).time()
+@IN_PROGRESS.track_inprogress()
+def handle_request():
+    # ... your logic ...
+    REQUEST_COUNT.labels(
+        method='GET',
+        endpoint='/api/users',
+        status='200'
+    ).inc()
+
+# Start metrics server on port 8000
+if __name__ == '__main__':
+    start_http_server(8000)
+    # Your app runs here
+                </pre>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="filename">Go - promhttp</span>
+                    <span class="tag tag-blue">Go</span>
+                </div>
+                <pre>
+package main
+
+import (
+    "net/http"
+    "github.com/prometheus/client_golang/prometheus"
+    "github.com/prometheus/client_golang/prometheus/promhttp"
+)
+
+var (
+    requestCount = prometheus.NewCounterVec(
+        prometheus.CounterOpts{
+            Name: "http_requests_total",
+            Help: "Total HTTP requests",
+        },
+        []string{"method", "endpoint", "status"},
+    )
+
+    requestLatency = prometheus.NewHistogramVec(
+        prometheus.HistogramOpts{
+            Name:    "http_request_duration_seconds",
+            Help:    "Request latency",
+            Buckets: prometheus.DefBuckets,
+        },
+        []string{"method", "endpoint"},
+    )
+
+    inProgress = prometheus.NewGauge(
+        prometheus.GaugeOpts{
+            Name: "http_requests_in_progress",
+            Help: "Requests in progress",
+        },
+    )
+)
+
+func init() {
+    prometheus.MustRegister(requestCount)
+    prometheus.MustRegister(requestLatency)
+    prometheus.MustRegister(inProgress)
+}
+
+func handler(w http.ResponseWriter, r *http.Request) {
+    inProgress.Inc()
+    defer inProgress.Dec()
+
+    timer := prometheus.NewTimer(
+        requestLatency.WithLabelValues(
+            r.Method, r.URL.Path,
+        ),
+    )
+    defer timer.ObserveDuration()
+
+    // ... your logic ...
+    requestCount.WithLabelValues(
+        r.Method, r.URL.Path, "200",
+    ).Inc()
+}
+
+func main() {
+    http.Handle("/metrics",
+        promhttp.Handler())
+    http.HandleFunc("/", handler)
+    http.ListenAndServe(":8080", nil)
+}
+                </pre>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 5. ServiceMonitor / PodMonitor -->
+        <!-- ============================================ -->
+        <h2>5. ServiceMonitor / PodMonitor</h2>
+
+        <div class="card card-info">
+            <h4>Prometheus Operator CRDs</h4>
+            <p>The Prometheus Operator (part of kube-prometheus-stack) introduces CRDs that declaratively configure Prometheus scrape targets. No need to edit <code>prometheus.yml</code> directly.</p>
+            <ul>
+                <li><strong>ServiceMonitor:</strong> Discovers targets through Kubernetes Services (uses Service labels to match)</li>
+                <li><strong>PodMonitor:</strong> Discovers targets directly from Pods (no Service required)</li>
+                <li><strong>PrometheusRule:</strong> Defines recording rules and alerting rules</li>
+            </ul>
+        </div>
+
+        <div class="grid-2">
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="filename">servicemonitor.yaml</span>
+                    <span class="tag tag-blue">K8s CRD</span>
+                </div>
+                <pre>
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: my-app-metrics
+  namespace: monitoring
+  labels:
+    # Must match Prometheus serviceMonitorSelector
+    release: kube-prometheus-stack
+spec:
+  # Namespace where target Service lives
+  namespaceSelector:
+    matchNames:
+      - production
+  # Match Services by label
+  selector:
+    matchLabels:
+      app: my-app
+      metrics: "true"
+  # How to scrape
+  endpoints:
+    - port: metrics        # Named port in Service
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      # Optional: relabeling
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_label_version]
+          targetLabel: app_version
+      # Optional: metric relabeling
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: "go_.*"
+          action: drop
+                </pre>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="filename">podmonitor.yaml</span>
+                    <span class="tag tag-blue">K8s CRD</span>
+                </div>
+                <pre>
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: envoy-sidecar
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - production
+      - staging
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: envoy
+  podMetricsEndpoints:
+    - port: admin
+      path: /stats/prometheus
+      interval: 15s
+      # Only keep specific metrics
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: "envoy_cluster_upstream_rq_total|envoy_cluster_upstream_rq_time_bucket"
+          action: keep
+---
+# Corresponding Service (for ServiceMonitor)
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app
+  namespace: production
+  labels:
+    app: my-app
+    metrics: "true"
+spec:
+  ports:
+    - name: http
+      port: 8080
+    - name: metrics   # Named port!
+      port: 9090
+  selector:
+    app: my-app
+                </pre>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 6. Recording Rules -->
+        <!-- ============================================ -->
+        <h2>6. Recording Rules</h2>
+
+        <div class="card card-info">
+            <h4>What Are Recording Rules?</h4>
+            <ul>
+                <li><strong>Purpose:</strong> Pre-compute expensive PromQL expressions and save results as new time series</li>
+                <li><strong>When to use:</strong> Dashboard queries that are slow, queries used in multiple dashboards, complex aggregations needed for alerts</li>
+                <li><strong>Naming convention:</strong> <code>level:metric:operations</code> (e.g., <code>job:http_requests_total:rate5m</code>)</li>
+                <li><strong>Evaluation:</strong> Run at <code>evaluation_interval</code> (default 15s), results stored as regular time series</li>
+                <li><strong>Benefit:</strong> Reduces query latency from seconds to milliseconds; reduces load on TSDB at query time</li>
+            </ul>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">recording-rules.yaml (PrometheusRule CRD)</span>
+                <span class="tag tag-purple">K8s CRD</span>
+            </div>
+            <pre>
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: recording-rules
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: http_requests_recording
+      interval: 30s   # Override global evaluation_interval
+      rules:
+        # Pre-compute request rate per service
+        - record: job:http_requests_total:rate5m
+          expr: sum(rate(http_requests_total[5m])) by (job, service)
+
+        # Pre-compute error rate percentage
+        - record: job:http_request_errors:ratio_rate5m
+          expr: |
+            sum(rate(http_requests_total{status=~"5.."}[5m])) by (job, service)
+            /
+            sum(rate(http_requests_total[5m])) by (job, service)
+
+        # Pre-compute P99 latency per service
+        - record: job:http_request_duration_seconds:p99_5m
+          expr: |
+            histogram_quantile(0.99,
+              sum(rate(http_request_duration_seconds_bucket[5m])) by (le, job, service)
+            )
+
+        # Pre-compute P50 latency per service
+        - record: job:http_request_duration_seconds:p50_5m
+          expr: |
+            histogram_quantile(0.50,
+              sum(rate(http_request_duration_seconds_bucket[5m])) by (le, job, service)
+            )
+
+    - name: node_recording_rules
+      rules:
+        # Pre-compute CPU usage per node
+        - record: instance:node_cpu_utilization:ratio
+          expr: |
+            1 - avg by (instance) (
+              rate(node_cpu_seconds_total{mode="idle"}[5m])
+            )
+
+        # Pre-compute memory usage per node
+        - record: instance:node_memory_utilization:ratio
+          expr: |
+            1 - (
+              node_memory_MemAvailable_bytes
+              /
+              node_memory_MemTotal_bytes
+            )
+
+        # Pre-compute filesystem usage
+        - record: instance:node_filesystem_utilization:ratio
+          expr: |
+            1 - (
+              node_filesystem_avail_bytes{mountpoint="/"}
+              /
+              node_filesystem_size_bytes{mountpoint="/"}
+            )
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 7. Alerting Rules -->
+        <!-- ============================================ -->
+        <h2>7. Alerting Rules</h2>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">alerting-rules.yaml (PrometheusRule CRD)</span>
+                <span class="tag tag-red">Alerts</span>
+            </div>
+            <pre>
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: alerting-rules
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: application_alerts
+      rules:
+        # High Error Rate
+        - alert: HighErrorRate
+          expr: |
+            job:http_request_errors:ratio_rate5m > 0.05
+          for: 5m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "High error rate on {{ $labels.service }}"
+            description: "Error rate is {{ $value | humanizePercentage }} (>5%) for 5m"
+            runbook_url: "https://runbooks.internal/high-error-rate"
+            dashboard: "https://grafana.internal/d/app-overview"
+
+        # High P99 Latency
+        - alert: HighLatencyP99
+          expr: |
+            job:http_request_duration_seconds:p99_5m > 2.0
+          for: 10m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "P99 latency >2s on {{ $labels.service }}"
+            description: "P99 latency is {{ $value | humanizeDuration }}"
+
+    - name: kubernetes_alerts
+      rules:
+        # Pod Crash Looping
+        - alert: PodCrashLooping
+          expr: |
+            increase(kube_pod_container_status_restarts_total[1h]) > 5
+          for: 10m
+          labels:
+            severity: warning
+            team: "{{ $labels.namespace }}"
+          annotations:
+            summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} crash looping"
+            description: "{{ $value }} restarts in the last hour"
+
+        # Node Disk Almost Full
+        - alert: NodeDiskAlmostFull
+          expr: |
+            instance:node_filesystem_utilization:ratio > 0.85
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Disk >85% full on {{ $labels.instance }}"
+            description: "Current usage: {{ $value | humanizePercentage }}"
+
+        # Node Disk Will Fill in 4 Hours
+        - alert: NodeDiskFillingUp
+          expr: |
+            predict_linear(node_filesystem_avail_bytes{mountpoint="/"}[6h], 4*3600) < 0
+            and
+            instance:node_filesystem_utilization:ratio > 0.5
+          for: 30m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Disk on {{ $labels.instance }} predicted full in <4h"
+
+        # HPA Maxed Out
+        - alert: HPAMaxedOut
+          expr: |
+            kube_horizontalpodautoscaler_status_current_replicas
+            ==
+            kube_horizontalpodautoscaler_spec_max_replicas
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "HPA {{ $labels.namespace }}/{{ $labels.horizontalpodautoscaler }} at max"
+            description: "Running at {{ $value }} replicas (max). May need capacity increase."
+
+        # Certificate Expiry (cert-manager)
+        - alert: CertificateExpiringSoon
+          expr: |
+            certmanager_certificate_expiration_timestamp_seconds - time() < 7*24*3600
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "Certificate {{ $labels.name }} expires in < 7 days"
+            description: "Namespace: {{ $labels.namespace }}, expires in {{ $value | humanizeDuration }}"
+
+        - alert: CertificateExpiryCritical
+          expr: |
+            certmanager_certificate_expiration_timestamp_seconds - time() < 24*3600
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Certificate {{ $labels.name }} expires in < 24 hours!"
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 8. Alertmanager -->
+        <!-- ============================================ -->
+        <h2>8. Alertmanager</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">Alertmanager Routing Flow</div>
+            <pre>
+  Prometheus fires alert
+         |
+         v
+  +------+------+
+  | Alertmanager|
+  +------+------+
+         |
+    [Grouping]  ---->  Group alerts by: alertname, service, namespace
+         |               (wait: 30s, group_interval: 5m)
+         |
+    [Inhibition] --->  Suppress warnings if critical exists for same service
+         |
+    [Silencing]  --->  Check active silences (maintenance windows)
+         |
+    [Routing Tree]
+         |
+    +----+----+----+----+
+    |    |    |    |    |
+    v    v    v    v    v
+  Slack  PD  Email  Webhook  OpsGenie
+  (#crit)     (team)  (custom)
+            </pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">alertmanager.yaml</span>
+                <span class="tag tag-red">Configuration</span>
+            </div>
+            <pre>
+global:
+  resolve_timeout: 5m
+  slack_api_url: 'https://hooks.slack.com/services/T00/B00/XXXX'
+  pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+
+# Inhibition rules: suppress lower-severity alerts
+inhibit_rules:
+  - source_matchers:
+      - severity = critical
+    target_matchers:
+      - severity = warning
+    equal: ['alertname', 'namespace', 'service']
+
+  - source_matchers:
+      - alertname = NodeDown
+    target_matchers:
+      - alertname =~ ".*"
+    equal: ['instance']
+
+# Routing tree
+route:
+  receiver: 'default-slack'
+  group_by: ['alertname', 'namespace', 'service']
+  group_wait: 30s          # Wait before sending first notification
+  group_interval: 5m       # Wait before sending updates to a group
+  repeat_interval: 4h      # Re-send if alert still firing
+  routes:
+    # Critical alerts -> PagerDuty + Slack
+    - matchers:
+        - severity = critical
+      receiver: 'pagerduty-critical'
+      continue: true        # Also match next routes
+
+    - matchers:
+        - severity = critical
+      receiver: 'slack-critical'
+
+    # Team-specific routing
+    - matchers:
+        - team = platform
+      receiver: 'slack-platform'
+      routes:
+        - matchers:
+            - severity = critical
+          receiver: 'pagerduty-platform'
+
+    - matchers:
+        - team = backend
+      receiver: 'slack-backend'
+
+    # Watchdog (dead man's switch) - if this STOPS firing, Alertmanager is broken
+    - matchers:
+        - alertname = Watchdog
+      receiver: 'deadmansswitch'
+      repeat_interval: 1m
+
+receivers:
+  - name: 'default-slack'
+    slack_configs:
+      - channel: '#alerts-general'
+        title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
+        text: >-
+          {{ range .Alerts }}
+          *{{ .Annotations.summary }}*
+          {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+
+  - name: 'slack-critical'
+    slack_configs:
+      - channel: '#alerts-critical'
+        title: '{{ .GroupLabels.alertname }} CRITICAL'
+        color: '#ff0000'
+        send_resolved: true
+
+  - name: 'slack-platform'
+    slack_configs:
+      - channel: '#platform-alerts'
+        send_resolved: true
+
+  - name: 'slack-backend'
+    slack_configs:
+      - channel: '#backend-alerts'
+        send_resolved: true
+
+  - name: 'pagerduty-critical'
+    pagerduty_configs:
+      - service_key: 'your-pagerduty-service-key'
+        severity: critical
+        description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}'
+
+  - name: 'pagerduty-platform'
+    pagerduty_configs:
+      - service_key: 'platform-team-key'
+        severity: '{{ .GroupLabels.severity }}'
+
+  - name: 'deadmansswitch'
+    webhook_configs:
+      - url: 'https://deadmansswitch.internal/ping'
+
+# Templates for notification formatting
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+            </pre>
+        </div>
+
+        <div class="card">
+            <h4>Key Concepts</h4>
+            <ul>
+                <li><strong>Grouping:</strong> Combines related alerts into a single notification (e.g., all pods in same namespace failing)</li>
+                <li><strong>Inhibition:</strong> Suppresses dependent alerts when a root cause alert fires (e.g., node down inhibits all pod alerts on that node)</li>
+                <li><strong>Silencing:</strong> Temporarily mute alerts during maintenance. Created via UI or API with matchers and time window</li>
+                <li><strong>continue: true:</strong> Allows matching multiple routes (e.g., send to both PagerDuty AND Slack)</li>
+                <li><strong>group_wait:</strong> How long to buffer alerts before first notification (catch related alerts)</li>
+                <li><strong>repeat_interval:</strong> How often to re-send if alert persists (avoid alert fatigue)</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 9. Grafana -->
+        <!-- ============================================ -->
+        <h2>9. Grafana</h2>
+
+        <div class="card card-info">
+            <h4>Dashboard Design Best Practices</h4>
+            <ul>
+                <li><strong>USE Method:</strong> Utilization, Saturation, Errors for infrastructure</li>
+                <li><strong>RED Method:</strong> Rate, Errors, Duration for services</li>
+                <li><strong>Golden Signals:</strong> Latency, Traffic, Errors, Saturation (Google SRE)</li>
+                <li><strong>Top-down:</strong> Start with high-level overview, drill down into details</li>
+                <li><strong>Variables:</strong> Use template variables for namespace, service, instance selection</li>
+                <li><strong>Annotations:</strong> Mark deployments, incidents on graphs for correlation</li>
+                <li><strong>Consistent layout:</strong> Same panel order across dashboards for muscle memory</li>
+            </ul>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Grafana Dashboard JSON (excerpt)</span>
+                <span class="tag tag-blue">JSON</span>
+            </div>
+            <pre>
+{
+  "dashboard": {
+    "title": "Service Overview",
+    "uid": "service-overview-v1",
+    "tags": ["production", "services"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "templating": {
+      "list": [
+        {
+          "name": "namespace",
+          "type": "query",
+          "datasource": "Prometheus",
+          "query": "label_values(http_requests_total, namespace)",
+          "refresh": 2,
+          "multi": false
+        },
+        {
+          "name": "service",
+          "type": "query",
+          "datasource": "Prometheus",
+          "query": "label_values(http_requests_total{namespace=\"$namespace\"}, service)",
+          "refresh": 2,
+          "multi": true
+        }
+      ]
+    },
+    "panels": [
+      {
+        "title": "Request Rate",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{namespace=\"$namespace\",service=~\"$service\"}[5m])) by (service)",
+            "legendFormat": "{{ service }}"
+          }
+        ]
+      },
+      {
+        "title": "Error Rate %",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{namespace=\"$namespace\",service=~\"$service\",status=~\"5..\"}[5m])) by (service) / sum(rate(http_requests_total{namespace=\"$namespace\",service=~\"$service\"}[5m])) by (service) * 100",
+            "legendFormat": "{{ service }}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 5}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "title": "P99 Latency",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{namespace=\"$namespace\",service=~\"$service\"}[5m])) by (le, service))",
+            "legendFormat": "p99 {{ service }}"
+          }
+        ]
+      }
+    ]
+  }
+}
+            </pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Grafana Datasource Configuration (provisioning)</span>
+                <span class="tag tag-green">YAML</span>
+            </div>
+            <pre>
+# /etc/grafana/provisioning/datasources/prometheus.yaml
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus-server.monitoring.svc:9090
+    isDefault: true
+    jsonData:
+      timeInterval: 15s
+      httpMethod: POST
+    editable: false
+
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki.monitoring.svc:3100
+    jsonData:
+      derivedFields:
+        - datasourceUid: tempo
+          matcherRegex: "trace_id=(\\w+)"
+          name: TraceID
+          url: '$${__value.raw}'
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 10. kube-prometheus-stack -->
+        <!-- ============================================ -->
+        <h2>10. kube-prometheus-stack</h2>
+
+        <div class="card card-success">
+            <h4>What It Includes</h4>
+            <ul>
+                <li><strong>Prometheus Operator:</strong> Manages Prometheus/Alertmanager lifecycle via CRDs</li>
+                <li><strong>Prometheus:</strong> Pre-configured with K8s service discovery</li>
+                <li><strong>Alertmanager:</strong> With default routing configuration</li>
+                <li><strong>Grafana:</strong> With pre-built dashboards and datasource</li>
+                <li><strong>Node Exporter:</strong> Hardware/OS metrics from every node (DaemonSet)</li>
+                <li><strong>kube-state-metrics:</strong> K8s object state metrics (Deployments, Pods, etc.)</li>
+                <li><strong>Default recording rules:</strong> Pre-computed queries for dashboards</li>
+                <li><strong>Default alerting rules:</strong> 100+ alerts for K8s components out of the box</li>
+            </ul>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Helm Install</span>
+                <span class="tag tag-green">Helm</span>
+            </div>
+            <pre>
+# Add repo and install
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --create-namespace \
+  --set prometheus.prometheusSpec.retention=30d \
+  --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage=100Gi \
+  --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
+  --set alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.resources.requests.storage=10Gi \
+  --set grafana.adminPassword=changeme \
+  --set grafana.persistence.enabled=true \
+  --set grafana.persistence.size=10Gi \
+  -f custom-values.yaml
+            </pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">custom-values.yaml (key overrides)</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+            <pre>
+prometheus:
+  prometheusSpec:
+    # Allow ServiceMonitors from ALL namespaces
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    # Resources
+    resources:
+      requests:
+        memory: 2Gi
+        cpu: 500m
+      limits:
+        memory: 4Gi
+    # Retention
+    retention: 30d
+    retentionSize: "90GB"
+    # Storage
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          resources:
+            requests:
+              storage: 100Gi
+
+alertmanager:
+  config:
+    route:
+      receiver: 'slack-default'
+      group_by: ['alertname', 'namespace']
+    receivers:
+      - name: 'slack-default'
+        slack_configs:
+          - api_url: 'https://hooks.slack.com/...'
+            channel: '#alerts'
+
+grafana:
+  adminPassword: "use-a-secret-instead"
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: custom
+          folder: Custom
+          type: file
+          options:
+            path: /var/lib/grafana/dashboards/custom
+
+nodeExporter:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true
+            </pre>
+        </div>
+
+        <div class="card">
+            <h4>Key Dashboards Out of the Box</h4>
+            <table>
+                <thead>
+                    <tr><th>Dashboard</th><th>Shows</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Kubernetes / Compute Resources / Cluster</td><td>Cluster-wide CPU, memory, network by namespace</td></tr>
+                    <tr><td>Kubernetes / Compute Resources / Namespace (Pods)</td><td>Per-pod resource usage within a namespace</td></tr>
+                    <tr><td>Kubernetes / Compute Resources / Node (Pods)</td><td>Per-node resource breakdown</td></tr>
+                    <tr><td>Node Exporter / Nodes</td><td>OS-level metrics: CPU, memory, disk, network per node</td></tr>
+                    <tr><td>Kubernetes / Networking / Cluster</td><td>Network bandwidth, packet drops, errors</td></tr>
+                    <tr><td>CoreDNS</td><td>DNS query rate, latency, errors</td></tr>
+                    <tr><td>etcd</td><td>etcd performance, leader elections, disk sync</td></tr>
+                    <tr><td>API Server</td><td>Request rate, latency, errors for kube-apiserver</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 11. Thanos / Cortex -->
+        <!-- ============================================ -->
+        <h2>11. Thanos / Cortex - Long-Term Storage & Multi-Cluster</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">Thanos Architecture (Sidecar Mode)</div>
+            <pre>
+  Cluster A                    Cluster B                    Cluster C
+  +-------------+             +-------------+             +-------------+
+  | Prometheus  |             | Prometheus  |             | Prometheus  |
+  | + Thanos    |             | + Thanos    |             | + Thanos    |
+  |   Sidecar   |             |   Sidecar   |             |   Sidecar   |
+  +------+------+             +------+------+             +------+------+
+         |                           |                           |
+         |    Upload blocks          |                           |
+         +-------+-------------------+---------------------------+
+                 |                   |                           |
+                 v                   v                           v
+         +-------+-------------------+---------------------------+--+
+         |                    Object Storage (S3/GCS)                |
+         |              (Long-term metric storage)                   |
+         +----------------------------+-----------------------------+
+                                      |
+                                      v
+                  +-------------------+-------------------+
+                  |            Thanos Querier             |
+                  | (Aggregates from Sidecars + Store GW) |
+                  +-------------------+-------------------+
+                         |                     |
+                         v                     v
+              +----------+-------+    +--------+----------+
+              |   Thanos Store   |    |   Thanos Compact  |
+              |   Gateway        |    |   (Downsampling   |
+              | (Reads from S3)  |    |    + Compaction)  |
+              +------------------+    +-------------------+
+                         |
+                         v
+                  +------+------+
+                  |   Grafana   |
+                  | (Unified    |
+                  |  querying)  |
+                  +-------------+
+            </pre>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Thanos</h4>
+                <ul>
+                    <li><strong>Sidecar:</strong> Runs alongside Prometheus, uploads blocks to object storage</li>
+                    <li><strong>Store Gateway:</strong> Serves historical data from object storage</li>
+                    <li><strong>Querier:</strong> Unified PromQL interface across all clusters + history</li>
+                    <li><strong>Compactor:</strong> Downsamples old data (5m, 1h resolution), compacts blocks</li>
+                    <li><strong>Ruler:</strong> Evaluates recording/alerting rules across global view</li>
+                    <li><strong>Best for:</strong> Extending existing Prometheus setups, sidecar pattern</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h4>Cortex / Mimir</h4>
+                <ul>
+                    <li><strong>Push model:</strong> Prometheus remote_write sends data to Cortex</li>
+                    <li><strong>Multi-tenant:</strong> Built-in tenancy support, per-tenant limits</li>
+                    <li><strong>Horizontally scalable:</strong> All components scale independently</li>
+                    <li><strong>Grafana Mimir:</strong> Grafana's fork of Cortex (actively developed)</li>
+                    <li><strong>Components:</strong> Distributor, Ingester, Querier, Store Gateway, Compactor</li>
+                    <li><strong>Best for:</strong> Large-scale multi-tenant platforms, SaaS metrics backends</li>
+                </ul>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr><th>Feature</th><th>Thanos</th><th>Cortex/Mimir</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Model</td><td>Sidecar (pull from Prometheus)</td><td>Remote write (push from Prometheus)</td></tr>
+                <tr><td>Complexity</td><td>Lower (extends existing Prometheus)</td><td>Higher (separate system)</td></tr>
+                <tr><td>Multi-tenancy</td><td>Limited</td><td>Native support</td></tr>
+                <tr><td>Global view</td><td>Yes (Querier deduplicates)</td><td>Yes (centralized storage)</td></tr>
+                <tr><td>Prometheus dependency</td><td>Still runs local Prometheus</td><td>Can replace or augment</td></tr>
+                <tr><td>Storage</td><td>Object storage (S3, GCS)</td><td>Object storage (S3, GCS)</td></tr>
+            </tbody>
+        </table>
+
+        <!-- ============================================ -->
+        <!-- 12. Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>12. Interview Q&A</h2>
+
+        <div class="qa">
+            <div class="q">Q: How does Prometheus differ from CloudWatch or Datadog?</div>
+            <div class="a"><strong>A:</strong> Prometheus is <strong>open-source</strong> and <strong>pull-based</strong> - it scrapes targets rather than receiving pushed metrics. It uses a <strong>dimensional data model</strong> (labels) vs CloudWatch's namespace/dimension model. Key differences: (1) PromQL is far more powerful than CloudWatch Metrics Insights, (2) Prometheus stores data locally on disk (TSDB) vs managed storage, (3) no per-metric cost unlike CloudWatch/Datadog pricing, (4) requires self-management of HA, retention, scaling. CloudWatch/Datadog are better for zero-ops observability; Prometheus wins on query power, cost at scale, and K8s-native integration.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: Explain the difference between pull-based and push-based monitoring. Why does Prometheus use pull?</div>
+            <div class="a"><strong>A:</strong> <strong>Pull:</strong> Monitoring system fetches metrics from targets on a schedule. <strong>Push:</strong> Targets send metrics to the monitoring system. Prometheus uses pull because: (1) <strong>Target health detection</strong> - a failed scrape immediately tells you the target is down, (2) <strong>Central control</strong> - scrape configuration is in one place, (3) <strong>No target-side config</strong> - targets just expose /metrics, no need to know about Prometheus, (4) <strong>Easy debugging</strong> - you can curl the target's /metrics endpoint manually. The trade-off: pull requires network accessibility to targets (solved by Pushgateway for batch jobs, or by service mesh for cross-network scenarios).</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: Write a PromQL query for P99 latency of a specific service.</div>
+            <div class="a"><strong>A:</strong> <code>histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{service="payment-api"}[5m])) by (le))</code>. This works by: (1) selecting histogram bucket time series for the service, (2) calculating per-second rate of bucket counter increases over 5m, (3) aggregating across instances with <code>sum by (le)</code> to combine all instances, (4) <code>histogram_quantile(0.99, ...)</code> interpolates across bucket boundaries to estimate the 99th percentile value. Important: you MUST include <code>le</code> in the <code>by</code> clause, and you must use <code>rate()</code> on the buckets before quantile calculation.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: What are recording rules and why would you use them?</div>
+            <div class="a"><strong>A:</strong> Recording rules pre-compute expensive PromQL expressions and save results as new time series. Use cases: (1) <strong>Dashboard performance</strong> - complex queries that would time out when loading a dashboard, (2) <strong>Alert dependency</strong> - alerts that reference the same expensive computation, (3) <strong>Cross-service aggregation</strong> - pre-aggregate metrics needed by multiple consumers. Example: computing P99 latency across hundreds of pods is expensive; a recording rule computes it every 30s and stores the result as <code>job:http_request_duration_seconds:p99_5m</code>. Naming convention is <code>level:metric:operations</code>.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: How does Alertmanager routing work? How would you set up team-based alerting?</div>
+            <div class="a"><strong>A:</strong> Alertmanager uses a <strong>routing tree</strong> - alerts enter at the root route and are matched against child routes top-down. First match wins (unless <code>continue: true</code>). For team-based alerting: (1) Add a <code>team</code> label in alerting rules, (2) Create routes matching <code>team=platform</code>, <code>team=backend</code>, etc., (3) Each route points to a receiver (Slack channel, PD service). Additionally: <strong>group_by</strong> batches related alerts, <strong>inhibition</strong> suppresses lower-severity alerts when critical ones fire for the same service, and <strong>silences</strong> mute alerts during planned maintenance windows.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: What is the metric cardinality problem and how do you avoid it?</div>
+            <div class="a"><strong>A:</strong> Cardinality = number of unique time series. Each unique combination of metric name + label values creates a separate time series. <strong>Problem:</strong> High cardinality causes Prometheus to use excessive memory and slow down queries (or OOM). <strong>Common causes:</strong> (1) Using user IDs, request IDs, or IP addresses as label values, (2) Unbounded label values (URLs with query params), (3) High-cardinality labels from service mesh (request_id, trace_id). <strong>Solutions:</strong> (1) Never use unbounded values as labels, (2) Use <code>metric_relabel_configs</code> to drop high-cardinality labels, (3) Use recording rules to pre-aggregate, (4) Monitor <code>prometheus_tsdb_head_series</code> and set alerts for sudden spikes.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: When would you use Thanos vs just Prometheus?</div>
+            <div class="a"><strong>A:</strong> Use Thanos when: (1) <strong>Long-term retention</strong> - need metrics beyond weeks/months (Thanos stores in cheap object storage), (2) <strong>Multi-cluster</strong> - need a global view across multiple Prometheus instances in different clusters, (3) <strong>HA deduplication</strong> - running two Prometheus replicas for HA and need to deduplicate, (4) <strong>Downsampling</strong> - need automatic resolution reduction for old data (5m, 1h). You would NOT need Thanos if: single cluster, short retention is acceptable, or you are using a managed solution like Grafana Cloud.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: How do you achieve high availability for Prometheus?</div>
+            <div class="a"><strong>A:</strong> (1) <strong>Two identical replicas</strong> - run two Prometheus instances with identical config scraping the same targets. Both have full data independently. (2) <strong>Alertmanager cluster</strong> - run 3+ Alertmanager instances in a gossip cluster; they deduplicate notifications automatically. (3) <strong>Thanos/Cortex for dedup</strong> - Thanos Querier can deduplicate results from both replicas using <code>external_labels</code> (replica="A" vs "B"). (4) <strong>Remote write</strong> - write to a durable backend (Cortex/Mimir/Thanos Receive) for guaranteed persistence. (5) <strong>PVC storage</strong> - use persistent volumes so Prometheus survives pod restarts without data loss.</div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 13. Scenarios -->
+        <!-- ============================================ -->
+        <h2>13. Troubleshooting Scenarios</h2>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!!</span>
+                <span class="title">Scenario: High Cardinality Causing Prometheus OOM</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptoms:</strong> Prometheus memory usage climbing rapidly, OOMKilled restarts, slow queries, <code>prometheus_tsdb_head_series</code> growing exponentially.</p>
+
+                <div class="scenario-step"><span class="step-num">1.</span> <span>Check current cardinality: <code>prometheus_tsdb_head_series</code> (normal: 100K-2M for medium clusters)</span></div>
+                <div class="scenario-step"><span class="step-num">2.</span> <span>Identify culprit: <code>topk(10, count by (__name__)({__name__=~".+"}))</code> shows metrics with most series</span></div>
+                <div class="scenario-step"><span class="step-num">3.</span> <span>Find high-cardinality labels: <code>count by (label_name)(metric_name)</code> to see which label has too many values</span></div>
+                <div class="scenario-step"><span class="step-num">4.</span> <span>Check TSDB status API: <code>curl localhost:9090/api/v1/status/tsdb</code> shows top series by label</span></div>
+                <div class="scenario-step"><span class="step-num">5.</span> <span><strong>Immediate fix:</strong> Add <code>metric_relabel_configs</code> to drop the offending metric or label</span></div>
+                <div class="scenario-step"><span class="step-num">6.</span> <span><strong>Long-term fix:</strong> Fix instrumentation in the application (remove unbounded labels like user_id, url_path with query params)</span></div>
+                <div class="scenario-step"><span class="step-num">7.</span> <span><strong>Prevention:</strong> Alert on <code>rate(prometheus_tsdb_head_series_created_total[1h]) > 1000</code> (sudden series creation)</span></div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!!</span>
+                <span class="title">Scenario: Alertmanager Not Sending Alerts</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptoms:</strong> Alerts firing in Prometheus UI but no Slack/PagerDuty notifications received.</p>
+
+                <div class="scenario-step"><span class="step-num">1.</span> <span>Verify alerts reach Alertmanager: Check Alertmanager UI (<code>/alerts</code>) - are alerts listed?</span></div>
+                <div class="scenario-step"><span class="step-num">2.</span> <span>If NO alerts in Alertmanager: Check Prometheus config <code>alerting.alertmanagers</code> target, verify network connectivity</span></div>
+                <div class="scenario-step"><span class="step-num">3.</span> <span>If alerts present but not firing: Check <code>for</code> duration - alert may not have been firing long enough</span></div>
+                <div class="scenario-step"><span class="step-num">4.</span> <span>Check for active silences: Alertmanager UI > Silences (someone may have silenced during maintenance)</span></div>
+                <div class="scenario-step"><span class="step-num">5.</span> <span>Check inhibition rules: A higher-severity alert may be inhibiting this one</span></div>
+                <div class="scenario-step"><span class="step-num">6.</span> <span>Check routing: Use <code>amtool config routes test --tree</code> to verify which receiver matches your alert labels</span></div>
+                <div class="scenario-step"><span class="step-num">7.</span> <span>Check receiver config: Verify webhook URL, API keys, channel names. Check Alertmanager logs for send errors</span></div>
+                <div class="scenario-step"><span class="step-num">8.</span> <span>Check <code>group_wait</code> / <code>group_interval</code>: May be buffering. Also check <code>repeat_interval</code> - may not re-send if already sent recently</span></div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!!</span>
+                <span class="title">Scenario: Stale Metrics After Pod Restart/Scaling</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptoms:</strong> Old pod metrics still appearing in queries after pods are deleted/replaced. Graphs show gaps or unexpected values.</p>
+
+                <div class="scenario-step"><span class="step-num">1.</span> <span>Understand staleness: Prometheus marks series as stale 5 minutes after last scrape. Old series remain queryable until then</span></div>
+                <div class="scenario-step"><span class="step-num">2.</span> <span>Check if service discovery removed the target: Prometheus UI > Targets page (should show target as DOWN then disappear)</span></div>
+                <div class="scenario-step"><span class="step-num">3.</span> <span>For rate() queries: Stale markers create NaN - this is correct behavior. Use <code>rate(metric[5m])</code> not <code>irate()</code></span></div>
+                <div class="scenario-step"><span class="step-num">4.</span> <span>For sum() queries: Old series may inflate totals during the staleness window. Use <code>sum(rate(...))</code> which handles resets</span></div>
+                <div class="scenario-step"><span class="step-num">5.</span> <span>If using Pushgateway: Metrics persist until explicitly deleted. Use <code>--push-to-gateway-delete-on-job-complete</code> or TTL</span></div>
+                <div class="scenario-step"><span class="step-num">6.</span> <span><strong>Best practice:</strong> Always query by rate/increase for counters. Include pod label in aggregation to see individual pods</span></div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!!</span>
+                <span class="title">Scenario: Prometheus Running Out of Disk</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptoms:</strong> Prometheus alerting on disk space, WAL growing, compaction failing, potential data loss.</p>
+
+                <div class="scenario-step"><span class="step-num">1.</span> <span>Check current usage: <code>prometheus_tsdb_storage_blocks_bytes</code>, <code>prometheus_tsdb_wal_storage_size_bytes</code></span></div>
+                <div class="scenario-step"><span class="step-num">2.</span> <span>Check retention settings: <code>--storage.tsdb.retention.time=30d</code> and <code>--storage.tsdb.retention.size=90GB</code></span></div>
+                <div class="scenario-step"><span class="step-num">3.</span> <span><strong>Immediate fix:</strong> Reduce retention time: <code>--storage.tsdb.retention.time=15d</code> (takes effect on next compaction)</span></div>
+                <div class="scenario-step"><span class="step-num">4.</span> <span>Check for cardinality explosion: sudden series growth uses more disk. See OOM scenario above</span></div>
+                <div class="scenario-step"><span class="step-num">5.</span> <span>Check WAL: If WAL is huge, Prometheus may be failing to compact. Check logs for compaction errors</span></div>
+                <div class="scenario-step"><span class="step-num">6.</span> <span><strong>Capacity planning:</strong> Estimate: <code>bytes_per_sample * samples_per_second * retention_seconds</code> (~1-2 bytes/sample)</span></div>
+                <div class="scenario-step"><span class="step-num">7.</span> <span><strong>Long-term fix:</strong> (1) Increase PVC size, (2) Ship to Thanos for long-term storage and reduce local retention to 2h-6h, (3) Drop unnecessary metrics with relabeling</span></div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        <p>Prometheus & Grafana Reference - DevOps/SRE Interview Preparation</p>
+    </footer>
+
+</body>
+</html>

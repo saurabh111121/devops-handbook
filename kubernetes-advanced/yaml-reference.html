@@ -1,0 +1,2105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YAML Reference | K8s/DevOps/SRE</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html" class="active">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+<div class="container">
+
+    <div class="breadcrumb">
+        <a href="../index.html">Home</a> &gt; YAML Reference
+    </div>
+
+    <h1>Complete YAML Reference</h1>
+    <p class="subtitle">Every Kubernetes resource YAML template you need, with apiVersion lookup, field explanations, and kubectl generators. Copy-paste ready for the exam and production.</p>
+
+    <!-- ============================================================ -->
+    <!-- 1. YAML BASICS -->
+    <!-- ============================================================ -->
+
+    <h2>1. YAML Basics</h2>
+
+    <h3>Top-Level Structure</h3>
+
+    <p>Every Kubernetes manifest has four top-level fields:</p>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">basic-structure.yaml</span>
+            <span class="tag tag-blue">Structure</span>
+        </div>
+        <pre>
+apiVersion: v1              # API group/version for this resource
+kind: Pod                   # Type of resource
+metadata:                   # Data that identifies the resource
+  name: my-pod             # Required: unique within namespace
+  namespace: default       # Optional: defaults to "default"
+  labels:                  # Key-value pairs for selection/grouping
+    app: web
+    env: production
+  annotations:             # Non-identifying metadata (tools, configs)
+    description: "Main web pod"
+spec:                       # Desired state (resource-specific)
+  containers:
+  - name: web
+    image: nginx:1.25
+        </pre>
+    </div>
+
+    <h3>Indentation Rules</h3>
+
+    <div class="card card-warning">
+        <h4>Critical Rules</h4>
+        <ul>
+            <li><strong>2 spaces</strong> per indentation level (standard for Kubernetes)</li>
+            <li><strong>NO tabs</strong> - YAML does not allow tab characters</li>
+            <li>Indentation defines hierarchy/nesting</li>
+            <li>Consistent indentation within same block is mandatory</li>
+            <li>A child element must be indented more than its parent</li>
+        </ul>
+    </div>
+
+    <h3>Multi-line Strings</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">multi-line-strings.yaml</span>
+            <span class="tag tag-green">Strings</span>
+        </div>
+        <pre>
+# Literal Block Scalar (|) - preserves newlines exactly
+data:
+  config.ini: |
+    [database]
+    host=localhost
+    port=5432
+    name=mydb
+
+# Folded Block Scalar (>) - folds newlines into spaces
+data:
+  description: >
+    This is a long description
+    that will be folded into
+    a single line with spaces.
+
+# Literal with strip (|-) - removes trailing newline
+data:
+  script: |-
+    #!/bin/bash
+    echo "hello"
+
+# Literal with keep (|+) - keeps all trailing newlines
+data:
+  text: |+
+    line one
+    line two
+
+        </pre>
+    </div>
+
+    <h3>Lists vs Maps</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">lists-and-maps.yaml</span>
+            <span class="tag tag-blue">Data Types</span>
+        </div>
+        <pre>
+# Map (dictionary/object) - key: value pairs
+metadata:
+  name: my-app
+  namespace: production
+
+# List (array) - items prefixed with dash
+containers:
+- name: app
+  image: nginx
+- name: sidecar
+  image: envoy
+
+# List of scalars
+args:
+- "--config=/etc/app/config.yaml"
+- "--verbose"
+- "--port=8080"
+
+# Inline list (flow sequence)
+ports: [80, 443, 8080]
+
+# Inline map (flow mapping)
+labels: {app: web, tier: frontend}
+
+# Boolean values (be careful!)
+enabled: true           # boolean true
+enabled: "true"         # string "true"
+port: 80               # integer
+port: "80"             # string
+
+# Null values
+value: null
+value: ~
+value:                 # also null (empty value)
+        </pre>
+    </div>
+
+    <h3>Comments</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">comments.yaml</span>
+            <span class="tag tag-green">Comments</span>
+        </div>
+        <pre>
+# Full line comment
+apiVersion: v1        # Inline comment after value
+kind: Pod
+metadata:
+  name: example
+  # Comments can be at any indentation level
+  labels:
+    app: web          # Labels for pod selection
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 2. apiVersion REFERENCE TABLE -->
+    <!-- ============================================================ -->
+
+    <h2>2. apiVersion Reference Table</h2>
+
+    <div class="card card-info">
+        <h4>How to find the right apiVersion</h4>
+        <p>Use <code>kubectl api-resources</code> to list all resources with their API groups. Use <code>kubectl api-versions</code> to list all available API versions on the cluster.</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Resource</th>
+                <th>apiVersion</th>
+                <th>API Group</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>Pod</td><td><code>v1</code></td><td>core</td></tr>
+            <tr><td>Service</td><td><code>v1</code></td><td>core</td></tr>
+            <tr><td>ConfigMap</td><td><code>v1</code></td><td>core</td></tr>
+            <tr><td>Secret</td><td><code>v1</code></td><td>core</td></tr>
+            <tr><td>PersistentVolumeClaim</td><td><code>v1</code></td><td>core</td></tr>
+            <tr><td>PersistentVolume</td><td><code>v1</code></td><td>core</td></tr>
+            <tr><td>Namespace</td><td><code>v1</code></td><td>core</td></tr>
+            <tr><td>ServiceAccount</td><td><code>v1</code></td><td>core</td></tr>
+            <tr><td>Node</td><td><code>v1</code></td><td>core</td></tr>
+            <tr><td>LimitRange</td><td><code>v1</code></td><td>core</td></tr>
+            <tr><td>ResourceQuota</td><td><code>v1</code></td><td>core</td></tr>
+            <tr><td colspan="3" style="background: var(--card-bg2);"></td></tr>
+            <tr><td>Deployment</td><td><code>apps/v1</code></td><td>apps</td></tr>
+            <tr><td>StatefulSet</td><td><code>apps/v1</code></td><td>apps</td></tr>
+            <tr><td>DaemonSet</td><td><code>apps/v1</code></td><td>apps</td></tr>
+            <tr><td>ReplicaSet</td><td><code>apps/v1</code></td><td>apps</td></tr>
+            <tr><td colspan="3" style="background: var(--card-bg2);"></td></tr>
+            <tr><td>Job</td><td><code>batch/v1</code></td><td>batch</td></tr>
+            <tr><td>CronJob</td><td><code>batch/v1</code></td><td>batch</td></tr>
+            <tr><td colspan="3" style="background: var(--card-bg2);"></td></tr>
+            <tr><td>Ingress</td><td><code>networking.k8s.io/v1</code></td><td>networking.k8s.io</td></tr>
+            <tr><td>NetworkPolicy</td><td><code>networking.k8s.io/v1</code></td><td>networking.k8s.io</td></tr>
+            <tr><td>IngressClass</td><td><code>networking.k8s.io/v1</code></td><td>networking.k8s.io</td></tr>
+            <tr><td colspan="3" style="background: var(--card-bg2);"></td></tr>
+            <tr><td>Role</td><td><code>rbac.authorization.k8s.io/v1</code></td><td>rbac.authorization.k8s.io</td></tr>
+            <tr><td>ClusterRole</td><td><code>rbac.authorization.k8s.io/v1</code></td><td>rbac.authorization.k8s.io</td></tr>
+            <tr><td>RoleBinding</td><td><code>rbac.authorization.k8s.io/v1</code></td><td>rbac.authorization.k8s.io</td></tr>
+            <tr><td>ClusterRoleBinding</td><td><code>rbac.authorization.k8s.io/v1</code></td><td>rbac.authorization.k8s.io</td></tr>
+            <tr><td colspan="3" style="background: var(--card-bg2);"></td></tr>
+            <tr><td>HorizontalPodAutoscaler</td><td><code>autoscaling/v2</code></td><td>autoscaling</td></tr>
+            <tr><td colspan="3" style="background: var(--card-bg2);"></td></tr>
+            <tr><td>PodDisruptionBudget</td><td><code>policy/v1</code></td><td>policy</td></tr>
+            <tr><td colspan="3" style="background: var(--card-bg2);"></td></tr>
+            <tr><td>StorageClass</td><td><code>storage.k8s.io/v1</code></td><td>storage.k8s.io</td></tr>
+            <tr><td>CSIDriver</td><td><code>storage.k8s.io/v1</code></td><td>storage.k8s.io</td></tr>
+            <tr><td>VolumeSnapshot</td><td><code>snapshot.storage.k8s.io/v1</code></td><td>snapshot.storage.k8s.io</td></tr>
+        </tbody>
+    </table>
+
+    <!-- ============================================================ -->
+    <!-- 3. COMPLETE YAML TEMPLATES -->
+    <!-- ============================================================ -->
+
+    <h2>3. Complete YAML Templates</h2>
+
+    <!-- Pod -->
+    <h3>Pod (Full Featured)</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">pod-full.yaml</span>
+            <span class="tag tag-blue">Pod</span>
+        </div>
+        <pre>
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-app
+  namespace: production
+  labels:
+    app: web
+    version: v2
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+spec:
+  serviceAccountName: web-sa         # ServiceAccount for RBAC
+  restartPolicy: Always              # Always | OnFailure | Never
+  terminationGracePeriodSeconds: 30  # Time to wait before SIGKILL
+
+  # Security context at pod level (applies to all containers)
+  securityContext:
+    runAsUser: 1000                   # UID to run as
+    runAsGroup: 3000                  # GID to run as
+    fsGroup: 2000                    # GID for volume mounts
+    runAsNonRoot: true               # Refuse to run as root
+
+  # Init containers run sequentially before main containers
+  initContainers:
+  - name: init-db-check
+    image: busybox:1.36
+    command: ['sh', '-c', 'until nc -z db-svc 5432; do sleep 2; done']
+  - name: init-migrations
+    image: myapp/migrations:v2
+    env:
+    - name: DB_URL
+      valueFrom:
+        secretKeyRef:
+          name: db-secret
+          key: url
+
+  containers:
+  - name: web
+    image: myapp/web:v2.1.0
+    imagePullPolicy: IfNotPresent    # Always | IfNotPresent | Never
+
+    # Port definitions
+    ports:
+    - containerPort: 8080
+      name: http
+      protocol: TCP
+    - containerPort: 9090
+      name: metrics
+
+    # Environment variables
+    env:
+    - name: APP_ENV
+      value: "production"
+    - name: DB_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: db-secret
+          key: password
+    - name: CONFIG_VALUE
+      valueFrom:
+        configMapKeyRef:
+          name: app-config
+          key: log-level
+    - name: POD_NAME
+      valueFrom:
+        fieldRef:                     # Downward API
+          fieldPath: metadata.name
+    - name: CPU_LIMIT
+      valueFrom:
+        resourceFieldRef:
+          resource: limits.cpu
+
+    # All env from ConfigMap/Secret
+    envFrom:
+    - configMapRef:
+        name: app-env-config
+    - secretRef:
+        name: app-env-secrets
+
+    # Resource requests and limits
+    resources:
+      requests:
+        cpu: 100m                    # 0.1 CPU cores
+        memory: 128Mi               # 128 mebibytes
+        ephemeral-storage: 1Gi
+      limits:
+        cpu: 500m                    # 0.5 CPU cores
+        memory: 512Mi
+        ephemeral-storage: 2Gi
+
+    # Startup probe - gives slow-starting containers time
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: http
+      failureThreshold: 30           # 30 * 10s = 5 minutes to start
+      periodSeconds: 10
+
+    # Liveness probe - restart if unhealthy
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+        httpHeaders:
+        - name: X-Health-Check
+          value: "true"
+      initialDelaySeconds: 15
+      periodSeconds: 20
+      timeoutSeconds: 5
+      failureThreshold: 3
+      successThreshold: 1
+
+    # Readiness probe - remove from service if not ready
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 8080
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+
+    # Container security context
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop: ["ALL"]
+        add: ["NET_BIND_SERVICE"]
+
+    # Volume mounts
+    volumeMounts:
+    - name: config-vol
+      mountPath: /etc/app/config
+      readOnly: true
+    - name: secret-vol
+      mountPath: /etc/app/secrets
+      readOnly: true
+    - name: data-vol
+      mountPath: /var/data
+    - name: tmp
+      mountPath: /tmp
+
+    # Lifecycle hooks
+    lifecycle:
+      postStart:
+        exec:
+          command: ["/bin/sh", "-c", "echo started > /tmp/started"]
+      preStop:
+        exec:
+          command: ["/bin/sh", "-c", "sleep 5 && kill -SIGTERM 1"]
+
+  # Sidecar container
+  - name: log-shipper
+    image: fluent/fluent-bit:2.1
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+    volumeMounts:
+    - name: data-vol
+      mountPath: /var/data
+      readOnly: true
+
+  # Volumes
+  volumes:
+  - name: config-vol
+    configMap:
+      name: app-config
+      items:                          # Optional: select specific keys
+      - key: app.conf
+        path: application.conf
+  - name: secret-vol
+    secret:
+      secretName: app-secrets
+      defaultMode: 0400              # File permissions
+  - name: data-vol
+    persistentVolumeClaim:
+      claimName: app-data-pvc
+  - name: tmp
+    emptyDir:
+      sizeLimit: 100Mi
+
+  # Node scheduling
+  nodeSelector:
+    disktype: ssd
+    kubernetes.io/arch: amd64
+
+  # Affinity rules
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: topology.kubernetes.io/zone
+            operator: In
+            values: ["us-east-1a", "us-east-1b"]
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 80
+        preference:
+          matchExpressions:
+          - key: node-type
+            operator: In
+            values: ["high-memory"]
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values: ["web"]
+        topologyKey: kubernetes.io/hostname   # One pod per node
+
+  # Tolerations (allow scheduling on tainted nodes)
+  tolerations:
+  - key: "dedicated"
+    operator: "Equal"
+    value: "web"
+    effect: "NoSchedule"
+  - key: "node.kubernetes.io/not-ready"
+    operator: "Exists"
+    effect: "NoExecute"
+    tolerationSeconds: 300
+
+  # DNS configuration
+  dnsPolicy: ClusterFirst
+  dnsConfig:
+    nameservers:
+    - 8.8.8.8
+    searches:
+    - my-namespace.svc.cluster.local
+
+  # Image pull secrets (for private registries)
+  imagePullSecrets:
+  - name: registry-credentials
+
+  # Topology spread constraints
+  topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: DoNotSchedule
+    labelSelector:
+      matchLabels:
+        app: web
+        </pre>
+    </div>
+
+    <!-- Deployment -->
+    <h3>Deployment</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">deployment.yaml</span>
+            <span class="tag tag-green">Deployment</span>
+        </div>
+        <pre>
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app
+  namespace: production
+  labels:
+    app: web
+    version: v2
+  annotations:
+    kubernetes.io/change-cause: "Updated to v2.1.0"
+spec:
+  replicas: 3                        # Desired number of pods
+  revisionHistoryLimit: 10           # Number of old ReplicaSets to keep
+
+  # How to find pods this deployment manages
+  selector:
+    matchLabels:
+      app: web                       # Must match template labels
+
+  # Update strategy
+  strategy:
+    type: RollingUpdate              # RollingUpdate | Recreate
+    rollingUpdate:
+      maxSurge: 1                    # Max pods above desired (absolute or %)
+      maxUnavailable: 0              # Max pods unavailable during update
+
+  # Minimum time a pod must be ready before considered available
+  minReadySeconds: 10
+
+  # Seconds to wait for rollout before marking as failed
+  progressDeadlineSeconds: 600
+
+  # Pod template
+  template:
+    metadata:
+      labels:
+        app: web                     # Must match selector.matchLabels
+        version: v2
+      annotations:
+        prometheus.io/scrape: "true"
+    spec:
+      serviceAccountName: web-sa
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: web
+        image: myapp/web:v2.1.0
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: "1"
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        env:
+        - name: APP_ENV
+          value: "production"
+        volumeMounts:
+        - name: config
+          mountPath: /etc/app
+      volumes:
+      - name: config
+        configMap:
+          name: web-config
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values: ["web"]
+              topologyKey: kubernetes.io/hostname
+        </pre>
+    </div>
+
+    <!-- Service -->
+    <h3>Service (ClusterIP / NodePort / LoadBalancer)</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">service-clusterip.yaml</span>
+            <span class="tag tag-blue">Service</span>
+        </div>
+        <pre>
+# ClusterIP - internal only (default)
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-svc
+  namespace: production
+  labels:
+    app: web
+spec:
+  type: ClusterIP                    # Default type
+  selector:
+    app: web                         # Matches pod labels
+  ports:
+  - name: http
+    port: 80                         # Port the service listens on
+    targetPort: 8080                 # Port on the pod (can use name)
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: metrics              # Using named port from pod
+  sessionAffinity: None              # None | ClientIP
+---
+# Headless Service (for StatefulSets / direct pod DNS)
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-headless
+spec:
+  type: ClusterIP
+  clusterIP: None                    # Makes it headless
+  selector:
+    app: database
+  ports:
+  - port: 5432
+    targetPort: 5432
+        </pre>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">service-nodeport.yaml</span>
+            <span class="tag tag-green">Service</span>
+        </div>
+        <pre>
+# NodePort - exposed on each node's IP at a static port
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-nodeport
+spec:
+  type: NodePort
+  selector:
+    app: web
+  ports:
+  - port: 80
+    targetPort: 8080
+    nodePort: 30080                   # 30000-32767 range (optional, auto-assigned)
+        </pre>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">service-loadbalancer.yaml</span>
+            <span class="tag tag-blue">Service</span>
+        </div>
+        <pre>
+# LoadBalancer - provisions external cloud LB
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-lb
+  annotations:
+    # AWS-specific annotations
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-internal: "false"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+spec:
+  type: LoadBalancer
+  selector:
+    app: web
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  - name: https
+    port: 443
+    targetPort: 8443
+  externalTrafficPolicy: Local       # Local | Cluster (Local preserves client IP)
+  loadBalancerSourceRanges:          # Firewall rules
+  - "10.0.0.0/8"
+  - "203.0.113.0/24"
+        </pre>
+    </div>
+
+    <!-- Ingress -->
+    <h3>Ingress</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">ingress.yaml</span>
+            <span class="tag tag-green">Ingress</span>
+        </div>
+        <pre>
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web-ingress
+  namespace: production
+  annotations:
+    # NGINX Ingress Controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    # cert-manager annotation for auto TLS
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx            # Which ingress controller to use
+  tls:
+  - hosts:
+    - app.example.com
+    - api.example.com
+    secretName: app-tls-secret       # TLS cert stored as Secret
+
+  rules:
+  # Host-based routing
+  - host: app.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix             # Prefix | Exact | ImplementationSpecific
+        backend:
+          service:
+            name: frontend-svc
+            port:
+              number: 80
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: api-svc
+            port:
+              number: 8080
+      - path: /static
+        pathType: Prefix
+        backend:
+          service:
+            name: cdn-svc
+            port:
+              name: http
+
+  - host: api.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: api-svc
+            port:
+              number: 8080
+
+  # Default backend (catch-all)
+  defaultBackend:
+    service:
+      name: default-svc
+      port:
+        number: 80
+        </pre>
+    </div>
+
+    <!-- ConfigMap -->
+    <h3>ConfigMap</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">configmap.yaml</span>
+            <span class="tag tag-blue">ConfigMap</span>
+        </div>
+        <pre>
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: production
+  labels:
+    app: web
+data:
+  # Simple key-value pairs (used as env vars)
+  log-level: "info"
+  database-host: "db.production.svc.cluster.local"
+  max-connections: "100"
+  feature-flag-new-ui: "true"
+
+  # Multi-line file content (mounted as files)
+  app.conf: |
+    server {
+      listen 8080;
+      server_name _;
+      location / {
+        proxy_pass http://localhost:3000;
+      }
+    }
+
+  application.properties: |
+    spring.datasource.url=jdbc:postgresql://db:5432/app
+    spring.redis.host=redis
+    logging.level.root=INFO
+
+---
+# Immutable ConfigMap (cannot be edited after creation - better performance)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: static-config
+immutable: true
+data:
+  VERSION: "2.1.0"
+  BUILD_DATE: "2024-01-15"
+        </pre>
+    </div>
+
+    <!-- Secret -->
+    <h3>Secret</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">secret.yaml</span>
+            <span class="tag tag-green">Secret</span>
+        </div>
+        <pre>
+# Opaque Secret with base64-encoded data
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-secret
+  namespace: production
+  labels:
+    app: web
+type: Opaque                         # Opaque | kubernetes.io/tls | kubernetes.io/dockerconfigjson
+data:
+  # Values must be base64 encoded: echo -n 'value' | base64
+  username: YWRtaW4=                 # admin
+  password: cDRzc3cwcmQ=             # p4ssw0rd
+  connection-string: cG9zdGdyZXM6Ly9hZG1pbjpwNHNzdzByZEBkYjo1NDMyL2FwcA==
+
+---
+# Secret with stringData (plain text - encoded automatically)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secrets
+type: Opaque
+stringData:
+  # Plain text - Kubernetes encodes to base64 on creation
+  api-key: "sk-abc123def456"
+  jwt-secret: "my-super-secret-jwt-key"
+  config.yaml: |
+    database:
+      password: supersecret
+    redis:
+      password: redispass
+
+---
+# TLS Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tls-secret
+type: kubernetes.io/tls
+data:
+  tls.crt: LS0tLS1CRUdJTi...       # base64 encoded certificate
+  tls.key: LS0tLS1CRUdJTi...       # base64 encoded private key
+
+---
+# Docker registry Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: registry-credentials
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: eyJhdXRocyI6...  # base64 encoded docker config
+        </pre>
+    </div>
+
+    <!-- PVC -->
+    <h3>PersistentVolumeClaim</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">pvc.yaml</span>
+            <span class="tag tag-blue">PVC</span>
+        </div>
+        <pre>
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-data-pvc
+  namespace: production
+  labels:
+    app: web
+spec:
+  accessModes:
+  - ReadWriteOnce                    # RWO | ROX | RWX | RWOP
+  storageClassName: gp3-encrypted    # Must match a StorageClass
+  resources:
+    requests:
+      storage: 20Gi                  # Requested size
+  # Optional: select specific PV
+  # selector:
+  #   matchLabels:
+  #     type: fast-ssd
+  # volumeMode: Filesystem          # Filesystem (default) | Block
+        </pre>
+    </div>
+
+    <!-- StorageClass -->
+    <h3>StorageClass (AWS gp3)</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">storageclass.yaml</span>
+            <span class="tag tag-green">StorageClass</span>
+        </div>
+        <pre>
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3-encrypted
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ebs.csi.aws.com        # AWS EBS CSI driver
+parameters:
+  type: gp3                          # gp3 | gp2 | io1 | io2
+  encrypted: "true"
+  fsType: ext4
+  iops: "3000"                       # Baseline IOPS for gp3
+  throughput: "125"                  # MB/s throughput for gp3
+reclaimPolicy: Delete                # Delete | Retain
+allowVolumeExpansion: true           # Allow PVC resize
+volumeBindingMode: WaitForFirstConsumer  # Immediate | WaitForFirstConsumer
+mountOptions:
+- noatime
+- nodiratime
+        </pre>
+    </div>
+
+    <!-- NetworkPolicy -->
+    <h3>NetworkPolicy</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">networkpolicy.yaml</span>
+            <span class="tag tag-blue">NetworkPolicy</span>
+        </div>
+        <pre>
+# Default deny all ingress traffic in a namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: production
+spec:
+  podSelector: {}                    # Empty = applies to ALL pods
+  policyTypes:
+  - Ingress                          # Only block ingress (egress still allowed)
+
+---
+# Default deny all egress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-egress
+  namespace: production
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+
+---
+# Allow specific traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-web-traffic
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: web                       # Apply to pods with app=web
+
+  policyTypes:
+  - Ingress
+  - Egress
+
+  ingress:
+  # Allow from ingress controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+      podSelector:
+        matchLabels:
+          app: ingress-controller
+    ports:
+    - protocol: TCP
+      port: 8080
+
+  # Allow from same namespace pods with role=frontend
+  - from:
+    - podSelector:
+        matchLabels:
+          role: frontend
+    ports:
+    - protocol: TCP
+      port: 8080
+
+  # Allow from specific CIDR
+  - from:
+    - ipBlock:
+        cidr: 10.0.0.0/16
+        except:
+        - 10.0.1.0/24
+    ports:
+    - protocol: TCP
+      port: 8080
+
+  egress:
+  # Allow DNS
+  - to:
+    - namespaceSelector: {}
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+  # Allow to database
+  - to:
+    - podSelector:
+        matchLabels:
+          app: database
+    ports:
+    - protocol: TCP
+      port: 5432
+
+  # Allow external HTTPS
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+    ports:
+    - protocol: TCP
+      port: 443
+        </pre>
+    </div>
+
+    <!-- HPA -->
+    <h3>HorizontalPodAutoscaler (HPA)</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">hpa.yaml</span>
+            <span class="tag tag-green">HPA</span>
+        </div>
+        <pre>
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: web-hpa
+  namespace: production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web-app
+
+  minReplicas: 3
+  maxReplicas: 50
+
+  metrics:
+  # CPU-based scaling
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70       # Scale when avg CPU > 70%
+
+  # Memory-based scaling
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80       # Scale when avg memory > 80%
+
+  # Custom metric (e.g., requests per second)
+  - type: Pods
+    pods:
+      metric:
+        name: http_requests_per_second
+      target:
+        type: AverageValue
+        averageValue: "1000"         # Scale when avg RPS > 1000
+
+  # External metric (e.g., SQS queue depth)
+  - type: External
+    external:
+      metric:
+        name: sqs_messages_visible
+        selector:
+          matchLabels:
+            queue: "orders"
+      target:
+        type: AverageValue
+        averageValue: "30"
+
+  # Scaling behavior (control scale up/down speed)
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60   # Wait before scaling up again
+      policies:
+      - type: Percent
+        value: 100                     # Can double pods
+        periodSeconds: 60
+      - type: Pods
+        value: 5                       # Or add max 5 pods
+        periodSeconds: 60
+      selectPolicy: Max                # Use whichever allows more scaling
+    scaleDown:
+      stabilizationWindowSeconds: 300  # Wait 5 min before scaling down
+      policies:
+      - type: Percent
+        value: 10                      # Remove max 10% of pods
+        periodSeconds: 60
+      selectPolicy: Min                # Use whichever removes fewer pods
+        </pre>
+    </div>
+
+    <!-- Role + RoleBinding -->
+    <h3>Role + RoleBinding</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">rbac.yaml</span>
+            <span class="tag tag-blue">RBAC</span>
+        </div>
+        <pre>
+# Role (namespace-scoped permissions)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+  namespace: production
+rules:
+- apiGroups: [""]                    # "" = core API group
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["web-app"]         # Optional: restrict to specific names
+
+---
+# RoleBinding (binds Role to users/groups/serviceaccounts)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-pods
+  namespace: production
+subjects:
+- kind: User
+  name: jane
+  apiGroup: rbac.authorization.k8s.io
+- kind: Group
+  name: developers
+  apiGroup: rbac.authorization.k8s.io
+- kind: ServiceAccount
+  name: monitoring-sa
+  namespace: monitoring              # SA namespace (can be different)
+roleRef:
+  kind: Role                         # Role or ClusterRole
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# ClusterRole (cluster-wide permissions)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: node-reader
+rules:
+- apiGroups: [""]
+  resources: ["nodes", "namespaces", "persistentvolumes"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["nodes", "pods"]
+  verbs: ["get", "list"]
+
+---
+# ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: global-node-reader
+subjects:
+- kind: Group
+  name: platform-team
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: node-reader
+  apiGroup: rbac.authorization.k8s.io
+        </pre>
+    </div>
+
+    <!-- ServiceAccount -->
+    <h3>ServiceAccount</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">serviceaccount.yaml</span>
+            <span class="tag tag-green">ServiceAccount</span>
+        </div>
+        <pre>
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: web-sa
+  namespace: production
+  labels:
+    app: web
+  annotations:
+    # AWS IRSA (IAM Roles for Service Accounts)
+    eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/web-app-role"
+automountServiceAccountToken: true   # Mount token in pods (set false if not needed)
+imagePullSecrets:
+- name: registry-credentials         # Auto-add to pods using this SA
+        </pre>
+    </div>
+
+    <!-- Job + CronJob -->
+    <h3>Job + CronJob</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">job.yaml</span>
+            <span class="tag tag-blue">Job</span>
+        </div>
+        <pre>
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: data-migration
+  namespace: production
+spec:
+  completions: 1                     # Number of successful completions needed
+  parallelism: 1                     # How many pods run concurrently
+  backoffLimit: 3                    # Retries before marking as failed
+  activeDeadlineSeconds: 600         # Max time for entire job (10 min)
+  ttlSecondsAfterFinished: 3600     # Auto-delete after 1 hour
+
+  template:
+    metadata:
+      labels:
+        app: migration
+    spec:
+      restartPolicy: OnFailure       # OnFailure | Never (not Always)
+      containers:
+      - name: migrate
+        image: myapp/migration:v2
+        command: ["python", "migrate.py"]
+        env:
+        - name: DB_URL
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: url
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: "2"
+            memory: 2Gi
+
+---
+# Parallel Job (process multiple items)
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: batch-processor
+spec:
+  completions: 10                    # Need 10 successful completions
+  parallelism: 3                     # Run 3 at a time
+  backoffLimit: 5
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: worker
+        image: myapp/worker:v1
+        </pre>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">cronjob.yaml</span>
+            <span class="tag tag-green">CronJob</span>
+        </div>
+        <pre>
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nightly-backup
+  namespace: production
+spec:
+  schedule: "0 2 * * *"             # Cron format: min hour day month weekday
+  timeZone: "America/New_York"      # Optional: timezone (K8s 1.27+)
+  concurrencyPolicy: Forbid          # Allow | Forbid | Replace
+  successfulJobsHistoryLimit: 3      # Keep last 3 successful jobs
+  failedJobsHistoryLimit: 5          # Keep last 5 failed jobs
+  startingDeadlineSeconds: 200       # Must start within 200s of schedule
+  suspend: false                     # Set true to pause scheduling
+
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 3600
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: backup
+            image: myapp/backup:v1
+            command: ["/bin/sh", "-c", "backup.sh"]
+            env:
+            - name: S3_BUCKET
+              value: "my-backup-bucket"
+            resources:
+              requests:
+                cpu: 200m
+                memory: 256Mi
+              limits:
+                cpu: "1"
+                memory: 1Gi
+        </pre>
+    </div>
+
+    <!-- StatefulSet -->
+    <h3>StatefulSet</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">statefulset.yaml</span>
+            <span class="tag tag-blue">StatefulSet</span>
+        </div>
+        <pre>
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: production
+spec:
+  serviceName: postgres-headless     # Required: headless service name
+  replicas: 3
+  podManagementPolicy: OrderedReady  # OrderedReady | Parallel
+
+  selector:
+    matchLabels:
+      app: postgres
+
+  # Update strategy
+  updateStrategy:
+    type: RollingUpdate              # RollingUpdate | OnDelete
+    rollingUpdate:
+      partition: 0                   # Only update pods with ordinal >= partition
+
+  # Persistent volume claim templates (one PVC per pod)
+  volumeClaimTemplates:
+  - metadata:
+      name: data                     # Accessed as data-postgres-0, data-postgres-1...
+      labels:
+        app: postgres
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: gp3-encrypted
+      resources:
+        requests:
+          storage: 50Gi
+
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+      - name: postgres
+        image: postgres:16
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          value: "myapp"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: "2"
+            memory: 4Gi
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        livenessProbe:
+          exec:
+            command: ["pg_isready", "-U", "postgres"]
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command: ["pg_isready", "-U", "postgres"]
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+# Required headless service for StatefulSet
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-headless
+  namespace: production
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+        </pre>
+    </div>
+
+    <!-- DaemonSet -->
+    <h3>DaemonSet</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">daemonset.yaml</span>
+            <span class="tag tag-green">DaemonSet</span>
+        </div>
+        <pre>
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+  namespace: monitoring
+  labels:
+    app: node-exporter
+spec:
+  selector:
+    matchLabels:
+      app: node-exporter
+
+  updateStrategy:
+    type: RollingUpdate              # RollingUpdate | OnDelete
+    rollingUpdate:
+      maxUnavailable: 1              # Or percentage: "25%"
+      maxSurge: 0                    # DaemonSets: usually 0
+
+  template:
+    metadata:
+      labels:
+        app: node-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+    spec:
+      hostNetwork: true              # Use host network namespace
+      hostPID: true                  # Access host process info
+      tolerations:
+      # Run on ALL nodes including control plane
+      - operator: Exists
+      containers:
+      - name: node-exporter
+        image: prom/node-exporter:v1.7.0
+        args:
+        - "--path.rootfs=/host"
+        - "--path.procfs=/host/proc"
+        - "--path.sysfs=/host/sys"
+        ports:
+        - containerPort: 9100
+          hostPort: 9100
+          name: metrics
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        volumeMounts:
+        - name: rootfs
+          mountPath: /host
+          readOnly: true
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+        securityContext:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+      volumes:
+      - name: rootfs
+        hostPath:
+          path: /
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: sys
+        hostPath:
+          path: /sys
+        </pre>
+    </div>
+
+    <!-- PodDisruptionBudget -->
+    <h3>PodDisruptionBudget</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">pdb.yaml</span>
+            <span class="tag tag-blue">PDB</span>
+        </div>
+        <pre>
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: web-pdb
+  namespace: production
+spec:
+  # Use ONE of minAvailable or maxUnavailable (not both)
+  minAvailable: 2                    # At least 2 pods must be available
+  # minAvailable: "50%"             # Or use percentage
+  # maxUnavailable: 1               # At most 1 pod can be unavailable
+  selector:
+    matchLabels:
+      app: web
+
+  # Optional: unhealthy pod eviction policy (K8s 1.27+)
+  unhealthyPodEvictionPolicy: IfHealthyBudget  # AlwaysAllow | IfHealthyBudget
+        </pre>
+    </div>
+
+    <!-- LimitRange -->
+    <h3>LimitRange</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">limitrange.yaml</span>
+            <span class="tag tag-green">LimitRange</span>
+        </div>
+        <pre>
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: resource-limits
+  namespace: production
+spec:
+  limits:
+  # Default limits/requests for containers
+  - type: Container
+    default:                         # Default limits if not specified
+      cpu: 500m
+      memory: 512Mi
+    defaultRequest:                  # Default requests if not specified
+      cpu: 100m
+      memory: 128Mi
+    max:                             # Maximum allowed
+      cpu: "4"
+      memory: 8Gi
+    min:                             # Minimum allowed
+      cpu: 50m
+      memory: 64Mi
+    maxLimitRequestRatio:            # Max ratio between limit and request
+      cpu: "10"
+      memory: "4"
+
+  # Limits for entire pod (sum of all containers)
+  - type: Pod
+    max:
+      cpu: "8"
+      memory: 16Gi
+    min:
+      cpu: 100m
+      memory: 128Mi
+
+  # PVC size limits
+  - type: PersistentVolumeClaim
+    max:
+      storage: 100Gi
+    min:
+      storage: 1Gi
+        </pre>
+    </div>
+
+    <!-- ResourceQuota -->
+    <h3>ResourceQuota</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">resourcequota.yaml</span>
+            <span class="tag tag-blue">ResourceQuota</span>
+        </div>
+        <pre>
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: team-quota
+  namespace: production
+spec:
+  hard:
+    # Compute resources
+    requests.cpu: "20"               # Total CPU requests across all pods
+    requests.memory: 40Gi
+    limits.cpu: "40"
+    limits.memory: 80Gi
+
+    # Object counts
+    pods: "50"                       # Max 50 pods
+    services: "20"
+    secrets: "50"
+    configmaps: "50"
+    persistentvolumeclaims: "20"
+    services.loadbalancers: "2"      # Limit expensive LBs
+    services.nodeports: "5"
+
+    # Storage
+    requests.storage: 500Gi          # Total storage across all PVCs
+    gold.storageclass.storage.k8s.io/requests.storage: 100Gi  # Per StorageClass
+
+  # Optional: only apply quota to certain priority classes
+  scopeSelector:
+    matchExpressions:
+    - scopeName: PriorityClass
+      operator: In
+      values: ["high", "medium"]
+        </pre>
+    </div>
+
+    <!-- Namespace -->
+    <h3>Namespace (with Pod Security Admission)</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">namespace.yaml</span>
+            <span class="tag tag-green">Namespace</span>
+        </div>
+        <pre>
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  labels:
+    # Pod Security Admission (PSA) labels
+    pod-security.kubernetes.io/enforce: restricted      # Reject violations
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted        # Log violations
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted         # Warn on violations
+    pod-security.kubernetes.io/warn-version: latest
+
+    # Custom labels
+    team: platform
+    environment: production
+    cost-center: "12345"
+
+  annotations:
+    description: "Production workloads"
+    owner: "platform-team@company.com"
+
+# PSA Levels:
+#   privileged - No restrictions (full host access)
+#   baseline   - Minimal restrictions (no known privilege escalations)
+#   restricted - Hardened (no root, drop capabilities, read-only rootfs)
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 4. kubectl GENERATORS -->
+    <!-- ============================================================ -->
+
+    <h2>4. kubectl Generators (Dry-Run YAML)</h2>
+
+    <div class="card card-info">
+        <h4>Generate YAML without creating resources</h4>
+        <p>Use <code>--dry-run=client -o yaml</code> to generate YAML templates from the command line. Perfect for exams and quick scaffolding.</p>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">kubectl-generators.sh</span>
+            <span class="tag tag-blue">kubectl</span>
+        </div>
+        <pre>
+# Generate Deployment YAML
+kubectl create deployment nginx-deploy \
+  --image=nginx:1.25 \
+  --replicas=3 \
+  --port=80 \
+  --dry-run=client -o yaml > deployment.yaml
+
+# Generate Pod YAML
+kubectl run nginx-pod \
+  --image=nginx:1.25 \
+  --port=80 \
+  --labels="app=web,env=prod" \
+  --dry-run=client -o yaml > pod.yaml
+
+# Generate Pod with command
+kubectl run busybox \
+  --image=busybox:1.36 \
+  --restart=Never \
+  --command -- sleep 3600 \
+  --dry-run=client -o yaml
+
+# Generate Service (ClusterIP)
+kubectl expose deployment nginx-deploy \
+  --port=80 \
+  --target-port=8080 \
+  --name=nginx-svc \
+  --type=ClusterIP \
+  --dry-run=client -o yaml > service.yaml
+
+# Generate NodePort Service
+kubectl expose deployment nginx-deploy \
+  --port=80 \
+  --target-port=8080 \
+  --type=NodePort \
+  --dry-run=client -o yaml
+
+# Generate Job
+kubectl create job my-job \
+  --image=busybox:1.36 \
+  --dry-run=client -o yaml -- /bin/sh -c "echo hello"
+
+# Generate CronJob
+kubectl create cronjob my-cron \
+  --image=busybox:1.36 \
+  --schedule="*/5 * * * *" \
+  --dry-run=client -o yaml -- /bin/sh -c "date"
+
+# Generate ConfigMap
+kubectl create configmap my-config \
+  --from-literal=key1=value1 \
+  --from-literal=key2=value2 \
+  --dry-run=client -o yaml
+
+# Generate ConfigMap from file
+kubectl create configmap my-config \
+  --from-file=config.properties \
+  --from-file=app.conf=/path/to/file \
+  --dry-run=client -o yaml
+
+# Generate Secret
+kubectl create secret generic my-secret \
+  --from-literal=password=mysecret \
+  --from-literal=username=admin \
+  --dry-run=client -o yaml
+
+# Generate TLS Secret
+kubectl create secret tls my-tls \
+  --cert=tls.crt \
+  --key=tls.key \
+  --dry-run=client -o yaml
+
+# Generate ServiceAccount
+kubectl create serviceaccount my-sa \
+  --dry-run=client -o yaml
+
+# Generate Namespace
+kubectl create namespace staging \
+  --dry-run=client -o yaml
+
+# Generate Role
+kubectl create role pod-reader \
+  --verb=get,list,watch \
+  --resource=pods \
+  --dry-run=client -o yaml
+
+# Generate RoleBinding
+kubectl create rolebinding read-pods \
+  --role=pod-reader \
+  --user=jane \
+  --serviceaccount=default:my-sa \
+  --dry-run=client -o yaml
+
+# Generate ClusterRole
+kubectl create clusterrole node-reader \
+  --verb=get,list,watch \
+  --resource=nodes \
+  --dry-run=client -o yaml
+
+# Generate ClusterRoleBinding
+kubectl create clusterrolebinding global-reader \
+  --clusterrole=node-reader \
+  --group=developers \
+  --dry-run=client -o yaml
+
+# Generate Ingress
+kubectl create ingress my-ingress \
+  --rule="app.example.com/=svc:80" \
+  --rule="app.example.com/api=api-svc:8080" \
+  --annotation="nginx.ingress.kubernetes.io/rewrite-target=/" \
+  --dry-run=client -o yaml
+
+# Generate PDB
+kubectl create pdb my-pdb \
+  --selector=app=web \
+  --min-available=2 \
+  --dry-run=client -o yaml
+
+# Generate Quota
+kubectl create quota team-quota \
+  --hard=pods=50,services=10,requests.cpu=20,requests.memory=40Gi \
+  --dry-run=client -o yaml
+        </pre>
+    </div>
+
+    <h3>kubectl explain (Field Documentation)</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">kubectl-explain.sh</span>
+            <span class="tag tag-green">kubectl</span>
+        </div>
+        <pre>
+# Explore resource fields interactively
+kubectl explain pod
+kubectl explain pod.spec
+kubectl explain pod.spec.containers
+kubectl explain pod.spec.containers.livenessProbe
+kubectl explain pod.spec.containers.resources
+
+# Recursive (show all nested fields)
+kubectl explain deployment.spec --recursive
+
+# Specific API version
+kubectl explain hpa --api-version=autoscaling/v2
+
+# Common lookups
+kubectl explain pod.spec.affinity.nodeAffinity
+kubectl explain pod.spec.tolerations
+kubectl explain pod.spec.volumes
+kubectl explain deployment.spec.strategy
+kubectl explain statefulset.spec.volumeClaimTemplates
+kubectl explain ingress.spec.rules
+kubectl explain networkpolicy.spec.ingress
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 5. RESOURCE UNITS REFERENCE -->
+    <!-- ============================================================ -->
+
+    <h2>5. Resource Units Reference</h2>
+
+    <h3>CPU Units</h3>
+
+    <div class="card card-info">
+        <h4>CPU Measurement</h4>
+        <ul>
+            <li><code>1</code> = 1 vCPU/core (1 AWS vCPU, 1 GCP core, 1 Azure vCore, 1 hyperthread)</li>
+            <li><code>1000m</code> = 1 core (m = millicores)</li>
+            <li><code>500m</code> = 0.5 cores = half a CPU</li>
+            <li><code>100m</code> = 0.1 cores = 100 millicores</li>
+            <li><code>250m</code> = 0.25 cores = quarter CPU</li>
+            <li>Minimum allowed: <code>1m</code></li>
+        </ul>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">cpu-examples.yaml</span>
+            <span class="tag tag-blue">CPU</span>
+        </div>
+        <pre>
+resources:
+  requests:
+    cpu: 100m        # 0.1 CPU (good for lightweight sidecars)
+    cpu: 250m        # 0.25 CPU (small web apps)
+    cpu: 500m        # 0.5 CPU (medium workloads)
+    cpu: "1"         # 1 full CPU core (quotes needed for integers)
+    cpu: "2"         # 2 CPU cores
+    cpu: 1500m       # 1.5 CPU cores
+  limits:
+    cpu: "4"         # Max 4 CPU cores
+        </pre>
+    </div>
+
+    <h3>Memory Units</h3>
+
+    <div class="card card-success">
+        <h4>Memory Measurement</h4>
+        <p><strong>Binary (power of 2) - Preferred in Kubernetes:</strong></p>
+        <ul>
+            <li><code>Ki</code> = Kibibyte = 1024 bytes</li>
+            <li><code>Mi</code> = Mebibyte = 1024 Ki = 1,048,576 bytes</li>
+            <li><code>Gi</code> = Gibibyte = 1024 Mi = 1,073,741,824 bytes</li>
+            <li><code>Ti</code> = Tebibyte = 1024 Gi</li>
+        </ul>
+        <p><strong>Decimal (power of 10) - Less common:</strong></p>
+        <ul>
+            <li><code>K</code> = Kilobyte = 1000 bytes</li>
+            <li><code>M</code> = Megabyte = 1000 K = 1,000,000 bytes</li>
+            <li><code>G</code> = Gigabyte = 1000 M = 1,000,000,000 bytes</li>
+            <li><code>T</code> = Terabyte = 1000 G</li>
+        </ul>
+        <p><strong>Warning:</strong> <code>128M</code> (megabytes) is NOT the same as <code>128Mi</code> (mebibytes). 128Mi = 134,217,728 bytes vs 128M = 128,000,000 bytes. Always use <code>Mi</code>/<code>Gi</code> for clarity.</p>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">memory-examples.yaml</span>
+            <span class="tag tag-green">Memory</span>
+        </div>
+        <pre>
+resources:
+  requests:
+    memory: 64Mi      # 64 mebibytes (sidecars, tiny apps)
+    memory: 128Mi     # 128 mebibytes (small apps)
+    memory: 256Mi     # 256 mebibytes (medium apps)
+    memory: 512Mi     # 512 mebibytes
+    memory: 1Gi       # 1 gibibyte (1024 Mi)
+    memory: 2Gi       # 2 gibibytes
+  limits:
+    memory: 4Gi       # Max 4 gibibytes
+    memory: 8Gi       # Max 8 gibibytes
+
+# Common patterns:
+# - Request = what you expect normal usage to be
+# - Limit = max before OOMKill
+# - Typical ratio: limit = 2x request for memory
+# - CPU: often no limit (or high limit) to avoid throttling
+        </pre>
+    </div>
+
+    <h3>Storage Units</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">storage-examples.yaml</span>
+            <span class="tag tag-blue">Storage</span>
+        </div>
+        <pre>
+# PVC storage uses same units as memory
+resources:
+  requests:
+    storage: 1Gi      # 1 gibibyte
+    storage: 10Gi     # 10 gibibytes
+    storage: 100Gi    # 100 gibibytes
+    storage: 1Ti      # 1 tebibyte
+
+# ephemeral-storage (container local storage)
+resources:
+  requests:
+    ephemeral-storage: 1Gi
+  limits:
+    ephemeral-storage: 5Gi    # Evicted if exceeded
+        </pre>
+    </div>
+
+    <div class="card card-warning">
+        <h4>Common Gotchas</h4>
+        <ul>
+            <li><strong>CPU limit throttling:</strong> When a container hits CPU limit, it is throttled (not killed). When it hits memory limit, it is OOMKilled.</li>
+            <li><strong>No CPU limit debate:</strong> Many teams set no CPU limit to avoid throttling. Use requests for scheduling, let pods burst.</li>
+            <li><strong>Memory limit = request:</strong> For Java/Go apps with fixed heap, set memory limit = request to avoid OOM surprises.</li>
+            <li><strong>QoS classes:</strong> Guaranteed (requests=limits), Burstable (requests &lt; limits), BestEffort (no requests/limits). Guaranteed pods are evicted last.</li>
+            <li><strong>Integer CPU:</strong> Must be quoted: <code>cpu: "1"</code> not <code>cpu: 1</code> (YAML interprets bare integers differently in some contexts).</li>
+        </ul>
+    </div>
+
+</div>
+</body>
+</html>

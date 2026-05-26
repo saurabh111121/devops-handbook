@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes Advanced - K8s/DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+    <nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html" class="active">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+        </nav>
+
+        <h1>Kubernetes Advanced</h1>
+        <p class="subtitle">Advanced Kubernetes topics including deployment strategies, Helm packaging, service mesh architectures, GitOps with ArgoCD, production troubleshooting, and a comprehensive YAML reference.</p>
+
+        <div class="toc-grid">
+
+            <a href="advanced-topics.html" class="toc-card">
+                <span class="priority priority-high">High</span>
+                <h3>Advanced Topics</h3>
+                <p>Deployment strategies (blue/green, canary), CNI plugins, CSI drivers, CRDs, Operators, Helm charts, and cluster administration.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">CNI</span>
+                    <span class="tag tag-green">CSI</span>
+                    <span class="tag tag-orange">Operators</span>
+                    <span class="tag tag-purple">Helm</span>
+                </div>
+            </a>
+
+            <a href="service-mesh.html" class="toc-card">
+                <span class="priority priority-medium">Medium</span>
+                <h3>Service Mesh</h3>
+                <p>Istio, Linkerd, sidecar proxies, mTLS, traffic management, observability, and service mesh architecture patterns.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">Istio</span>
+                    <span class="tag tag-green">Linkerd</span>
+                    <span class="tag tag-orange">mTLS</span>
+                    <span class="tag tag-purple">Traffic Mgmt</span>
+                </div>
+            </a>
+
+            <a href="argocd-gitops.html" class="toc-card">
+                <span class="priority priority-high">High</span>
+                <h3>ArgoCD & GitOps</h3>
+                <p>GitOps principles, ArgoCD architecture, Application CRDs, sync strategies, multi-cluster management, and Flux comparison.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">ArgoCD</span>
+                    <span class="tag tag-green">GitOps</span>
+                    <span class="tag tag-orange">Sync</span>
+                    <span class="tag tag-purple">Multi-Cluster</span>
+                </div>
+            </a>
+
+            <a href="troubleshooting.html" class="toc-card">
+                <span class="priority priority-critical">Must Know</span>
+                <h3>Troubleshooting</h3>
+                <p>Systematic debugging, CrashLoopBackOff, ImagePullBackOff, OOMKilled, networking issues, and real-world scenarios.</p>
+                <div class="topics">
+                    <span class="tag tag-red">CrashLoop</span>
+                    <span class="tag tag-orange">OOMKilled</span>
+                    <span class="tag tag-blue">Networking</span>
+                    <span class="tag tag-green">Scenarios</span>
+                </div>
+            </a>
+
+            <a href="yaml-reference.html" class="toc-card">
+                <span class="priority priority-critical">Must Know</span>
+                <h3>YAML Reference</h3>
+                <p>Complete YAML manifests for every resource type, common pitfalls, indentation errors, and production best practices.</p>
+                <div class="topics">
+                    <span class="tag tag-blue">Manifests</span>
+                    <span class="tag tag-green">Best Practices</span>
+                    <span class="tag tag-red">Common Errors</span>
+                    <span class="tag tag-orange">Templates</span>
+                </div>
+            </a>
+
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            Complete Kubernetes, DevOps & SRE Reference | Built for study & interview preparation | 2026
+        </footer>
+
+    </div>
+
+</body>
+</html>

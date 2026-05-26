@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Queues - DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html" class="active">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; <a href="../index.html">Infrastructure</a> &gt; Message Queues
+        </div>
+
+        <h1>Message Queues</h1>
+        <p class="subtitle">Kafka, RabbitMQ, SQS/SNS, event-driven architecture, and distributed messaging patterns</p>
+
+        <!-- ============================================ -->
+        <!-- 1. Why Message Queues -->
+        <!-- ============================================ -->
+        <h2>1. Why Message Queues</h2>
+
+        <div class="card card-info">
+            <h4>Core Benefits</h4>
+            <div class="point">
+                <span class="point-num">1</span>
+                <div class="point-content">
+                    <span class="point-title">Decoupling</span> - Producers and consumers evolve independently. Adding new consumers requires no producer changes.
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num green">2</span>
+                <div class="point-content">
+                    <span class="point-title">Asynchronous Processing</span> - Offload time-consuming tasks (email, image processing, reports) from the request path.
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num purple">3</span>
+                <div class="point-content">
+                    <span class="point-title">Load Leveling</span> - Buffer traffic spikes. Queue absorbs bursts, consumers process at steady rate.
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num orange">4</span>
+                <div class="point-content">
+                    <span class="point-title">Resilience</span> - If a consumer crashes, messages persist in the queue. Processing resumes when consumer recovers.
+                </div>
+            </div>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">Basic Message Queue Architecture</div>
+<pre>
+  ┌──────────────┐      ┌──────────────────┐      ┌──────────────┐
+  │              │      │                  │      │              │
+  │   Producer   │─────>│    Message       │─────>│   Consumer   │
+  │   (Service)  │      │    Queue         │      │   (Worker)   │
+  │              │      │                  │      │              │
+  └──────────────┘      └──────────────────┘      └──────────────┘
+                              │
+                              │  Messages persist until
+                              │  acknowledged (processed)
+                              │
+                         ┌────▼────┐
+                         │  Dead   │  Failed messages after
+                         │  Letter │  max retries
+                         │  Queue  │
+                         └─────────┘
+
+  Without Queue:                    With Queue:
+  ┌────┐   ┌────┐                  ┌────┐   ┌─────┐   ┌────┐
+  │ A  │──>│ B  │  (tight          │ A  │──>│Queue│──>│ B  │
+  └────┘   └────┘   coupling,      └────┘   └─────┘   └────┘
+                     A blocks if              B can be down,
+                     B is slow/down)          A keeps producing
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 2. Patterns -->
+        <!-- ============================================ -->
+        <h2>2. Messaging Patterns</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">Point-to-Point (Queue) vs Pub/Sub (Topic)</div>
+<pre>
+  POINT-TO-POINT (Queue):
+  Each message consumed by exactly ONE consumer
+
+  Producer ──> [ msg3 | msg2 | msg1 ] ──> Consumer A  (gets msg1)
+                                     ──> Consumer B  (gets msg2)
+                                     ──> Consumer C  (gets msg3)
+  (Competing consumers - work distribution)
+
+
+  PUB/SUB (Topic):
+  Each message delivered to ALL subscribers
+
+                              ┌──> Subscriber A (gets ALL messages)
+  Publisher ──> [ Topic ] ────┼──> Subscriber B (gets ALL messages)
+                              └──> Subscriber C (gets ALL messages)
+  (Broadcast - event notification)
+</pre>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">Fan-Out Pattern</div>
+<pre>
+                                  ┌──> Queue A ──> Order Service
+                                  │
+  Order Event ──> SNS Topic ──────┼──> Queue B ──> Email Service
+                                  │
+                                  └──> Queue C ──> Analytics Service
+
+  Each service gets its own copy of the message.
+  Services process independently at their own pace.
+  Adding a new service = subscribe new queue to topic.
+</pre>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Competing Consumers</h4>
+                <ul>
+                    <li>Multiple consumers read from same queue</li>
+                    <li>Each message processed by exactly one consumer</li>
+                    <li>Horizontal scaling: add more consumers for throughput</li>
+                    <li>Load balancing happens naturally</li>
+                    <li>Message ordering NOT guaranteed across consumers</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Dead Letter Queue (DLQ)</h4>
+                <ul>
+                    <li>Messages that fail processing after max retries</li>
+                    <li>Prevents poison messages from blocking the queue</li>
+                    <li>DLQ should be monitored and alerted on</li>
+                    <li>Manual inspection and replay of failed messages</li>
+                    <li>Configure: <code>maxReceiveCount</code> (SQS), <code>x-death</code> (RabbitMQ)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 3. Apache Kafka -->
+        <!-- ============================================ -->
+        <h2>3. Apache Kafka</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">Kafka Architecture</div>
+<pre>
+  ┌─────────────────── Kafka Cluster ────────────────────────────────┐
+  │                                                                   │
+  │  ┌─────────┐    ┌─────────┐    ┌─────────┐                      │
+  │  │ Broker 1│    │ Broker 2│    │ Broker 3│                      │
+  │  │         │    │         │    │         │                      │
+  │  │ Topic A │    │ Topic A │    │ Topic A │                      │
+  │  │  P0(L)  │    │  P1(L)  │    │  P2(L)  │  L = Leader         │
+  │  │  P1(F)  │    │  P2(F)  │    │  P0(F)  │  F = Follower       │
+  │  └─────────┘    └─────────┘    └─────────┘                      │
+  │                                                                   │
+  │  Controller: Broker 1 (or KRaft leader)                          │
+  └──────────────────────────────────────────────────────────────────┘
+         ▲                                         │
+         │                                         ▼
+  ┌──────┴──────┐                          ┌──────────────┐
+  │  Producers  │                          │  Consumer    │
+  │             │                          │  Group "CG1" │
+  │  App 1 ────┤                          │              │
+  │  App 2 ────┤                          │  C1 <- P0    │
+  │             │                          │  C2 <- P1    │
+  └─────────────┘                          │  C3 <- P2    │
+                                           └──────────────┘
+
+  Topic "orders" with 3 partitions:
+  ┌─────────────────────────────────────────────────────┐
+  │ Partition 0: [msg0][msg1][msg2][msg3]  offset ->    │
+  │ Partition 1: [msg0][msg1][msg2]        offset ->    │
+  │ Partition 2: [msg0][msg1][msg2][msg3][msg4] ->      │
+  └─────────────────────────────────────────────────────┘
+</pre>
+        </div>
+
+        <div class="card">
+            <h4>Kafka Key Concepts</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Concept</th>
+                        <th>Description</th>
+                        <th>Key Detail</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Topic</strong></td>
+                        <td>Logical category/feed for messages</td>
+                        <td>Like a table in a database</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Partition</strong></td>
+                        <td>Ordered, immutable sequence of records</td>
+                        <td>Unit of parallelism; ordering within partition only</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Offset</strong></td>
+                        <td>Sequential ID for each record in a partition</td>
+                        <td>Consumers track their position via offsets</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Consumer Group</strong></td>
+                        <td>Set of consumers sharing work on a topic</td>
+                        <td>Each partition assigned to exactly one consumer in group</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Replication Factor</strong></td>
+                        <td>Number of copies of each partition</td>
+                        <td>RF=3 means 1 leader + 2 followers</td>
+                    </tr>
+                    <tr>
+                        <td><strong>ISR</strong></td>
+                        <td>In-Sync Replicas</td>
+                        <td>Replicas caught up with leader; eligible for leadership</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Retention</strong></td>
+                        <td>How long messages are kept</td>
+                        <td>Time-based (7 days default) or size-based</td>
+                    </tr>
+                    <tr>
+                        <td><strong>KRaft</strong></td>
+                        <td>Kafka Raft metadata mode</td>
+                        <td>Replaces ZooKeeper (Kafka 3.3+)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3>Exactly-Once Semantics (EOS)</h3>
+
+        <div class="card card-info">
+            <h4>Delivery Guarantees</h4>
+            <div class="point">
+                <span class="point-num">1</span>
+                <div class="point-content">
+                    <span class="point-title">At-Most-Once</span> - Fire and forget. Message may be lost. Producer doesn't retry. <code>acks=0</code>
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num green">2</span>
+                <div class="point-content">
+                    <span class="point-title">At-Least-Once</span> - Producer retries on failure. Message may be delivered multiple times. <code>acks=all</code> + retries. Consumer must be idempotent.
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num purple">3</span>
+                <div class="point-content">
+                    <span class="point-title">Exactly-Once</span> - Each message processed exactly once. Requires idempotent producer (<code>enable.idempotence=true</code>) + transactional API + consumer <code>read_committed</code> isolation.
+                </div>
+            </div>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">kafka-producer.py</span>
+                <span class="tag tag-blue">Python</span>
+            </div>
+<pre>
+from confluent_kafka import Producer
+
+conf = {
+    'bootstrap.servers': 'kafka-1:9092,kafka-2:9092,kafka-3:9092',
+    'acks': 'all',                    # Wait for all ISR to acknowledge
+    'enable.idempotence': True,       # Exactly-once producer
+    'max.in.flight.requests.per.connection': 5,
+    'retries': 2147483647,            # Infinite retries
+    'compression.type': 'lz4',        # Compress for throughput
+    'linger.ms': 5,                   # Batch for 5ms
+    'batch.size': 65536,              # 64KB batches
+}
+
+producer = Producer(conf)
+
+def delivery_report(err, msg):
+    if err:
+        print(f'Delivery failed: {err}')
+    else:
+        print(f'Delivered to {msg.topic()}[{msg.partition()}] @ offset {msg.offset()}')
+
+# Produce with key for partition assignment
+producer.produce(
+    topic='orders',
+    key=str(order.user_id).encode(),   # Same user always same partition
+    value=json.dumps(order).encode(),
+    callback=delivery_report
+)
+producer.flush()
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 4. RabbitMQ -->
+        <!-- ============================================ -->
+        <h2>4. RabbitMQ</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">RabbitMQ Architecture</div>
+<pre>
+  Producer                   RabbitMQ Broker                    Consumer
+  ┌──────┐    ┌──────────────────────────────────────┐    ┌──────────┐
+  │      │    │                                      │    │          │
+  │ App  │───>│  Exchange ─── Binding ─── Queue  ───>│───>│  Worker  │
+  │      │    │     │          (routing key)    │    │    │          │
+  └──────┘    │     │                           │    │    └──────────┘
+              │     │    ┌─── Queue A ──────────>│────────> Worker A
+              │     │    │    (order.created)    │    │
+              │  Exchange├─── Queue B ──────────>│────────> Worker B
+              │  (topic) │    (order.*)          │    │
+              │     │    │                       │    │
+              │     │    └─── Queue C ──────────>│────────> Worker C
+              │     │         (*.created)        │    │
+              └─────┼────────────────────────────┘    │
+                    │                                  │
+              ┌─────▼─────┐                           │
+              │ Dead Letter│  (rejected/expired msgs) │
+              │   Exchange │                          │
+              └───────────┘                           │
+
+  Message Flow:
+  1. Producer publishes to Exchange with routing key
+  2. Exchange routes to Queue(s) based on binding rules
+  3. Consumer pulls/is pushed messages from Queue
+  4. Consumer ACKs (or NACKs/rejects) message
+</pre>
+        </div>
+
+        <div class="card">
+            <h4>Exchange Types</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Routing Logic</th>
+                        <th>Use Case</th>
+                        <th>Example</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Direct</strong></td>
+                        <td>Exact routing key match</td>
+                        <td>Task distribution</td>
+                        <td>Key "pdf" goes to PDF queue only</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Topic</strong></td>
+                        <td>Pattern matching (* = one word, # = zero+)</td>
+                        <td>Selective routing</td>
+                        <td>"order.*.created" matches "order.us.created"</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Fanout</strong></td>
+                        <td>All bound queues (ignores routing key)</td>
+                        <td>Broadcast</td>
+                        <td>Send to all consumers regardless of key</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Headers</strong></td>
+                        <td>Message header attributes</td>
+                        <td>Complex routing</td>
+                        <td>Route by content-type, priority, etc.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Acknowledgments</h4>
+                <ul>
+                    <li><strong>Manual ACK:</strong> Consumer explicitly acknowledges after processing. Message removed from queue.</li>
+                    <li><strong>Auto ACK:</strong> Message removed on delivery. Risk of data loss if consumer crashes.</li>
+                    <li><strong>NACK:</strong> Negative acknowledgment. Message requeued or sent to DLX.</li>
+                    <li><strong>Reject:</strong> Single message rejection. Can requeue or discard.</li>
+                </ul>
+                <p><strong>Best practice:</strong> Always use manual ACK in production. ACK only after successful processing and persistence.</p>
+            </div>
+            <div class="card">
+                <h4>Prefetch (QoS)</h4>
+                <ul>
+                    <li><code>prefetch_count</code> = how many unacknowledged messages a consumer can hold</li>
+                    <li><strong>prefetch=1:</strong> Fair dispatch, slow throughput (round-robin one at a time)</li>
+                    <li><strong>prefetch=10-50:</strong> Good balance for most workloads</li>
+                    <li><strong>prefetch=0 (unlimited):</strong> Max throughput, risk of memory issues</li>
+                    <li>Lower prefetch = fairer distribution among consumers</li>
+                    <li>Higher prefetch = better throughput, uneven work</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">rabbitmq-consumer.py</span>
+                <span class="tag tag-blue">Python</span>
+            </div>
+<pre>
+import pika
+
+connection = pika.BlockingConnection(
+    pika.ConnectionParameters(
+        host='rabbitmq',
+        heartbeat=600,
+        blocked_connection_timeout=300,
+        credentials=pika.PlainCredentials('user', 'pass')
+    )
+)
+channel = connection.channel()
+
+# Declare queue with DLX
+channel.queue_declare(
+    queue='orders',
+    durable=True,
+    arguments={
+        'x-dead-letter-exchange': 'dlx',
+        'x-dead-letter-routing-key': 'orders.failed',
+        'x-message-ttl': 86400000,  # 24h TTL
+        'x-max-length': 100000,     # Max queue depth
+    }
+)
+
+# Set prefetch
+channel.basic_qos(prefetch_count=10)
+
+def callback(ch, method, properties, body):
+    try:
+        order = json.loads(body)
+        process_order(order)
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+    except Exception as e:
+        # Reject and send to DLQ (requeue=False)
+        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+
+channel.basic_consume(queue='orders', on_message_callback=callback)
+channel.start_consuming()
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 5. AWS SQS/SNS -->
+        <!-- ============================================ -->
+        <h2>5. AWS SQS/SNS</h2>
+
+        <div class="card">
+            <h4>SQS: Standard vs FIFO</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Standard Queue</th>
+                        <th>FIFO Queue</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Throughput</strong></td>
+                        <td>Unlimited (near)</td>
+                        <td>300 msg/s (3000 with batching)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Ordering</strong></td>
+                        <td>Best-effort (not guaranteed)</td>
+                        <td>Strict FIFO within message group</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Delivery</strong></td>
+                        <td>At-least-once (may duplicate)</td>
+                        <td>Exactly-once processing</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Deduplication</strong></td>
+                        <td>Not built-in</td>
+                        <td>5-min dedup window (content or ID based)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Use Case</strong></td>
+                        <td>High throughput, order doesn't matter</td>
+                        <td>Financial transactions, user actions</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Queue Name</strong></td>
+                        <td>my-queue</td>
+                        <td>my-queue.fifo (must end in .fifo)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">SQS + SNS Fan-Out Pattern</div>
+<pre>
+                              ┌─────────────┐
+                              │  SNS Topic  │
+                              │  "orders"   │
+                              └──────┬──────┘
+                                     │
+                    ┌────────────────┼────────────────┐
+                    │                │                │
+                    ▼                ▼                ▼
+           ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+           │  SQS Queue   │ │  SQS Queue   │ │  SQS Queue   │
+           │  "fulfill"   │ │  "notify"    │ │  "analytics" │
+           └──────┬───────┘ └──────┬───────┘ └──────┬───────┘
+                  │                │                │
+                  ▼                ▼                ▼
+           ┌──────────┐    ┌──────────┐    ┌──────────┐
+           │ Lambda / │    │ Lambda / │    │ Lambda / │
+           │ ECS      │    │ ECS      │    │ ECS      │
+           │ (fulfill)│    │ (email)  │    │ (metrics)│
+           └──────────┘    └──────────┘    └──────────┘
+
+  Benefits:
+  - Each service processes independently
+  - Each queue has its own DLQ
+  - Services scale independently
+  - Adding new subscriber = new queue + subscription
+</pre>
+        </div>
+
+        <div class="card">
+            <h4>Key SQS Concepts</h4>
+            <div class="point">
+                <span class="point-num">1</span>
+                <div class="point-content">
+                    <span class="point-title">Visibility Timeout</span> - After a consumer receives a message, it's "invisible" for this duration (default 30s). If not deleted (ACKed), it reappears for other consumers. Set to ~6x your processing time.
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num green">2</span>
+                <div class="point-content">
+                    <span class="point-title">Long Polling</span> - <code>WaitTimeSeconds=20</code> reduces empty responses and API calls. Consumer waits up to 20s for messages to arrive.
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num purple">3</span>
+                <div class="point-content">
+                    <span class="point-title">Dead Letter Queue</span> - Configure <code>maxReceiveCount</code>. After N failed receives, message moves to DLQ. Monitor DLQ depth for alerts.
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num orange">4</span>
+                <div class="point-content">
+                    <span class="point-title">Message Retention</span> - 1 min to 14 days (default 4 days). After retention period, messages are permanently deleted.
+                </div>
+            </div>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">sqs-consumer.py</span>
+                <span class="tag tag-orange">AWS SDK</span>
+            </div>
+<pre>
+import boto3
+import json
+
+sqs = boto3.client('sqs', region_name='us-east-1')
+queue_url = 'https://sqs.us-east-1.amazonaws.com/123456789/orders'
+
+while True:
+    response = sqs.receive_message(
+        QueueUrl=queue_url,
+        MaxNumberOfMessages=10,      # Batch up to 10
+        WaitTimeSeconds=20,          # Long polling
+        VisibilityTimeout=60,        # 60s to process
+        MessageAttributeNames=['All']
+    )
+
+    messages = response.get('Messages', [])
+
+    for msg in messages:
+        try:
+            body = json.loads(msg['Body'])
+            process_order(body)
+
+            # Delete (ACK) on success
+            sqs.delete_message(
+                QueueUrl=queue_url,
+                ReceiptHandle=msg['ReceiptHandle']
+            )
+        except Exception as e:
+            # Message will reappear after visibility timeout
+            # After maxReceiveCount failures -> DLQ
+            print(f"Error processing: {e}")
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 6. Comparison -->
+        <!-- ============================================ -->
+        <h2>6. Kafka vs RabbitMQ vs SQS</h2>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Kafka</th>
+                        <th>RabbitMQ</th>
+                        <th>AWS SQS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Throughput</strong></td>
+                        <td>Millions msg/s</td>
+                        <td>Tens of thousands msg/s</td>
+                        <td>Unlimited (standard)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Ordering</strong></td>
+                        <td>Per partition</td>
+                        <td>Per queue</td>
+                        <td>FIFO: per message group</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Retention</strong></td>
+                        <td>Configurable (days/weeks/forever)</td>
+                        <td>Until consumed + ACKed</td>
+                        <td>Max 14 days</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Replay</strong></td>
+                        <td>Yes (seek to any offset)</td>
+                        <td>No (consumed = gone)</td>
+                        <td>No</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Protocol</strong></td>
+                        <td>Custom TCP (binary)</td>
+                        <td>AMQP 0.9.1, MQTT, STOMP</td>
+                        <td>HTTPS (REST API)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Routing</strong></td>
+                        <td>Topic + partition key</td>
+                        <td>Exchanges (complex routing)</td>
+                        <td>Queue-level only</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Operations</strong></td>
+                        <td>Complex (brokers, ZK/KRaft)</td>
+                        <td>Moderate</td>
+                        <td>Zero (serverless)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Best For</strong></td>
+                        <td>Event streaming, log aggregation, high throughput</td>
+                        <td>Task queues, complex routing, RPC</td>
+                        <td>Simple queuing, serverless, AWS integration</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Consumer Model</strong></td>
+                        <td>Pull (consumers poll)</td>
+                        <td>Push (broker pushes to consumers)</td>
+                        <td>Pull (long polling)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card card-info">
+            <h4>When to Choose What</h4>
+            <ul>
+                <li><strong>Kafka:</strong> Event sourcing, stream processing, audit logs, high-throughput data pipelines, replay capability needed</li>
+                <li><strong>RabbitMQ:</strong> Complex routing requirements, priority queues, request-reply pattern, multiple protocols needed</li>
+                <li><strong>SQS:</strong> Simple decoupling, serverless architectures, minimal ops overhead, AWS-native stack</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 7. Event-Driven Architecture -->
+        <!-- ============================================ -->
+        <h2>7. Event-Driven Architecture</h2>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Events vs Commands</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Aspect</th>
+                            <th>Event</th>
+                            <th>Command</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Intent</td>
+                            <td>"Something happened"</td>
+                            <td>"Do something"</td>
+                        </tr>
+                        <tr>
+                            <td>Naming</td>
+                            <td>Past tense: OrderCreated</td>
+                            <td>Imperative: CreateOrder</td>
+                        </tr>
+                        <tr>
+                            <td>Coupling</td>
+                            <td>Publisher unaware of consumers</td>
+                            <td>Sender knows the receiver</td>
+                        </tr>
+                        <tr>
+                            <td>Consumers</td>
+                            <td>Zero or more</td>
+                            <td>Exactly one handler</td>
+                        </tr>
+                        <tr>
+                            <td>Failure</td>
+                            <td>Publisher doesn't care if no one listens</td>
+                            <td>Sender expects a result</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card">
+                <h4>Event Sourcing</h4>
+                <ul>
+                    <li>Store events as the source of truth (not current state)</li>
+                    <li>Current state = replay all events from beginning</li>
+                    <li>Complete audit trail built-in</li>
+                    <li>Can rebuild any past state (time travel)</li>
+                    <li>Event store is append-only (immutable)</li>
+                    <li>Snapshots optimize replay for long event streams</li>
+                </ul>
+                <p><strong>Example events:</strong></p>
+                <ul>
+                    <li><code>AccountCreated { id, name, email }</code></li>
+                    <li><code>MoneyDeposited { id, amount, balance }</code></li>
+                    <li><code>MoneyWithdrawn { id, amount, balance }</code></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">CQRS (Command Query Responsibility Segregation)</div>
+<pre>
+                     ┌──────────────────────────────────────────────┐
+                     │              WRITE SIDE                       │
+  Commands           │                                              │
+  ──────────────────>│  Command Handler ──> Domain Model ──> Event  │
+  (CreateOrder,      │                         │            Store   │
+   UpdateUser)       │                         │                    │
+                     └─────────────────────────┼────────────────────┘
+                                               │
+                                          Events published
+                                               │
+                     ┌─────────────────────────▼────────────────────┐
+                     │              READ SIDE                        │
+  Queries            │                                              │
+  <──────────────────│  Query Handler <── Read Model (Projections)  │
+  (GetOrder,         │                    (Denormalized views,      │
+   ListUsers)        │                     optimized for queries)   │
+                     └──────────────────────────────────────────────┘
+
+  Benefits:
+  - Write model optimized for consistency (normalized, ACID)
+  - Read model optimized for queries (denormalized, fast)
+  - Scale reads and writes independently
+  - Multiple read models for different query patterns
+</pre>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">Saga Pattern (Distributed Transactions)</div>
+<pre>
+  Choreography Saga (event-driven):
+  ┌─────────┐  OrderCreated  ┌─────────┐  PaymentDone  ┌─────────┐
+  │  Order  │ ──────────────>│ Payment │ ──────────────>│  Ship   │
+  │ Service │                │ Service │                │ Service │
+  └─────────┘                └─────────┘                └─────────┘
+       ▲                          │
+       │     PaymentFailed        │
+       └──────────────────────────┘  (compensating action: cancel order)
+
+
+  Orchestration Saga (central coordinator):
+                    ┌──────────────┐
+                    │    Saga      │
+                    │ Orchestrator │
+                    └──────┬───────┘
+                           │
+              ┌────────────┼────────────┐
+              │            │            │
+              ▼            ▼            ▼
+         ┌────────┐  ┌────────┐  ┌────────┐
+         │ Step 1 │  │ Step 2 │  │ Step 3 │
+         │ Order  │  │ Payment│  │ Ship   │
+         └────────┘  └────────┘  └────────┘
+
+  On failure at any step:
+  - Execute compensating transactions for all completed steps
+  - Example: Payment fails -> Cancel order reservation
+  - Each step must have a compensating action defined
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 8. Kafka in Kubernetes -->
+        <!-- ============================================ -->
+        <h2>8. Kafka in Kubernetes</h2>
+
+        <div class="card card-info">
+            <h4>Strimzi Operator</h4>
+            <p>Strimzi provides a way to run Apache Kafka on Kubernetes using Operators. It manages Kafka clusters, topics, users, and connectors as Custom Resources.</p>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">kafka-cluster.yaml</span>
+                <span class="tag tag-blue">Strimzi</span>
+            </div>
+<pre>
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: production-cluster
+  namespace: kafka
+spec:
+  kafka:
+    version: 3.6.0
+    replicas: 3
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+    config:
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      default.replication.factor: 3
+      min.insync.replicas: 2
+      log.retention.hours: 168        # 7 days
+      log.segment.bytes: 1073741824   # 1GB segments
+    storage:
+      type: jbod
+      volumes:
+      - id: 0
+        type: persistent-claim
+        size: 500Gi
+        class: gp3
+        deleteClaim: false
+    resources:
+      requests:
+        memory: 8Gi
+        cpu: "2"
+      limits:
+        memory: 8Gi
+        cpu: "4"
+  zookeeper:
+    replicas: 3
+    storage:
+      type: persistent-claim
+      size: 50Gi
+      class: gp3
+    resources:
+      requests:
+        memory: 2Gi
+        cpu: "500m"
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">kafka-topic.yaml</span>
+                <span class="tag tag-green">Strimzi</span>
+            </div>
+<pre>
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: orders
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: production-cluster
+spec:
+  partitions: 12            # 12 partitions for parallelism
+  replicas: 3               # 3 copies for durability
+  config:
+    retention.ms: 604800000          # 7 days
+    cleanup.policy: delete
+    min.insync.replicas: 2           # At least 2 replicas must ACK
+    max.message.bytes: 1048576       # 1MB max message
+    compression.type: lz4
+</pre>
+        </div>
+
+        <div class="card">
+            <h4>Connecting Services to Kafka in K8s</h4>
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="filename">app-deployment.yaml (excerpt)</span>
+                    <span class="tag tag-blue">Kubernetes</span>
+                </div>
+<pre>
+env:
+- name: KAFKA_BOOTSTRAP_SERVERS
+  value: "production-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092"
+- name: KAFKA_TOPIC
+  value: "orders"
+- name: KAFKA_GROUP_ID
+  value: "order-processor"
+- name: KAFKA_AUTO_OFFSET_RESET
+  value: "earliest"
+</pre>
+            </div>
+            <p><strong>Service DNS pattern:</strong> <code>&lt;cluster-name&gt;-kafka-bootstrap.&lt;namespace&gt;.svc.cluster.local:9092</code></p>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 9. Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>9. Interview Q&A</h2>
+
+        <div class="qa">
+            <div class="q">Q1: When would you choose Kafka over RabbitMQ?</div>
+            <div class="a"><strong>Answer:</strong> Choose <strong>Kafka</strong> when you need: (1) very high throughput (millions msg/s); (2) message replay capability (reprocess historical events); (3) event sourcing or stream processing; (4) long-term retention (days/weeks); (5) ordered processing within partitions. Choose <strong>RabbitMQ</strong> when: (1) complex routing is needed (topic exchanges, headers-based); (2) message priority queues; (3) request-reply (RPC) pattern; (4) lower latency per-message delivery; (5) simpler operational requirements. Key difference: Kafka is a distributed log (append-only, consumer tracks offset), while RabbitMQ is a traditional message broker (messages deleted after ACK).</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q2: How do you achieve exactly-once delivery in a distributed system?</div>
+            <div class="a"><strong>Answer:</strong> True exactly-once delivery is impossible in distributed systems (Two Generals Problem). Instead, we achieve <strong>exactly-once processing</strong> through: (1) <strong>Idempotent producers</strong> (Kafka: <code>enable.idempotence=true</code> prevents duplicates on retries); (2) <strong>Transactional outbox pattern</strong> - write to DB and outbox table in same transaction, then publish from outbox; (3) <strong>Idempotent consumers</strong> - track processed message IDs, skip duplicates; (4) <strong>Deduplication</strong> - SQS FIFO dedup ID, Kafka exactly-once semantics with transactions. The practical approach: at-least-once delivery + idempotent consumers = effective exactly-once processing.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q3: How do you decide on the number of Kafka partitions?</div>
+            <div class="a"><strong>Answer:</strong> Partitions determine parallelism - max consumers in a group equals number of partitions. Factors: (1) <strong>Throughput:</strong> Target throughput / throughput per partition (typically 10-50 MB/s per partition); (2) <strong>Consumer parallelism:</strong> At least as many partitions as max expected consumers; (3) <strong>Ordering:</strong> Messages with same key go to same partition - choose a key with good cardinality; (4) <strong>Over-partitioning risks:</strong> More metadata overhead, longer leader elections, more file handles. Rule of thumb: start with 6-12 partitions per topic for most workloads, scale up if throughput demands. You can increase partitions later but CANNOT decrease. Rebalancing doesn't redistribute existing data.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q4: Explain consumer groups in Kafka.</div>
+            <div class="a"><strong>Answer:</strong> A consumer group is a set of consumers that cooperatively consume a topic. Each partition is assigned to exactly one consumer within a group. If consumers > partitions, some consumers sit idle. If consumers < partitions, some consumers handle multiple partitions. <strong>Rebalancing</strong> occurs when consumers join/leave the group - partitions are reassigned. Multiple consumer groups can independently consume the same topic (each gets all messages). Group coordinator (a broker) manages membership and offsets. Consumer commits offset to <code>__consumer_offsets</code> topic to track progress. If a consumer fails, its partitions are reassigned to remaining consumers.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q5: What is the purpose of a Dead Letter Queue?</div>
+            <div class="a"><strong>Answer:</strong> A DLQ captures messages that cannot be successfully processed after a configured number of retries. Purpose: (1) <strong>Prevent poison messages</strong> from blocking the queue (one bad message would block all processing); (2) <strong>Preserve failed messages</strong> for debugging and manual replay; (3) <strong>Alerting</strong> - DLQ depth is a key operational metric. Implementation: SQS <code>maxReceiveCount=5</code>, RabbitMQ dead-letter-exchange, Kafka error topic. Best practices: alert on DLQ growth, implement tooling to inspect and replay DLQ messages, include original error context in DLQ metadata, set appropriate DLQ retention (longer than main queue).</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q6: How does event sourcing differ from traditional CRUD?</div>
+            <div class="a"><strong>Answer:</strong> <strong>CRUD:</strong> Store current state. UPDATE overwrites previous state. History is lost. <strong>Event Sourcing:</strong> Store sequence of events (immutable facts). Current state is derived by replaying events. Benefits: (1) Complete audit trail; (2) Time travel - reconstruct any past state; (3) Event replay for new projections; (4) Natural fit for event-driven microservices. Challenges: (1) Event schema evolution (versioning); (2) Eventual consistency (read model lags write); (3) Complexity of rebuilding state from long event streams (use snapshots); (4) Storage grows unbounded (compaction strategies). Example: Bank account - instead of storing balance=500, store events: Deposited(200), Deposited(400), Withdrawn(100).</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q7: Explain the saga pattern for distributed transactions.</div>
+            <div class="a"><strong>Answer:</strong> A saga is a sequence of local transactions where each step publishes an event/command triggering the next. If a step fails, compensating transactions undo completed steps. Two styles: (1) <strong>Choreography:</strong> Each service listens for events and reacts. Decentralized, simple for few steps, but hard to track overall progress. (2) <strong>Orchestration:</strong> Central coordinator directs steps. Easier to understand and monitor, but adds a single point that must be resilient. Example: Order saga - CreateOrder -> ReserveInventory -> ProcessPayment -> ShipOrder. If payment fails: compensate by releasing inventory and canceling order. Key rules: each step must be idempotent, each step must have a compensating action, consider timeout/deadline for the overall saga.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q8: How do you make consumers idempotent?</div>
+            <div class="a"><strong>Answer:</strong> Idempotent consumers produce the same result regardless of how many times a message is processed. Techniques: (1) <strong>Deduplication table:</strong> Store processed message IDs in DB, check before processing (use unique constraint); (2) <strong>Natural idempotency:</strong> Design operations that are inherently idempotent (SET balance=500 vs ADD 100); (3) <strong>Optimistic locking:</strong> Include version/timestamp in message, reject if already applied; (4) <strong>Idempotency key:</strong> Client-generated unique ID per logical operation; (5) <strong>Upsert operations:</strong> INSERT ON CONFLICT UPDATE instead of blind INSERT. Always test by replaying the same message twice and verifying no side effects.</div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 10. Scenarios -->
+        <!-- ============================================ -->
+        <h2>10. Troubleshooting Scenarios</h2>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!</span>
+                <span class="title">Scenario: Consumer Lag Growing</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> Kafka consumer lag increasing steadily. Messages produced faster than consumed. Alerts on <code>kafka_consumer_lag</code> metric. Processing delay growing.</p>
+                <div class="scenario-step"><span class="step-num">1.</span> <strong>Measure:</strong> Check lag per partition: <code>kafka-consumer-groups.sh --describe --group my-group --bootstrap-server kafka:9092</code>. Identify which partitions are lagging.</div>
+                <div class="scenario-step"><span class="step-num">2.</span> <strong>Check consumer health:</strong> Are consumers crashing/restarting? Look for frequent rebalances (consumer logs). Check if processing time per message has increased.</div>
+                <div class="scenario-step"><span class="step-num">3.</span> <strong>Immediate mitigation:</strong> Scale consumers (add instances). If consumers = partitions already, you cannot add more consumers. Increase partition count (requires topic reconfiguration).</div>
+                <div class="scenario-step"><span class="step-num">4.</span> <strong>Optimize processing:</strong> Batch processing (consume multiple messages, process together). Async I/O in consumer. Check for slow downstream calls. Increase <code>max.poll.records</code>.</div>
+                <div class="scenario-step"><span class="step-num">5.</span> <strong>Long-term:</strong> Right-size partitions. Optimize consumer code. Consider parallel processing within each consumer (thread pool). Add back-pressure mechanism to producers if lag exceeds threshold.</div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!</span>
+                <span class="title">Scenario: Message Ordering Broken</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> Events for the same entity arriving out of order. User sees "order shipped" before "order confirmed". State machine violations.</p>
+                <div class="scenario-step"><span class="step-num">1.</span> <strong>Identify scope:</strong> Is ordering broken globally or for specific entities? Check if producer is using a partition key. Messages with same key should go to same partition.</div>
+                <div class="scenario-step"><span class="step-num">2.</span> <strong>Common causes:</strong> (a) Producer not setting message key (round-robin partitioning); (b) Producer retries with <code>max.in.flight.requests > 1</code> and <code>enable.idempotence=false</code>; (c) Multiple producers writing same entity without coordination; (d) Consumer processing out of order (parallel threads).</div>
+                <div class="scenario-step"><span class="step-num">3.</span> <strong>Fix producer:</strong> Set message key to entity ID (<code>order_id</code>). Enable idempotence. For SQS FIFO, use <code>MessageGroupId</code>.</div>
+                <div class="scenario-step"><span class="step-num">4.</span> <strong>Fix consumer:</strong> Process messages from each partition sequentially. If using threads, route same key to same thread. Implement sequence number validation.</div>
+                <div class="scenario-step"><span class="step-num">5.</span> <strong>Design fix:</strong> Include sequence number or timestamp in messages. Consumer reorders within a window. Accept eventual consistency for non-critical paths.</div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!</span>
+                <span class="title">Scenario: DLQ Filling Up</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> Dead Letter Queue depth increasing. Alerts firing on DLQ message count. Some messages being permanently lost after DLQ retention expires.</p>
+                <div class="scenario-step"><span class="step-num">1.</span> <strong>Inspect messages:</strong> Sample messages from DLQ. Check error attributes/headers for failure reason. Look for patterns (same error type, same producer, specific time range).</div>
+                <div class="scenario-step"><span class="step-num">2.</span> <strong>Classify failures:</strong> (a) <strong>Poison messages:</strong> Malformed data, schema mismatch - fix producer or add validation; (b) <strong>Transient failures:</strong> Downstream timeout, DB unavailable - increase retries/backoff; (c) <strong>Bug in consumer:</strong> Exception on valid data - fix consumer code, replay messages.</div>
+                <div class="scenario-step"><span class="step-num">3.</span> <strong>Fix root cause:</strong> Deploy fix for consumer bug. Fix schema validation. Add retry with exponential backoff for transient errors. Increase visibility timeout if processing takes longer than expected.</div>
+                <div class="scenario-step"><span class="step-num">4.</span> <strong>Replay DLQ:</strong> After fix is deployed, replay DLQ messages back to main queue. SQS: use DLQ redrive. Kafka: consumer tool to read from error topic and re-produce. Verify successful processing.</div>
+                <div class="scenario-step"><span class="step-num">5.</span> <strong>Prevention:</strong> Add schema validation at producer. Implement circuit breaker for downstream calls. Alert on DLQ arrival rate (not just depth). Regular DLQ review process.</div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!</span>
+                <span class="title">Scenario: Kafka Broker Failure</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> One of three Kafka brokers goes down. Under-replicated partitions detected. Some producers getting errors. Consumer rebalancing triggered.</p>
+                <div class="scenario-step"><span class="step-num">1.</span> <strong>Assess impact:</strong> Check under-replicated partitions: <code>kafka-topics.sh --describe --under-replicated-partitions</code>. If <code>min.insync.replicas=2</code> and RF=3, one broker down is survivable.</div>
+                <div class="scenario-step"><span class="step-num">2.</span> <strong>Verify availability:</strong> Producers with <code>acks=all</code> may get errors if ISR drops below <code>min.insync.replicas</code>. Check ISR count for affected partitions. Leader election should auto-promote an ISR follower.</div>
+                <div class="scenario-step"><span class="step-num">3.</span> <strong>Consumers:</strong> Group rebalancing will reassign partitions from dead broker's consumers. Expect brief pause in consumption. Check consumer group state: <code>kafka-consumer-groups.sh --describe</code>.</div>
+                <div class="scenario-step"><span class="step-num">4.</span> <strong>Recovery:</strong> If broker restarts, it will rejoin cluster and start catching up (fetching missed data from leaders). Monitor replication catch-up. If disk failed, broker needs fresh data (full replication from scratch).</div>
+                <div class="scenario-step"><span class="step-num">5.</span> <strong>Post-mortem:</strong> Verify RF >= 3 for all critical topics. Ensure brokers are in different failure domains (AZs in K8s: pod anti-affinity). Test broker failure regularly. Monitor ISR shrink rate as early warning.</div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        <p>Message Queues Reference - DevOps/SRE Study Notes</p>
+    </footer>
+
+</body>
+</html>

@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes Networking | K8s/DevOps/SRE</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html" class="active">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+<div class="container">
+
+    <div class="breadcrumb">
+        <a href="../index.html">Home</a> &gt; Networking
+    </div>
+
+    <h1>Kubernetes Networking</h1>
+    <p class="subtitle">Complete reference covering the Kubernetes networking model, Services, Ingress, Network Policies, DNS, and CNI plugins -- everything needed for production clusters and interviews.</p>
+
+    <!-- ============================================================ -->
+    <!-- K8S NETWORKING MODEL -->
+    <!-- ============================================================ -->
+
+    <h2>Kubernetes Networking Model</h2>
+
+    <p>Kubernetes imposes a set of fundamental requirements on the cluster networking implementation. These guarantees simplify the mental model for developers and ensure portability across different environments.</p>
+
+    <div class="card card-info">
+        <h4>The Three Guarantees</h4>
+        <p>1. Every Pod gets its own unique IP address (no manual allocation).</p>
+        <p>2. Pods on any node can communicate with all pods on any other node without NAT.</p>
+        <p>3. Agents on a node (kubelet, system daemons) can communicate with all pods on that node.</p>
+    </div>
+
+    <div class="point">
+        <div class="point-num">1</div>
+        <div class="point-content">
+            <span class="point-title">Flat Network Model:</span> Kubernetes requires a flat, routable network where every pod can reach every other pod directly by IP, regardless of which node it runs on. There is no NAT between pods. This dramatically simplifies application networking -- containers behave as if they are on the same LAN.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">2</div>
+        <div class="point-content">
+            <span class="point-title">Pod IP Assignment:</span> Each pod receives a unique IP address from the node's pod CIDR range. Containers within the same pod share the network namespace (same IP, same port space) and communicate via localhost. The IP is ephemeral -- it changes when a pod is recreated.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">3</div>
+        <div class="point-content">
+            <span class="point-title">No NAT Requirement:</span> The source IP a pod sees from incoming traffic is the actual sender pod's IP address. This means pods can rely on IP-based authentication and logging without translation confusion. Network policies also operate on real pod IPs.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">4</div>
+        <div class="point-content">
+            <span class="point-title">CNI Plugins:</span> Kubernetes does not implement networking itself. It delegates to Container Network Interface (CNI) plugins. The CNI specification defines how the container runtime invokes the plugin to set up or tear down a pod's network interface. Popular plugins: Calico, Cilium, Flannel, Weave Net.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">5</div>
+        <div class="point-content">
+            <span class="point-title">Network Namespaces:</span> Each pod runs in its own Linux network namespace, created by the pause container. The CNI plugin attaches a virtual ethernet (veth) pair -- one end in the pod namespace, the other on the host -- and configures routes so traffic flows correctly between pods and the node.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">6</div>
+        <div class="point-content">
+            <span class="point-title">Node-to-Node Communication:</span> For cross-node pod traffic, CNI plugins use various strategies: VXLAN overlay tunnels (Flannel default), BGP-advertised routes (Calico), eBPF programs (Cilium), or cloud-native VPC routing (AWS VPC CNI, Azure CNI). Each trades off simplicity, performance, and feature set.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">7</div>
+        <div class="point-content">
+            <span class="point-title">Pod CIDR Allocation:</span> The cluster allocates a large CIDR (e.g., 10.244.0.0/16) for pods. Each node receives a slice (e.g., /24 giving 254 pod IPs per node). The controller-manager's <code>--cluster-cidr</code> and <code>--node-cidr-mask-size</code> flags control this allocation.
+        </div>
+    </div>
+
+    <div class="diagram">
+        <div class="diagram-label">Pod-to-Pod Communication Across Nodes</div>
+        <pre>
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                    KUBERNETES CLUSTER                                         │
+│                                                                                              │
+│  Node 1 (10.0.1.10)                                    Node 2 (10.0.1.11)                   │
+│  Pod CIDR: 10.244.1.0/24                               Pod CIDR: 10.244.2.0/24              │
+│  ┌────────────────────────────────────┐                ┌────────────────────────────────────┐│
+│  │                                    │                │                                    ││
+│  │  ┌──────────────┐ ┌──────────────┐│                │┌──────────────┐ ┌──────────────┐  ││
+│  │  │   Pod A      │ │   Pod B      ││                ││   Pod C      │ │   Pod D      │  ││
+│  │  │ 10.244.1.2   │ │ 10.244.1.3   ││                ││ 10.244.2.2   │ │ 10.244.2.3   │  ││
+│  │  │  ┌────────┐  │ │  ┌────────┐  ││                ││  ┌────────┐  │ │  ┌────────┐  │  ││
+│  │  │  │  eth0  │  │ │  │  eth0  │  ││                ││  │  eth0  │  │ │  │  eth0  │  │  ││
+│  │  │  └───┬────┘  │ │  └───┬────┘  ││                ││  └───┬────┘  │ │  └───┬────┘  │  ││
+│  │  └──────┼────────┘ └──────┼────────┘│                │└──────┼────────┘ └──────┼────────┘  ││
+│  │         │ veth pair       │ veth    │                │       │ veth pair       │ veth    ││
+│  │  ┌──────┴────────────────┴────────┐│                │┌──────┴────────────────┴────────┐││
+│  │  │         cbr0 / cni0            ││                ││         cbr0 / cni0            │││
+│  │  │      (Virtual Bridge)          ││                ││      (Virtual Bridge)          │││
+│  │  │       10.244.1.1               ││                ││       10.244.2.1               │││
+│  │  └──────────────┬─────────────────┘│                │└──────────────┬─────────────────┘││
+│  │                 │                   │                │               │                   ││
+│  │  ┌──────────────┴─────────────────┐│                │┌──────────────┴─────────────────┐││
+│  │  │           eth0                 ││                ││           eth0                 │││
+│  │  │        (Host NIC)              ││                ││        (Host NIC)              │││
+│  │  └──────────────┬─────────────────┘│                │└──────────────┬─────────────────┘││
+│  └─────────────────┼──────────────────┘                └───────────────┼──────────────────┘│
+│                    │                                                   │                    │
+│                    │         ┌─────────────────────────┐               │                    │
+│                    └─────────│  Underlying Network     │───────────────┘                    │
+│                              │  (VXLAN / BGP / VPC)    │                                    │
+│                              └─────────────────────────┘                                    │
+│                                                                                              │
+│  Traffic Flow: Pod A (10.244.1.2) → Pod C (10.244.2.2)                                      │
+│  ─────────────────────────────────────────────────────                                      │
+│  1. Pod A sends packet to 10.244.2.2 via eth0                                               │
+│  2. Packet arrives at bridge cni0 on Node 1                                                 │
+│  3. Node routing table forwards to Node 2 (via overlay or direct route)                     │
+│  4. Node 2 receives, routes to bridge cni0                                                  │
+│  5. Bridge delivers to Pod C's veth interface                                               │
+│  6. No NAT at any step -- source IP remains 10.244.1.2                                     │
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SERVICES -->
+    <!-- ============================================================ -->
+
+    <h2>Services</h2>
+
+    <p>Services provide a stable networking abstraction over a set of pods. Since pod IPs are ephemeral, Services offer a permanent virtual IP (ClusterIP) and DNS name that routes traffic to healthy pods matching a label selector.</p>
+
+    <h3>ClusterIP (Default)</h3>
+
+    <div class="point">
+        <div class="point-num">1</div>
+        <div class="point-content">
+            <span class="point-title">Internal-Only VIP:</span> ClusterIP services expose the application on an internal cluster IP. This IP is only reachable from within the cluster. It provides a stable endpoint for inter-service communication.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">2</div>
+        <div class="point-content">
+            <span class="point-title">Virtual IP Allocation:</span> The service CIDR (e.g., 10.96.0.0/12) is configured at cluster creation via <code>--service-cluster-ip-range</code>. IPs are allocated sequentially or can be specified manually. This range must NOT overlap with the pod CIDR or node networks.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">3</div>
+        <div class="point-content">
+            <span class="point-title">Load Balancing:</span> kube-proxy programs iptables/IPVS rules to distribute traffic across all healthy endpoints (pods matching the selector). In iptables mode, the distribution is random probability-based; in IPVS mode, you can choose round-robin, least-connections, etc.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">4</div>
+        <div class="point-content">
+            <span class="point-title">Session Affinity:</span> Optionally configure <code>sessionAffinity: ClientIP</code> to route all requests from the same client IP to the same pod. The timeout is configurable via <code>sessionAffinityConfig.clientIP.timeoutSeconds</code> (default 10800s / 3 hours).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">5</div>
+        <div class="point-content">
+            <span class="point-title">Multi-Port Services:</span> A single service can expose multiple ports, each with a name, protocol, port number, and targetPort. Useful for applications that serve HTTP and gRPC on different ports from the same pods.
+        </div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">clusterip-service.yaml</span>
+            <span class="tag tag-blue">ClusterIP</span>
+        </div>
+        <pre>
+# ClusterIP Service -- Internal-only access within the cluster
+# Provides stable IP and DNS name for a set of backend pods
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-api
+  namespace: production
+  labels:
+    app: backend-api
+    tier: backend
+spec:
+  type: ClusterIP          # Default type -- internal access only
+  selector:
+    app: backend-api       # Routes to pods with this label
+    version: v2            # Can use multiple labels for precise targeting
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80             # Port the service listens on (ClusterIP:80)
+      targetPort: 8080     # Port on the pod container
+    - name: grpc
+      protocol: TCP
+      port: 9090
+      targetPort: 9090
+  sessionAffinity: None    # Options: None, ClientIP
+        </pre>
+    </div>
+
+    <h3>NodePort</h3>
+
+    <div class="point">
+        <div class="point-num green">1</div>
+        <div class="point-content">
+            <span class="point-title">External Access via Node IP:</span> NodePort extends ClusterIP by additionally opening a static port (30000-32767) on every node in the cluster. External traffic can reach the service at <code>&lt;NodeIP&gt;:&lt;NodePort&gt;</code> from outside the cluster.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">2</div>
+        <div class="point-content">
+            <span class="point-title">Port Range:</span> The default NodePort range is 30000-32767, configurable via the API server's <code>--service-node-port-range</code> flag. You can specify a port or let Kubernetes auto-allocate one.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">3</div>
+        <div class="point-content">
+            <span class="point-title">All Nodes Listen:</span> The chosen NodePort is opened on ALL nodes, even if no matching pod runs on that node. kube-proxy handles routing the request to a node that has a backend pod.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">4</div>
+        <div class="point-content">
+            <span class="point-title">Source IP Caveat:</span> By default, NodePort traffic arriving at a node without a local pod is forwarded to another node, causing SNAT (the original source IP is lost). Set <code>externalTrafficPolicy: Local</code> to preserve source IP (but lose even load distribution).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">5</div>
+        <div class="point-content">
+            <span class="point-title">Use Cases:</span> Development/testing environments, on-premises clusters without cloud load balancers, or as a building block under a manual external load balancer. Not recommended for production external traffic -- use LoadBalancer or Ingress instead.
+        </div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">nodeport-service.yaml</span>
+            <span class="tag tag-green">NodePort</span>
+        </div>
+        <pre>
+# NodePort Service -- Exposes service on a static port on each node
+# Accessible externally at &lt;NodeIP&gt;:&lt;NodePort&gt;
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-web
+  namespace: production
+  labels:
+    app: frontend
+    tier: frontend
+spec:
+  type: NodePort
+  selector:
+    app: frontend
+    tier: frontend
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80              # ClusterIP port (internal)
+      targetPort: 3000      # Container port
+      nodePort: 30080       # Static port on all nodes (30000-32767)
+    - name: https
+      protocol: TCP
+      port: 443
+      targetPort: 3443
+      nodePort: 30443
+  externalTrafficPolicy: Local   # Preserve source IP (skip extra hop)
+        </pre>
+    </div>
+
+    <h3>LoadBalancer</h3>
+
+    <div class="point">
+        <div class="point-num purple">1</div>
+        <div class="point-content">
+            <span class="point-title">Cloud-Native External LB:</span> LoadBalancer type extends NodePort by provisioning an external load balancer from the cloud provider (AWS ELB/NLB, GCP LB, Azure LB). The cloud controller-manager handles the provisioning and assigns an external IP.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">2</div>
+        <div class="point-content">
+            <span class="point-title">Automatic Provisioning:</span> When you create a LoadBalancer service, the cloud-controller-manager calls the cloud API to provision an LB, configure health checks, and point it at all nodes' NodePorts. The external IP appears in <code>status.loadBalancer.ingress</code>.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">3</div>
+        <div class="point-content">
+            <span class="point-title">Cost Implications:</span> Each LoadBalancer service creates a separate cloud load balancer, which costs money. For many services, use an Ingress controller instead to share a single LB across multiple services via L7 routing rules.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">4</div>
+        <div class="point-content">
+            <span class="point-title">Health Checks:</span> Cloud LBs health-check nodes on the NodePort. With <code>externalTrafficPolicy: Local</code>, only nodes with local pods pass health checks, giving direct routing and source IP preservation.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">5</div>
+        <div class="point-content">
+            <span class="point-title">Annotations for Configuration:</span> Cloud-specific behavior is configured via annotations (e.g., <code>service.beta.kubernetes.io/aws-load-balancer-type: nlb</code> for AWS NLB, or <code>service.beta.kubernetes.io/aws-load-balancer-internal: "true"</code> for internal-only LBs).
+        </div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">loadbalancer-service.yaml</span>
+            <span class="tag tag-purple">LoadBalancer</span>
+        </div>
+        <pre>
+# LoadBalancer Service -- Provisions external cloud load balancer
+# Suitable for production external traffic on cloud providers
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: production
+  labels:
+    app: api-gateway
+  annotations:
+    # AWS-specific: use Network Load Balancer instead of Classic
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    # Enable cross-zone load balancing
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    # Attach SSL certificate from ACM
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:us-east-1:123456789:certificate/abc-123"
+    # SSL negotiation policy
+    service.beta.kubernetes.io/aws-load-balancer-ssl-negotiation-policy: "ELBSecurityPolicy-TLS13-1-2-2021-06"
+spec:
+  type: LoadBalancer
+  selector:
+    app: api-gateway
+  ports:
+    - name: https
+      protocol: TCP
+      port: 443              # External LB port
+      targetPort: 8443       # Container port
+  externalTrafficPolicy: Local   # Preserve client source IP
+  # Restrict access to specific CIDR ranges
+  loadBalancerSourceRanges:
+    - 10.0.0.0/8
+    - 203.0.113.0/24
+        </pre>
+    </div>
+
+    <h3>ExternalName</h3>
+
+    <div class="point">
+        <div class="point-num orange">1</div>
+        <div class="point-content">
+            <span class="point-title">DNS CNAME Alias:</span> ExternalName services map a service DNS name to an external DNS name (CNAME record). No proxying occurs -- it is purely a DNS-level redirect. Useful for referencing external services (databases, SaaS APIs) via a Kubernetes-native DNS name.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num orange">2</div>
+        <div class="point-content">
+            <span class="point-title">No Selector or Endpoints:</span> ExternalName services do not have selectors, ClusterIPs, or EndpointSlices. They simply return a CNAME record when queried via DNS. This means kube-proxy is not involved at all.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num orange">3</div>
+        <div class="point-content">
+            <span class="point-title">Migration Use Case:</span> Lets you migrate external services into the cluster gradually. Start with ExternalName pointing to the external DB, then switch to a ClusterIP service when the DB moves in-cluster -- application code references the same service name throughout.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num orange">4</div>
+        <div class="point-content">
+            <span class="point-title">Limitations:</span> Does not work with IP addresses (only DNS names). Some applications that do not follow CNAME redirects may have issues. No port remapping -- the target must use the same port the client connects to.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num orange">5</div>
+        <div class="point-content">
+            <span class="point-title">TLS Considerations:</span> Since it returns a CNAME, TLS certificate validation must match the external hostname, not the Kubernetes service name. This can cause issues if clients validate the SNI against the service name.
+        </div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">externalname-service.yaml</span>
+            <span class="tag tag-orange">ExternalName</span>
+        </div>
+        <pre>
+# ExternalName Service -- DNS CNAME redirect to external service
+# No proxying, no ClusterIP -- purely DNS-level abstraction
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-database
+  namespace: production
+spec:
+  type: ExternalName
+  # Querying external-database.production.svc.cluster.local
+  # returns a CNAME record pointing to this external DNS name
+  externalName: prod-db.c9xk2rgh.us-east-1.rds.amazonaws.com
+  # No selector, no ports, no ClusterIP
+        </pre>
+    </div>
+
+    <h3>Headless Service</h3>
+
+    <div class="point">
+        <div class="point-num red">1</div>
+        <div class="point-content">
+            <span class="point-title">No ClusterIP (clusterIP: None):</span> A headless service skips the virtual IP allocation. DNS queries return the individual pod IPs directly instead of a single VIP. This enables client-side load balancing and direct pod discovery.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num red">2</div>
+        <div class="point-content">
+            <span class="point-title">StatefulSet Integration:</span> Headless services are essential for StatefulSets. They create individual DNS records like <code>pod-0.my-svc.ns.svc.cluster.local</code> for each pod, enabling stable network identities critical for databases and clustered applications.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num red">3</div>
+        <div class="point-content">
+            <span class="point-title">DNS A Records:</span> Instead of a single A record pointing to the ClusterIP, a headless service returns multiple A records -- one for each ready pod endpoint. Clients receive all IPs and can implement their own selection logic.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num red">4</div>
+        <div class="point-content">
+            <span class="point-title">No kube-proxy Involvement:</span> Since there is no VIP, kube-proxy does not create any iptables/IPVS rules for headless services. Traffic goes directly from client to pod without kernel-level load balancing.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num red">5</div>
+        <div class="point-content">
+            <span class="point-title">Use Cases:</span> StatefulSets (Kafka, Cassandra, etcd), service meshes that handle their own load balancing, applications that need peer discovery (each pod must know about all other pods), and gRPC services that benefit from client-side balancing.
+        </div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">headless-service.yaml</span>
+            <span class="tag tag-red">Headless</span>
+        </div>
+        <pre>
+# Headless Service -- No ClusterIP, returns individual pod IPs
+# Essential for StatefulSets and peer-discovery use cases
+apiVersion: v1
+kind: Service
+metadata:
+  name: cassandra
+  namespace: database
+  labels:
+    app: cassandra
+spec:
+  clusterIP: None          # This makes it headless
+  selector:
+    app: cassandra
+  ports:
+    - name: cql
+      port: 9042
+      targetPort: 9042
+    - name: inter-node
+      port: 7000
+      targetPort: 7000
+  # With a StatefulSet named "cassandra", DNS records become:
+  # cassandra-0.cassandra.database.svc.cluster.local
+  # cassandra-1.cassandra.database.svc.cluster.local
+  # cassandra-2.cassandra.database.svc.cluster.local
+        </pre>
+    </div>
+
+    <h3>Service Traffic Flow and Endpoints</h3>
+
+    <div class="diagram">
+        <div class="diagram-label">Service Traffic Flow (ClusterIP with iptables mode)</div>
+        <pre>
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                      │
+│  Client Pod                                                                          │
+│  ┌──────────────────┐                                                                │
+│  │ curl backend:80  │                                                                │
+│  └────────┬─────────┘                                                                │
+│           │                                                                          │
+│           │ 1. DNS lookup: backend.prod.svc.cluster.local → 10.96.45.12              │
+│           │ 2. Connect to 10.96.45.12:80                                             │
+│           ▼                                                                          │
+│  ┌──────────────────────────────────────────────────────────────────────┐            │
+│  │                         iptables / IPVS Rules                         │            │
+│  │                        (programmed by kube-proxy)                     │            │
+│  │                                                                       │            │
+│  │  DNAT: 10.96.45.12:80 → one of:                                      │            │
+│  │    ├── 10.244.1.5:8080  (Pod A on Node 1)  [probability 0.33]        │            │
+│  │    ├── 10.244.2.8:8080  (Pod B on Node 2)  [probability 0.33]        │            │
+│  │    └── 10.244.1.9:8080  (Pod C on Node 1)  [probability 0.33]        │            │
+│  └───────────────────────────────┬───────────────────────────────────────┘            │
+│                                  │                                                    │
+│                                  │ 3. DNAT rewrites destination to selected pod IP    │
+│                                  ▼                                                    │
+│  ┌──────────────┐         ┌──────────────┐         ┌──────────────┐                  │
+│  │    Pod A     │         │    Pod B     │         │    Pod C     │                  │
+│  │ 10.244.1.5  │         │ 10.244.2.8  │         │ 10.244.1.9  │                  │
+│  │    :8080    │         │    :8080    │         │    :8080    │                  │
+│  └──────────────┘         └──────────────┘         └──────────────┘                  │
+│                                                                                      │
+│  EndpointSlice Object:                                                               │
+│  ┌──────────────────────────────────────────────┐                                    │
+│  │ endpoints:                                    │                                    │
+│  │   - addresses: [10.244.1.5]                   │                                    │
+│  │     conditions: { ready: true }               │                                    │
+│  │     targetRef: {kind: Pod, name: backend-abc} │                                    │
+│  │   - addresses: [10.244.2.8]                   │                                    │
+│  │     conditions: { ready: true }               │                                    │
+│  │   - addresses: [10.244.1.9]                   │                                    │
+│  │     conditions: { ready: true }               │                                    │
+│  └──────────────────────────────────────────────┘                                    │
+└──────────────────────────────────────────────────────────────────────────────────────┘
+        </pre>
+    </div>
+
+    <div class="card card-info">
+        <h4>Endpoints and EndpointSlices</h4>
+        <p><strong>Endpoints (legacy):</strong> A single Endpoints object per Service that lists all pod IPs. Becomes a bottleneck with many pods because any change requires updating the entire object.</p>
+        <p><strong>EndpointSlices (preferred, default since 1.21):</strong> Splits endpoints into multiple smaller objects (max 100 endpoints per slice by default). Enables efficient updates -- only the changed slice is transmitted. Supports dual-stack (IPv4 + IPv6) and topology hints for zone-aware routing.</p>
+        <p><strong>How they work:</strong> The EndpointSlice controller watches pods matching the service selector. When a pod becomes Ready (passes readiness probe), it is added to an EndpointSlice. When NotReady or deleted, it is removed. kube-proxy watches EndpointSlices to update its routing rules.</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- INGRESS -->
+    <!-- ============================================================ -->
+
+    <h2>Ingress</h2>
+
+    <p>Ingress provides Layer 7 (HTTP/HTTPS) routing to services within the cluster. It consolidates routing rules into a single resource, allowing you to expose multiple services behind one external IP with path-based and host-based routing.</p>
+
+    <div class="point">
+        <div class="point-num">1</div>
+        <div class="point-content">
+            <span class="point-title">L7 Load Balancing:</span> Unlike Services (L4), Ingress operates at Layer 7. It can inspect HTTP headers, paths, and hostnames to make routing decisions. This enables virtual hosting, URL rewrites, rate limiting, and content-based routing.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">2</div>
+        <div class="point-content">
+            <span class="point-title">Ingress Controller Required:</span> The Ingress resource is just a specification -- it does nothing without a controller. Popular controllers: nginx-ingress-controller, Traefik, HAProxy, AWS ALB Ingress Controller, Istio Gateway. Each interprets Ingress rules and configures the underlying proxy.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">3</div>
+        <div class="point-content">
+            <span class="point-title">TLS Termination:</span> Ingress can terminate TLS at the edge, decrypting HTTPS traffic before forwarding plain HTTP to backend services. Certificates are stored as Kubernetes Secrets of type <code>kubernetes.io/tls</code>.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">4</div>
+        <div class="point-content">
+            <span class="point-title">Host-Based Routing:</span> Route traffic to different services based on the Host header (virtual hosting). For example, <code>api.example.com</code> goes to the API service, <code>app.example.com</code> goes to the frontend service -- all through a single IP.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">5</div>
+        <div class="point-content">
+            <span class="point-title">Path-Based Routing:</span> Route traffic based on URL path prefixes or exact matches. For example, <code>/api/*</code> to the API backend, <code>/static/*</code> to the CDN backend, and <code>/</code> to the frontend -- shared under one domain.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">6</div>
+        <div class="point-content">
+            <span class="point-title">IngressClass:</span> Since Kubernetes 1.18, IngressClass resources specify which controller should handle a given Ingress resource. This allows multiple ingress controllers to coexist (e.g., internal nginx + external ALB) without conflicts.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">7</div>
+        <div class="point-content">
+            <span class="point-title">Annotations for Advanced Config:</span> Since the Ingress spec is intentionally limited, controllers expose advanced features via annotations (rate limiting, OAuth proxy, custom timeouts, rewrite rules, CORS). This makes Ingress resources somewhat controller-specific.
+        </div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">ingress-host-path-routing.yaml</span>
+            <span class="tag tag-blue">Ingress</span>
+        </div>
+        <pre>
+# Ingress with host-based and path-based routing
+# Routes traffic to different services based on hostname and URL path
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+  namespace: production
+  annotations:
+    # NGINX Ingress Controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    # Enable CORS
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://app.example.com"
+spec:
+  ingressClassName: nginx    # Which ingress controller handles this
+  rules:
+    # Host-based routing: api.example.com
+    - host: api.example.com
+      http:
+        paths:
+          - path: /v1
+            pathType: Prefix        # Matches /v1, /v1/, /v1/users, etc.
+            backend:
+              service:
+                name: api-v1
+                port:
+                  number: 80
+          - path: /v2
+            pathType: Prefix
+            backend:
+              service:
+                name: api-v2
+                port:
+                  number: 80
+    # Host-based routing: app.example.com
+    - host: app.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+          - path: /static
+            pathType: Prefix
+            backend:
+              service:
+                name: static-assets
+                port:
+                  number: 80
+  # Default backend for unmatched requests
+  defaultBackend:
+    service:
+      name: default-backend
+      port:
+        number: 80
+        </pre>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">ingress-tls.yaml</span>
+            <span class="tag tag-green">TLS Termination</span>
+        </div>
+        <pre>
+# TLS Secret containing the certificate and private key
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tls-secret-example
+  namespace: production
+type: kubernetes.io/tls
+data:
+  # Base64-encoded certificate and key
+  # Generate with: kubectl create secret tls tls-secret-example \
+  #   --cert=path/to/tls.crt --key=path/to/tls.key
+  tls.crt: LS0tLS1CRUdJTi...    # base64 encoded cert chain
+  tls.key: LS0tLS1CRUdJTi...    # base64 encoded private key
+---
+# Ingress with TLS termination
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: secure-ingress
+  namespace: production
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    # Use specific SSL ciphers
+    nginx.ingress.kubernetes.io/ssl-ciphers: "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256"
+    # HSTS header
+    nginx.ingress.kubernetes.io/hsts: "true"
+    nginx.ingress.kubernetes.io/hsts-max-age: "31536000"
+    nginx.ingress.kubernetes.io/hsts-include-subdomains: "true"
+    # Use cert-manager for automatic certificate management
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.example.com
+        - app.example.com
+      secretName: tls-secret-example    # Secret must be in same namespace
+  rules:
+    - host: api.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-service
+                port:
+                  number: 80
+    - host: app.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 80
+        </pre>
+    </div>
+
+    <div class="diagram">
+        <div class="diagram-label">Ingress Traffic Flow</div>
+        <pre>
+                     Internet
+                        │
+                        ▼
+              ┌─────────────────────┐
+              │   Cloud Load        │
+              │   Balancer          │
+              │   (External IP)     │
+              └────────┬────────────┘
+                       │
+                       ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                      Ingress Controller (nginx/traefik)                       │
+│                      (Runs as pods in the cluster)                            │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐     │
+│  │                        Ingress Rules Engine                          │     │
+│  │                                                                     │     │
+│  │  Host: api.example.com        Host: app.example.com                 │     │
+│  │  ┌─────────────────────┐      ┌─────────────────────┐              │     │
+│  │  │ /v1 → api-v1:80    │      │ /    → frontend:80  │              │     │
+│  │  │ /v2 → api-v2:80    │      │ /api → backend:80   │              │     │
+│  │  └─────────┬───────────┘      └──────────┬──────────┘              │     │
+│  └────────────┼──────────────────────────────┼─────────────────────────┘     │
+│               │                              │                               │
+└───────────────┼──────────────────────────────┼───────────────────────────────┘
+                │                              │
+     ┌──────────┼──────────────────────────────┼──────────────┐
+     │          ▼                              ▼              │
+     │  ┌──────────────┐    ┌──────────────┐   ┌───────────┐ │
+     │  │  api-v1 svc  │    │ frontend svc │   │ api-v2    │ │
+     │  │  (ClusterIP) │    │ (ClusterIP)  │   │ (ClstrIP) │ │
+     │  └──────┬───────┘    └──────┬───────┘   └─────┬─────┘ │
+     │         ▼                   ▼                  ▼       │
+     │  ┌─────┐┌─────┐      ┌─────┐┌─────┐     ┌─────┐      │
+     │  │Pod 1││Pod 2│      │Pod 3││Pod 4│     │Pod 5│      │
+     │  └─────┘└─────┘      └─────┘└─────┘     └─────┘      │
+     └────────────────────────────────────────────────────────┘
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- NETWORK POLICIES -->
+    <!-- ============================================================ -->
+
+    <h2>Network Policies</h2>
+
+    <p>Network Policies are Kubernetes resources that control traffic flow at the IP/port level (L3/L4) between pods, namespaces, and external endpoints. They act as a firewall for pod communication within the cluster.</p>
+
+    <div class="card card-warning">
+        <p><strong>Important:</strong> Network Policies require a CNI plugin that supports them (Calico, Cilium, Weave). Flannel alone does NOT enforce network policies. If your CNI does not support them, the NetworkPolicy resources are silently ignored.</p>
+    </div>
+
+    <div class="point">
+        <div class="point-num">1</div>
+        <div class="point-content">
+            <span class="point-title">Default Allow-All:</span> By default, Kubernetes has NO network restrictions. All pods can communicate with all other pods across all namespaces. Network Policies add restrictions -- they are additive and whitelist-based (deny by default, then allow specific traffic).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">2</div>
+        <div class="point-content">
+            <span class="point-title">Pod Selector Targeting:</span> Each NetworkPolicy targets a set of pods via <code>spec.podSelector</code>. Once a pod is selected by ANY NetworkPolicy, all traffic not explicitly allowed by a policy is denied. Unselected pods remain fully open.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">3</div>
+        <div class="point-content">
+            <span class="point-title">Ingress and Egress Rules:</span> Policies can control incoming traffic (ingress), outgoing traffic (egress), or both. Each rule specifies allowed sources (for ingress) or destinations (for egress) using pod selectors, namespace selectors, or IP blocks.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">4</div>
+        <div class="point-content">
+            <span class="point-title">Namespace Isolation:</span> Use <code>namespaceSelector</code> to allow traffic only from specific namespaces. This is the foundation of multi-tenant isolation -- e.g., only allow traffic from the same namespace or from the monitoring namespace.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">5</div>
+        <div class="point-content">
+            <span class="point-title">IP Block (CIDR):</span> The <code>ipBlock</code> field allows specifying CIDR ranges for external traffic sources/destinations. Useful for allowing traffic from specific external networks or blocking traffic to known bad ranges. Can include <code>except</code> to exclude sub-ranges.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">6</div>
+        <div class="point-content">
+            <span class="point-title">Port-Level Control:</span> Rules can specify allowed ports (protocol + port number). If no ports are specified in a rule, all ports are allowed for that source/destination. Named ports are supported for readability.
+        </div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">default-deny-all.yaml</span>
+            <span class="tag tag-red">Default Deny</span>
+        </div>
+        <pre>
+# Default deny all ingress and egress traffic in a namespace
+# Apply this first, then create allow policies for specific traffic
+# This is the zero-trust starting point for network security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: production
+spec:
+  podSelector: {}          # Empty selector = applies to ALL pods in namespace
+  policyTypes:
+    - Ingress              # Deny all incoming traffic
+    - Egress               # Deny all outgoing traffic
+  # No ingress or egress rules = nothing is allowed
+  # Pods can still reach the Kubernetes API server (usually)
+  # DNS will be blocked -- add a separate policy to allow it
+        </pre>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">allow-specific-ingress.yaml</span>
+            <span class="tag tag-green">Allow Ingress</span>
+        </div>
+        <pre>
+# Allow ingress to backend pods only from frontend pods and monitoring
+# Implements least-privilege network access
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-ingress
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: backend           # Applies to pods with label app=backend
+      tier: api
+  policyTypes:
+    - Ingress
+  ingress:
+    # Rule 1: Allow from frontend pods in same namespace
+    - from:
+        - podSelector:
+            matchLabels:
+              app: frontend
+              tier: web
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 9090         # gRPC port
+    # Rule 2: Allow from monitoring namespace (Prometheus scraping)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+          podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 9090         # Metrics port
+    # Rule 3: Allow from specific external CIDR (corporate network)
+    - from:
+        - ipBlock:
+            cidr: 10.0.0.0/8
+            except:
+              - 10.0.5.0/24  # Exclude untrusted subnet
+      ports:
+        - protocol: TCP
+          port: 8080
+        </pre>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">allow-egress.yaml</span>
+            <span class="tag tag-blue">Allow Egress</span>
+        </div>
+        <pre>
+# Allow egress from backend pods to database and external APIs
+# Also allows DNS resolution (required when using default-deny egress)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-egress
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+      tier: api
+  policyTypes:
+    - Egress
+  egress:
+    # Rule 1: Allow DNS resolution (critical -- without this, nothing works)
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Rule 2: Allow traffic to database pods
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgresql
+              tier: database
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Rule 3: Allow traffic to Redis cache
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Rule 4: Allow HTTPS to external APIs (specific CIDR)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8       # Block internal except what is explicitly allowed
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+        </pre>
+    </div>
+
+    <div class="diagram">
+        <div class="diagram-label">Network Policy -- Allowed vs Blocked Traffic</div>
+        <pre>
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│  Namespace: production (default-deny-all applied)                                      │
+│                                                                                        │
+│                  ┌──────────────────┐                                                  │
+│     ALLOWED      │   frontend pods   │   ALLOWED                                       │
+│    ┌─────────────│   (app=frontend)  │─────────────────┐                               │
+│    │  port:3000  │                   │  port:8080      │                               │
+│    ▼  (ingress   └──────────────────┘  (egress to      ▼                               │
+│  ┌────────┐       from LB)              backend)    ┌─────────────────┐                │
+│  │ Ingress│                                         │  backend pods   │                │
+│  │  LB    │                                         │  (app=backend)  │                │
+│  └────────┘                                         └───────┬─────────┘                │
+│                                                             │                          │
+│                                                     ALLOWED │ port:5432                 │
+│                                                     (egress │ to DB)                    │
+│                                                             ▼                          │
+│                                                    ┌──────────────────┐                │
+│                                                    │  database pods   │                │
+│                                                    │  (app=postgres)  │                │
+│                                                    └──────────────────┘                │
+│                                                                                        │
+│  ╔═══════════════════════════════════════════════════╗                                  │
+│  ║  BLOCKED (by default-deny):                       ║                                  │
+│  ║                                                   ║                                  │
+│  ║  ✗ frontend → database (no policy allows this)    ║                                  │
+│  ║  ✗ backend → frontend  (no policy allows this)    ║                                  │
+│  ║  ✗ any pod from namespace "dev" → production pods ║                                  │
+│  ║  ✗ database → internet (no egress rule)           ║                                  │
+│  ║  ✗ random external IP → any pod                   ║                                  │
+│  ╚═══════════════════════════════════════════════════╝                                  │
+│                                                                                        │
+│  ┌─────────────────────────────────────────────────┐                                   │
+│  │  Namespace: monitoring (ALLOWED via namespaceSelector)                              │
+│  │  ┌─────────────────┐                            │                                   │
+│  │  │  Prometheus      │── scrape :9090 ─────────────────────▶ backend pods            │
+│  │  │  (app=prometheus)│   ALLOWED                 │                                   │
+│  │  └─────────────────┘                            │                                   │
+│  └─────────────────────────────────────────────────┘                                   │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- DNS -->
+    <!-- ============================================================ -->
+
+    <h2>DNS (CoreDNS)</h2>
+
+    <p>Kubernetes clusters run a DNS server (CoreDNS) that automatically creates DNS records for Services and Pods. This enables service discovery by name rather than IP address.</p>
+
+    <div class="point">
+        <div class="point-num">1</div>
+        <div class="point-content">
+            <span class="point-title">CoreDNS:</span> The default cluster DNS since Kubernetes 1.13 (replaced kube-dns). Runs as a Deployment in kube-system namespace, exposed via a ClusterIP Service (usually 10.96.0.10). All pods are configured to use this as their DNS resolver via <code>/etc/resolv.conf</code>.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">2</div>
+        <div class="point-content">
+            <span class="point-title">Service DNS Format:</span> <code>&lt;service-name&gt;.&lt;namespace&gt;.svc.cluster.local</code>. Within the same namespace, you can use just <code>&lt;service-name&gt;</code>. The search domains in resolv.conf handle the expansion (e.g., <code>search production.svc.cluster.local svc.cluster.local cluster.local</code>).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">3</div>
+        <div class="point-content">
+            <span class="point-title">Pod DNS Format:</span> <code>&lt;pod-ip-dashed&gt;.&lt;namespace&gt;.pod.cluster.local</code> (e.g., 10-244-1-5.production.pod.cluster.local). For pods with a <code>hostname</code> and <code>subdomain</code> field (used with StatefulSets), the format is <code>&lt;hostname&gt;.&lt;subdomain&gt;.&lt;namespace&gt;.svc.cluster.local</code>.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">4</div>
+        <div class="point-content">
+            <span class="point-title">SRV Records:</span> For named ports in a service, CoreDNS creates SRV records: <code>_&lt;port-name&gt;._&lt;protocol&gt;.&lt;service&gt;.&lt;namespace&gt;.svc.cluster.local</code>. These are used by applications that need to discover both the IP and port dynamically.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">5</div>
+        <div class="point-content">
+            <span class="point-title">Corefile Configuration:</span> CoreDNS is configured via a ConfigMap named <code>coredns</code> in kube-system. The Corefile supports plugins for caching, forwarding to upstream DNS, custom zone files, and health checking. Changes to the ConfigMap are auto-reloaded.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">6</div>
+        <div class="point-content">
+            <span class="point-title">DNS Policies:</span> Pod <code>dnsPolicy</code> controls resolution behavior: <code>ClusterFirst</code> (default -- cluster DNS first, then upstream), <code>Default</code> (inherit node's resolv.conf), <code>None</code> (custom -- must specify dnsConfig), <code>ClusterFirstWithHostNet</code> (for hostNetwork pods).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">7</div>
+        <div class="point-content">
+            <span class="point-title">External DNS Resolution:</span> Queries for non-cluster domains (e.g., google.com) are forwarded by CoreDNS to upstream nameservers (configured via the <code>forward</code> plugin, typically inheriting from the node's /etc/resolv.conf). The <code>cache</code> plugin reduces upstream query load.
+        </div>
+    </div>
+
+    <h3>Debugging DNS</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">dns-debug-commands.sh</span>
+            <span class="tag tag-yellow">Debug</span>
+        </div>
+        <pre>
+# Deploy a debug pod with DNS tools
+kubectl run dns-debug --image=busybox:1.36 --restart=Never -- sleep 3600
+
+# Verify DNS resolution for a service in the same namespace
+kubectl exec dns-debug -- nslookup backend-api
+# Expected: Name: backend-api.production.svc.cluster.local  Address: 10.96.45.12
+
+# Verify DNS resolution with full FQDN
+kubectl exec dns-debug -- nslookup backend-api.production.svc.cluster.local
+# Expected: Server: 10.96.0.10 (CoreDNS)  Address: 10.96.45.12
+
+# Check cross-namespace resolution
+kubectl exec dns-debug -- nslookup redis.cache.svc.cluster.local
+
+# Test external DNS resolution (forwarding works)
+kubectl exec dns-debug -- nslookup google.com
+
+# Check SRV records for named ports
+kubectl exec dns-debug -- nslookup -type=SRV _http._tcp.backend-api.production.svc.cluster.local
+
+# Verify the pod's DNS configuration
+kubectl exec dns-debug -- cat /etc/resolv.conf
+# Expected output:
+#   nameserver 10.96.0.10
+#   search production.svc.cluster.local svc.cluster.local cluster.local
+#   options ndots:5
+
+# Check CoreDNS pods are running
+kubectl get pods -n kube-system -l k8s-app=kube-dns
+
+# View CoreDNS logs for errors
+kubectl logs -n kube-system -l k8s-app=kube-dns --tail=50
+
+# Check CoreDNS ConfigMap
+kubectl get configmap coredns -n kube-system -o yaml
+
+# Test with dig for more detailed output (requires dnsutils image)
+kubectl run dig-debug --image=tutum/dnsutils --restart=Never -- sleep 3600
+kubectl exec dig-debug -- dig backend-api.production.svc.cluster.local +short
+kubectl exec dig-debug -- dig @10.96.0.10 backend-api.production.svc.cluster.local A
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ADVANCED NETWORKING -->
+    <!-- ============================================================ -->
+
+    <h2>Advanced Networking</h2>
+
+    <h3>CNI Plugin Comparison</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Feature</th>
+                <th>Calico</th>
+                <th>Cilium</th>
+                <th>Flannel</th>
+                <th>Weave Net</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Network Model</strong></td>
+                <td>BGP (L3) or VXLAN overlay</td>
+                <td>eBPF (kernel-level)</td>
+                <td>VXLAN overlay</td>
+                <td>VXLAN + sleeve fallback</td>
+            </tr>
+            <tr>
+                <td><strong>Network Policy</strong></td>
+                <td>Full support + extended policies</td>
+                <td>Full + L7 policies (HTTP)</td>
+                <td>Not supported (needs Calico addon)</td>
+                <td>Full support</td>
+            </tr>
+            <tr>
+                <td><strong>Performance</strong></td>
+                <td>High (native routing with BGP)</td>
+                <td>Highest (eBPF bypasses iptables)</td>
+                <td>Good (simple overlay)</td>
+                <td>Moderate (encryption overhead)</td>
+            </tr>
+            <tr>
+                <td><strong>Encryption</strong></td>
+                <td>WireGuard (since 3.13)</td>
+                <td>WireGuard or IPsec</td>
+                <td>IPsec (optional)</td>
+                <td>Built-in (sleeve)</td>
+            </tr>
+            <tr>
+                <td><strong>Observability</strong></td>
+                <td>Flow logs, Prometheus metrics</td>
+                <td>Hubble UI, flow visibility, service maps</td>
+                <td>Minimal</td>
+                <td>Basic metrics</td>
+            </tr>
+            <tr>
+                <td><strong>Scalability</strong></td>
+                <td>Excellent (1000s of nodes)</td>
+                <td>Excellent (eBPF efficiency)</td>
+                <td>Good (simple architecture)</td>
+                <td>Moderate (gossip protocol)</td>
+            </tr>
+            <tr>
+                <td><strong>Complexity</strong></td>
+                <td>Medium-High (many config options)</td>
+                <td>Medium-High (requires Linux 4.9.17+)</td>
+                <td>Low (minimal config)</td>
+                <td>Low-Medium</td>
+            </tr>
+            <tr>
+                <td><strong>kube-proxy Replacement</strong></td>
+                <td>Yes (eBPF dataplane)</td>
+                <td>Yes (native eBPF service handling)</td>
+                <td>No</td>
+                <td>No</td>
+            </tr>
+            <tr>
+                <td><strong>Best For</strong></td>
+                <td>Enterprise, multi-cloud, hybrid</td>
+                <td>Modern clusters, security-first, observability</td>
+                <td>Simple setups, learning, dev</td>
+                <td>Small clusters, easy encryption</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Gateway API Overview</h3>
+
+    <div class="card card-info">
+        <h4>Gateway API -- The Future of Kubernetes Ingress</h4>
+        <p>Gateway API is the successor to Ingress, providing more expressive, extensible, and role-oriented routing. It reached GA (v1.0) in October 2023 and is the recommended path for new deployments.</p>
+    </div>
+
+    <div class="point">
+        <div class="point-num">1</div>
+        <div class="point-content">
+            <span class="point-title">Role-Oriented Design:</span> Gateway API separates concerns into three resource types: <strong>GatewayClass</strong> (infra provider, like StorageClass), <strong>Gateway</strong> (cluster operator configures listeners/ports), and <strong>HTTPRoute/TCPRoute</strong> (app developer defines routing rules). This matches organizational boundaries.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">2</div>
+        <div class="point-content">
+            <span class="point-title">Multi-Protocol Support:</span> Unlike Ingress (HTTP/HTTPS only), Gateway API supports HTTP, HTTPS, TCP, UDP, TLS passthrough, and gRPC natively. Different route types (HTTPRoute, TCPRoute, TLSRoute, GRPCRoute) handle each protocol.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">3</div>
+        <div class="point-content">
+            <span class="point-title">Advanced Features:</span> Header-based routing, request mirroring, traffic splitting (canary), URL rewrites, request/response header modification -- all expressible in the core API without implementation-specific annotations.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">4</div>
+        <div class="point-content">
+            <span class="point-title">Cross-Namespace References:</span> HTTPRoutes can reference Services in other namespaces (with ReferenceGrant permission), enabling shared infrastructure gateways while maintaining namespace isolation.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">5</div>
+        <div class="point-content">
+            <span class="point-title">Implementation Support:</span> Supported by all major implementations: Istio, Cilium, Contour, Envoy Gateway, nginx-gateway-fabric, Traefik, HAProxy, AWS Gateway API Controller, and GKE.
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- INTERVIEW Q&A -->
+    <!-- ============================================================ -->
+
+    <h2>Interview Questions and Answers</h2>
+
+    <div class="qa">
+        <div class="q">Q1: How does Kubernetes Service routing actually work at the kernel level?</div>
+        <div class="a">
+            <strong>Through iptables DNAT rules or IPVS virtual servers programmed by kube-proxy.</strong> When a pod sends traffic to a Service ClusterIP, the packet hits iptables rules before leaving the node. These rules perform DNAT (Destination NAT), rewriting the destination IP from the ClusterIP to a randomly selected backend pod IP. The response traffic is automatically un-DNAT'd. In IPVS mode, the kernel's built-in load balancer handles this more efficiently using hash tables. The kube-proxy process watches the API server for Service/EndpointSlice changes and reprograms these rules accordingly.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q2: What is the difference between Ingress and a LoadBalancer Service? When would you use each?</div>
+        <div class="a">
+            <strong>LoadBalancer = L4 (one service per LB), Ingress = L7 (many services per LB).</strong> A LoadBalancer service provisions one cloud load balancer per service -- expensive at scale but simple and supports any TCP/UDP protocol. Ingress provides L7 routing (host/path-based) allowing many services to share a single load balancer -- cost-effective but limited to HTTP/HTTPS. Use LoadBalancer for non-HTTP protocols (databases, gRPC without HTTP/2, MQTT), and Ingress for HTTP-based microservices. In practice, the Ingress controller itself runs behind a LoadBalancer service.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q3: How do you implement zero-trust networking in Kubernetes with Network Policies?</div>
+        <div class="a">
+            <strong>Start with default-deny, then explicitly allow required traffic paths.</strong> Step 1: Apply a default-deny NetworkPolicy (empty podSelector, both Ingress and Egress policyTypes, no rules) in every namespace. Step 2: Allow DNS egress to kube-dns (otherwise nothing works). Step 3: For each service, create policies allowing only the specific ingress from known callers and egress to known dependencies. Step 4: Use namespace labels to restrict cross-namespace traffic. Step 5: Use ipBlock with exceptions for external traffic. This ensures every allowed path is explicitly documented and auditable.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q4: How does DNS resolution work inside a Kubernetes pod, step by step?</div>
+        <div class="a">
+            <strong>Pod resolv.conf points to CoreDNS, which resolves cluster names or forwards to upstream.</strong> Step 1: Application calls getaddrinfo("backend-api"). Step 2: Libc reads /etc/resolv.conf (nameserver: 10.96.0.10, ndots:5). Step 3: Since "backend-api" has fewer than 5 dots, the resolver appends search domains and tries: backend-api.production.svc.cluster.local, then backend-api.svc.cluster.local, then backend-api.cluster.local, then bare backend-api. Step 4: CoreDNS receives the query, checks its cache, looks up the Service ClusterIP. Step 5: CoreDNS returns the A record with the ClusterIP. For external names, CoreDNS forwards to upstream DNS (usually the node's configured nameserver).
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q5: Compare ClusterIP, NodePort, and LoadBalancer services.</div>
+        <div class="a">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Aspect</th>
+                        <th>ClusterIP</th>
+                        <th>NodePort</th>
+                        <th>LoadBalancer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Accessibility</strong></td>
+                        <td>Internal only</td>
+                        <td>External via node IP + port</td>
+                        <td>External via dedicated LB IP</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Port Range</strong></td>
+                        <td>Any (1-65535)</td>
+                        <td>30000-32767</td>
+                        <td>Any (standard ports like 80/443)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>External IP</strong></td>
+                        <td>None</td>
+                        <td>Node IPs (all nodes)</td>
+                        <td>Dedicated LB IP</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Cloud Cost</strong></td>
+                        <td>Free</td>
+                        <td>Free</td>
+                        <td>Per-LB cost (~$15-25/mo)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Source IP</strong></td>
+                        <td>Preserved</td>
+                        <td>Lost (unless Local policy)</td>
+                        <td>Preserved (with Local policy)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Use Case</strong></td>
+                        <td>Inter-service communication</td>
+                        <td>Dev/test, on-prem</td>
+                        <td>Production external traffic</td>
+                    </tr>
+                    <tr>
+                        <td><strong>HA / Failover</strong></td>
+                        <td>kube-proxy handles</td>
+                        <td>Requires external LB</td>
+                        <td>Cloud LB handles</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q6: What is a headless service and when would you use one?</div>
+        <div class="a">
+            <strong>A service with clusterIP: None that returns pod IPs directly via DNS.</strong> Instead of load-balancing behind a VIP, DNS queries return A records for each endpoint pod. Use cases: (1) StatefulSets -- each pod gets a stable DNS name (pod-0.svc.ns.svc.cluster.local) for peer discovery in databases like Cassandra or Kafka. (2) Client-side load balancing -- gRPC clients can discover all backends and balance across them. (3) Service meshes that do their own routing. (4) Leader election -- clients can query all members and determine the leader themselves.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q7: How does externalTrafficPolicy affect service behavior?</div>
+        <div class="a">
+            <strong>It controls whether traffic is routed only to local pods or to any pod in the cluster.</strong> <code>Cluster</code> (default): Traffic arriving at any node is load-balanced to all pods cluster-wide. Extra hop may occur (node-to-node), source IP is SNAT'd. All nodes pass health checks. <code>Local</code>: Traffic only goes to pods on the receiving node. No extra hops, source IP preserved, but uneven load if pods are not evenly distributed. Nodes without local pods fail health checks, so the external LB stops sending them traffic. Use Local when you need source IP (rate limiting, geo-routing, logging) or want to minimize latency.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q8: What is the ndots setting and why does it matter for performance?</div>
+        <div class="a">
+            <strong>ndots:5 means any name with fewer than 5 dots triggers search domain expansion.</strong> By default, Kubernetes sets ndots:5 in pod resolv.conf. When you query "api.external.com" (2 dots, less than 5), the resolver first tries: api.external.com.production.svc.cluster.local, then api.external.com.svc.cluster.local, then api.external.com.cluster.local, and finally api.external.com. This means 4 DNS queries for every external name! Mitigations: (1) Use FQDNs with trailing dot: "api.external.com." (2) Lower ndots in pod dnsConfig. (3) Enable CoreDNS autopath plugin. (4) Accept the overhead if external lookups are rare.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q9: How does Cilium replace kube-proxy and why would you want that?</div>
+        <div class="a">
+            <strong>Cilium uses eBPF programs to handle service routing directly in the kernel, bypassing iptables entirely.</strong> Benefits: (1) O(1) lookup performance regardless of service count (vs. O(n) for iptables). (2) Socket-level load balancing -- decisions are made at connect() time, not per-packet, reducing overhead. (3) No iptables rule explosion -- clusters with 10,000+ services become manageable. (4) Advanced load balancing (Maglev consistent hashing for DSR). (5) Built-in observability (Hubble flow logs without tcpdump). You would want this for large clusters, performance-sensitive workloads, or when you need L7 visibility without a full service mesh.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q10: Explain the complete network path of an external request reaching a pod through Ingress.</div>
+        <div class="a">
+            <strong>DNS → Cloud LB → Ingress Controller Pod → Backend Service → Backend Pod.</strong> Step 1: Client resolves app.example.com to the external LB IP (via external-dns or manual DNS record). Step 2: Request arrives at the cloud load balancer (provisioned by the Ingress controller's Service of type LoadBalancer). Step 3: LB forwards to one of the Ingress controller pods (via NodePort or direct pod routing). Step 4: Ingress controller matches Host header and path against Ingress rules. Step 5: Controller resolves the backend service's endpoints (either via kube-proxy rules or direct endpoint lookup). Step 6: Controller forwards the request to a selected backend pod IP. Step 7: Backend pod processes and responds. Response follows the reverse path.
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TROUBLESHOOTING SCENARIOS -->
+    <!-- ============================================================ -->
+
+    <h2>Troubleshooting Scenarios</h2>
+
+    <div class="scenario">
+        <div class="scenario-header">
+            <span class="icon">&#9888;</span>
+            <span class="title">Scenario: Service Has No Endpoints</span>
+        </div>
+        <div class="scenario-body">
+            <p><strong>Symptom:</strong> Requests to a Service return connection refused or time out. <code>kubectl get endpoints &lt;svc&gt;</code> shows <code>&lt;none&gt;</code>.</p>
+            <p><strong>Root Causes and Diagnostics:</strong></p>
+            <div class="scenario-step">
+                <span class="step-num">1.</span>
+                <span>Verify selector matches pods: <code>kubectl get svc &lt;svc&gt; -o jsonpath='{.spec.selector}'</code> then <code>kubectl get pods -l app=&lt;value&gt;</code>. The most common cause is a label mismatch between service selector and pod labels (typo, wrong version label, etc.).</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">2.</span>
+                <span>Check pods are Ready: <code>kubectl get pods -l &lt;selector&gt;</code>. Only pods in Ready state (passing readiness probes) are added to EndpointSlices. If pods are running but not ready, fix the readiness probe or the underlying health issue.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">3.</span>
+                <span>Verify namespace: <code>kubectl get svc -n &lt;ns&gt;</code> and <code>kubectl get pods -n &lt;ns&gt; -l &lt;selector&gt;</code>. Service and pods must be in the same namespace for the selector to match.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">4.</span>
+                <span>Check targetPort: <code>kubectl get svc -o yaml</code> -- verify <code>targetPort</code> matches what the container is actually listening on. A mismatch means traffic reaches the pod but hits a closed port.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">5.</span>
+                <span>Examine EndpointSlices: <code>kubectl get endpointslices -l kubernetes.io/service-name=&lt;svc&gt;</code>. Check if endpoints exist but have <code>conditions.ready: false</code>.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="scenario">
+        <div class="scenario-header">
+            <span class="icon">&#9888;</span>
+            <span class="title">Scenario: DNS Resolution Failing Inside Pods</span>
+        </div>
+        <div class="scenario-body">
+            <p><strong>Symptom:</strong> Pods cannot resolve service names or external hostnames. Applications fail with "Name or service not known" or "Temporary failure in name resolution".</p>
+            <p><strong>Root Causes and Diagnostics:</strong></p>
+            <div class="scenario-step">
+                <span class="step-num">1.</span>
+                <span>Check CoreDNS pods: <code>kubectl get pods -n kube-system -l k8s-app=kube-dns</code>. If CoreDNS pods are CrashLoopBackOff or not running, all DNS resolution fails. Check logs: <code>kubectl logs -n kube-system -l k8s-app=kube-dns</code>.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">2.</span>
+                <span>Verify CoreDNS Service: <code>kubectl get svc kube-dns -n kube-system</code>. Confirm the ClusterIP matches what is in the pod's /etc/resolv.conf. If the service is missing or has no endpoints, recreate it.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">3.</span>
+                <span>Test from the pod: <code>kubectl exec &lt;pod&gt; -- cat /etc/resolv.conf</code> and <code>kubectl exec &lt;pod&gt; -- nslookup kubernetes.default</code>. If resolv.conf is wrong, check the pod's dnsPolicy and dnsConfig settings.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">4.</span>
+                <span>Check NetworkPolicy blocking DNS: If you have default-deny egress policies, ensure DNS egress (UDP/TCP port 53 to kube-dns pods) is explicitly allowed. This is the most common oversight with network policies.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">5.</span>
+                <span>CoreDNS ConfigMap issues: <code>kubectl get cm coredns -n kube-system -o yaml</code>. Check for syntax errors in the Corefile, incorrect forward directives, or custom plugins causing crashes. Validate with <code>kubectl logs</code>.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="scenario">
+        <div class="scenario-header">
+            <span class="icon">&#9888;</span>
+            <span class="title">Scenario: Ingress Returning 502 Bad Gateway</span>
+        </div>
+        <div class="scenario-body">
+            <p><strong>Symptom:</strong> Requests through Ingress return HTTP 502 Bad Gateway. Direct access to the service (via port-forward) works fine.</p>
+            <p><strong>Root Causes and Diagnostics:</strong></p>
+            <div class="scenario-step">
+                <span class="step-num">1.</span>
+                <span>Check backend service endpoints: <code>kubectl get endpoints &lt;backend-svc&gt;</code>. A 502 from the ingress controller means it cannot connect to the backend. If endpoints are empty, fix the service selector (see scenario above).</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">2.</span>
+                <span>Verify port configuration: The Ingress backend port must match the Service port (not targetPort). Check <code>kubectl get svc &lt;backend&gt; -o yaml</code> and compare with the Ingress spec's <code>backend.service.port.number</code>.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">3.</span>
+                <span>Check ingress controller logs: <code>kubectl logs -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx</code>. Look for "upstream connect error" or "connection refused". The logs reveal which backend IP the controller tried to connect to.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">4.</span>
+                <span>Network policies blocking ingress controller: If network policies exist, ensure the ingress controller namespace/pods are allowed to reach backend pods. The ingress controller needs egress to backend pods on the target port.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">5.</span>
+                <span>Backend pod readiness: <code>kubectl get pods -l &lt;selector&gt;</code>. Even if pods exist, they may be failing readiness probes (503 from app). Check pod logs and increase <code>proxy-read-timeout</code> annotation if backends are slow to respond.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="scenario">
+        <div class="scenario-header">
+            <span class="icon">&#9888;</span>
+            <span class="title">Scenario: Pod Cannot Reach the Internet</span>
+        </div>
+        <div class="scenario-body">
+            <p><strong>Symptom:</strong> Pods can communicate with other pods and services within the cluster, but cannot reach external endpoints (APIs, package registries, etc.).</p>
+            <p><strong>Root Causes and Diagnostics:</strong></p>
+            <div class="scenario-step">
+                <span class="step-num">1.</span>
+                <span>Check egress NetworkPolicy: <code>kubectl get networkpolicies -n &lt;namespace&gt;</code>. If a default-deny egress policy exists, external traffic is blocked unless explicitly allowed. Add an egress rule with ipBlock 0.0.0.0/0 for port 443.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">2.</span>
+                <span>Verify DNS resolution: <code>kubectl exec &lt;pod&gt; -- nslookup google.com</code>. If DNS fails, the problem may be DNS (see DNS scenario above), not actual routing. Fix DNS first.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">3.</span>
+                <span>Check NAT/masquerade rules: <code>iptables -t nat -L POSTROUTING</code> on the node. For pods to reach the internet, their pod IPs (non-routable externally) must be SNAT'd to the node IP. CNI plugins typically set this up, but it can break after upgrades.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">4.</span>
+                <span>Verify node can reach internet: SSH to the node and test <code>curl -I https://google.com</code>. If the node itself cannot reach the internet, the issue is infrastructure-level (VPC routing, NAT gateway, security groups) not Kubernetes.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">5.</span>
+                <span>Check cloud security groups / NACLs: In cloud environments, ensure the node security group allows outbound traffic on required ports (443, 80). Check VPC route tables point to an internet gateway or NAT gateway for the pod/node subnets.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- FOOTER -->
+    <!-- ============================================================ -->
+
+    <hr>
+
+    <footer>
+        <p>K8s/DevOps/SRE Reference Notes | Kubernetes Networking</p>
+        <p>Built for interview prep and daily reference</p>
+    </footer>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,2157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes Workloads | K8s/DevOps/SRE</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html" class="active">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+<div class="container">
+
+    <div class="breadcrumb">
+        <a href="../index.html">Home</a> &gt; Workloads
+    </div>
+
+    <h1>Kubernetes Workloads</h1>
+    <p class="subtitle">Complete reference for all Kubernetes workload resources: Pods, Deployments, ReplicaSets, StatefulSets, DaemonSets, Jobs, and CronJobs. Production-ready YAML examples, interview Q&A, and troubleshooting scenarios.</p>
+
+    <!-- ============================================================ -->
+    <!-- PODS -->
+    <!-- ============================================================ -->
+
+    <h2>Pods</h2>
+
+    <p>A Pod is the smallest deployable unit in Kubernetes. It represents a single instance of a running process and can contain one or more tightly coupled containers that share network namespace, IPC, and optionally volumes.</p>
+
+    <div class="card card-info">
+        <p><strong>Key Insight:</strong> You almost never create Pods directly in production. Instead, you use higher-level controllers (Deployments, StatefulSets, etc.) that manage Pod lifecycle. Understanding Pods is essential because every other workload resource ultimately creates and manages Pods.</p>
+    </div>
+
+    <div class="point">
+        <div class="point-num">1</div>
+        <div class="point-content">
+            <span class="point-title">Smallest Deployable Unit:</span> A Pod is the atomic scheduling unit in Kubernetes. The scheduler places entire Pods on nodes -- you cannot split containers within a Pod across nodes. This is intentional: containers in a Pod are co-located and co-scheduled because they need to communicate via localhost.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">2</div>
+        <div class="point-content">
+            <span class="point-title">Multi-Container Patterns:</span> Pods support multiple containers for specific patterns: <strong>sidecar</strong> (log shipping, service mesh proxy), <strong>ambassador</strong> (proxy to external services), and <strong>adapter</strong> (transform output format). Each container has its own filesystem but shares the Pod's network namespace.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">3</div>
+        <div class="point-content">
+            <span class="point-title">Shared Network Namespace:</span> All containers in a Pod share the same IP address and port space. They communicate via <code>localhost</code>. This is implemented via the pause container which holds the network namespace alive even if application containers restart.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">4</div>
+        <div class="point-content">
+            <span class="point-title">Init Containers:</span> Run sequentially before app containers start. Used for setup tasks (wait for dependencies, populate volumes, configure permissions). If any init container fails, the Pod restarts. They run to completion before the next init container (or app container) starts.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">5</div>
+        <div class="point-content">
+            <span class="point-title">Ephemeral by Design:</span> Pods are mortal -- they are created, assigned a UID, scheduled to a node, and run until termination. They are never "moved" between nodes; if a node dies, identical replacement Pods are created elsewhere by the controlling resource.
+        </div>
+    </div>
+
+    <h3>Pod Lifecycle</h3>
+
+    <div class="diagram">
+        <div class="diagram-label">Pod Lifecycle State Machine</div>
+        <pre>
+                                    ┌─────────────────────────────────────────────────────────┐
+                                    │                    POD LIFECYCLE                         │
+                                    └─────────────────────────────────────────────────────────┘
+
+   Pod Created
+       │
+       ▼
+┌─────────────┐     Scheduler binds      ┌─────────────┐     All containers     ┌─────────────────┐
+│             │     pod to node           │             │     exit with code 0   │                 │
+│   Pending   │─────────────────────────▶│   Running   │────────────────────────▶│   Succeeded     │
+│             │                           │             │                         │   (phase)       │
+└─────────────┘                           └──────┬──────┘                         └─────────────────┘
+      │                                          │
+      │ Image pull fails,                        │ Container exits
+      │ resource unavailable,                    │ with non-zero code
+      │ scheduler cannot place                   │ (restartPolicy: Never)
+      │                                          ▼
+      │                                   ┌─────────────────┐
+      │                                   │                 │
+      └──────────────────────────────────▶│    Failed       │
+          (timeout / unschedulable)       │    (phase)      │
+                                          └─────────────────┘
+
+   ┌─────────────────────────────────────────────────────────────────────────────────────┐
+   │  WITHIN "Running" PHASE -- Container States:                                        │
+   │                                                                                     │
+   │   Waiting ──▶ Running ──▶ Terminated                                                │
+   │      │            │            │                                                     │
+   │      │            │            └──▶ (restartPolicy: Always) ──▶ Waiting (restart)   │
+   │      │            │                                                                  │
+   │      │            └──▶ OOMKilled / Error ──▶ CrashLoopBackOff (exponential backoff) │
+   │      │                                                                               │
+   │      └──▶ ImagePullBackOff / ErrImagePull (image not found or auth failure)         │
+   └─────────────────────────────────────────────────────────────────────────────────────┘
+
+   Pod Conditions (reported in status.conditions[]):
+   ─────────────────────────────────────────────────
+   PodScheduled    → Pod has been scheduled to a node
+   Initialized     → All init containers have completed
+   ContainersReady → All containers in the pod are ready
+   Ready           → Pod is able to serve requests (added to Service endpoints)
+        </pre>
+    </div>
+
+    <h3>Complete Pod YAML</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">pod-complete.yaml</span>
+            <span class="tag tag-blue">Production Reference</span>
+        </div>
+        <pre>
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-pod
+  namespace: production
+  labels:
+    app: myapp                    # Used by Services and Deployments for selection
+    version: v1.2.0              # Track which version is running
+    team: platform               # Ownership for cost allocation
+  annotations:
+    prometheus.io/scrape: "true" # Enable Prometheus metrics scraping
+    prometheus.io/port: "9090"   # Port where metrics are exposed
+spec:
+  # --- Scheduling Controls ---
+  nodeSelector:
+    disktype: ssd                # Schedule only on nodes with SSD
+  tolerations:
+    - key: "dedicated"
+      operator: "Equal"
+      value: "high-memory"
+      effect: "NoSchedule"       # Tolerate taint on high-memory nodes
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app: myapp
+            topologyKey: kubernetes.io/hostname  # Spread across nodes
+
+  # --- Service Account ---
+  serviceAccountName: myapp-sa   # Dedicated SA with least-privilege RBAC
+  automountServiceAccountToken: false  # Disable if not calling K8s API
+
+  # --- Security Context (Pod-level) ---
+  securityContext:
+    runAsNonRoot: true           # Container must run as non-root
+    runAsUser: 1000              # UID for the process
+    runAsGroup: 3000             # GID for the process
+    fsGroup: 2000                # GID for volume mounts
+    seccompProfile:
+      type: RuntimeDefault       # Apply default seccomp profile
+
+  # --- Init Containers (run sequentially before app containers) ---
+  initContainers:
+    - name: wait-for-db
+      image: busybox:1.36
+      command:
+        - sh
+        - -c
+        - |
+          until nc -z postgres-svc.production.svc.cluster.local 5432; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+      resources:
+        requests:
+          cpu: 50m
+          memory: 32Mi
+        limits:
+          cpu: 100m
+          memory: 64Mi
+
+    - name: init-config
+      image: busybox:1.36
+      command:
+        - sh
+        - -c
+        - cp /config-template/app.conf /shared-config/app.conf
+      volumeMounts:
+        - name: config-template
+          mountPath: /config-template
+        - name: shared-config
+          mountPath: /shared-config
+
+  # --- Application Containers ---
+  containers:
+    - name: app
+      image: registry.example.com/myapp:v1.2.0  # Always use specific tags, never :latest
+      imagePullPolicy: IfNotPresent              # Always for :latest, IfNotPresent for tagged
+
+      # --- Ports ---
+      ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+
+      # --- Environment Variables ---
+      env:
+        - name: APP_ENV
+          value: "production"
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: database.host
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: database.password
+        - name: POD_NAME                         # Downward API -- inject pod metadata
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: MEMORY_LIMIT                     # Useful for JVM heap sizing
+          valueFrom:
+            resourceFieldRef:
+              containerName: app
+              resource: limits.memory
+
+      # --- Resource Requests and Limits ---
+      resources:
+        requests:
+          cpu: 250m              # 0.25 CPU cores (used for scheduling)
+          memory: 512Mi          # Used for scheduling and OOM score
+          ephemeral-storage: 1Gi
+        limits:
+          cpu: 1000m             # 1 CPU core (throttled, not killed)
+          memory: 1Gi            # Hard limit (OOMKilled if exceeded)
+          ephemeral-storage: 2Gi
+
+      # --- Probes ---
+      startupProbe:              # Protect slow-starting containers
+        httpGet:
+          path: /healthz/startup
+          port: http
+        failureThreshold: 30     # 30 * 10s = 5 minutes to start
+        periodSeconds: 10
+
+      livenessProbe:             # Restart container if unhealthy
+        httpGet:
+          path: /healthz/live
+          port: http
+        initialDelaySeconds: 0   # startupProbe handles initial delay
+        periodSeconds: 15
+        timeoutSeconds: 3
+        failureThreshold: 3      # Kill after 3 consecutive failures
+
+      readinessProbe:            # Remove from Service endpoints if not ready
+        httpGet:
+          path: /healthz/ready
+          port: http
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        timeoutSeconds: 3
+        successThreshold: 1
+        failureThreshold: 3
+
+      # --- Container Security Context ---
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true   # Prevent writes to container filesystem
+        capabilities:
+          drop:
+            - ALL                       # Drop all Linux capabilities
+
+      # --- Volume Mounts ---
+      volumeMounts:
+        - name: shared-config
+          mountPath: /etc/app
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp               # Writable tmp since rootfs is read-only
+        - name: data
+          mountPath: /var/data
+
+      # --- Lifecycle Hooks ---
+      lifecycle:
+        postStart:
+          exec:
+            command: ["/bin/sh", "-c", "echo 'Container started' >> /tmp/lifecycle.log"]
+        preStop:
+          exec:
+            command: ["/bin/sh", "-c", "sleep 5 && kill -SIGTERM 1"]  # Graceful shutdown
+
+    # --- Sidecar Container (log shipper) ---
+    - name: log-shipper
+      image: fluent/fluent-bit:2.2
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 100m
+          memory: 128Mi
+      volumeMounts:
+        - name: shared-logs
+          mountPath: /var/log/app
+          readOnly: true
+
+  # --- Volumes ---
+  volumes:
+    - name: config-template
+      configMap:
+        name: app-config-template
+    - name: shared-config
+      emptyDir: {}               # Shared between init container and app
+    - name: tmp
+      emptyDir:
+        sizeLimit: 100Mi         # Limit ephemeral storage usage
+    - name: data
+      persistentVolumeClaim:
+        claimName: app-data-pvc
+    - name: shared-logs
+      emptyDir: {}
+
+  # --- Pod Termination ---
+  terminationGracePeriodSeconds: 60  # Time to gracefully shutdown (default 30)
+  restartPolicy: Always              # Always | OnFailure | Never
+
+  # --- DNS Configuration ---
+  dnsPolicy: ClusterFirst            # Use cluster DNS (CoreDNS)
+  dnsConfig:
+    options:
+      - name: ndots
+        value: "2"                   # Reduce unnecessary DNS lookups
+
+  # --- Image Pull Secrets ---
+  imagePullSecrets:
+    - name: registry-credentials
+
+  # --- Priority ---
+  priorityClassName: high-priority   # Preemption priority for scheduling
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- DEPLOYMENTS -->
+    <!-- ============================================================ -->
+
+    <h2>Deployments</h2>
+
+    <p>A Deployment provides declarative updates for Pods and ReplicaSets. It manages the rollout of new versions, supports rollback, and ensures zero-downtime updates through configurable rolling update strategies.</p>
+
+    <div class="point">
+        <div class="point-num green">1</div>
+        <div class="point-content">
+            <span class="point-title">Manages ReplicaSets:</span> A Deployment creates and manages ReplicaSets. Each time you update the pod template, the Deployment creates a NEW ReplicaSet and gradually scales it up while scaling the old one down. Old ReplicaSets are kept (by default 10) for rollback.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">2</div>
+        <div class="point-content">
+            <span class="point-title">Rolling Update Strategy:</span> The default strategy creates new pods before killing old ones, ensuring continuous availability. Controlled by two parameters: <code>maxSurge</code> (how many extra pods above desired count) and <code>maxUnavailable</code> (how many pods can be down during update).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">3</div>
+        <div class="point-content">
+            <span class="point-title">maxSurge Explained:</span> Maximum number of pods that can be created above the desired replica count. Set to 25% (default) means during a rollout of 4 replicas, up to 5 pods may exist simultaneously. Higher values = faster rollout but more resource usage.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">4</div>
+        <div class="point-content">
+            <span class="point-title">maxUnavailable Explained:</span> Maximum number of pods that can be unavailable during the update. Set to 25% (default) means at least 75% of desired pods are always running. Set to 0 for zero-downtime (requires maxSurge > 0). Lower values = safer but slower rollout.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">5</div>
+        <div class="point-content">
+            <span class="point-title">Rollback Capability:</span> Every Deployment change is recorded as a revision. Rollback with <code>kubectl rollout undo deployment/name</code> or to a specific revision with <code>--to-revision=N</code>. The Deployment simply scales the previous ReplicaSet back up.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">6</div>
+        <div class="point-content">
+            <span class="point-title">Revision History:</span> Controlled by <code>revisionHistoryLimit</code> (default 10). Keeps old ReplicaSets (scaled to 0) for rollback. Set higher for critical services that might need to rollback to older versions. Set to 0 if you never rollback (saves etcd storage).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">7</div>
+        <div class="point-content">
+            <span class="point-title">progressDeadlineSeconds:</span> Maximum time (default 600s) for a Deployment to make progress before it is considered failed. If no new pods become ready within this window, the rollout is marked as stalled (status condition Progressing=False). Does NOT trigger automatic rollback.
+        </div>
+    </div>
+
+    <h3>Rolling Update Process</h3>
+
+    <div class="diagram">
+        <div class="diagram-label">Rolling Update: 4 Replicas, maxSurge=1, maxUnavailable=1</div>
+        <pre>
+Initial State (v1 running):
+┌──────────────────────────────────────────────────────┐
+│  ReplicaSet-v1 (4/4 ready)    ReplicaSet-v2 (0/0)   │
+│  ┌────┐ ┌────┐ ┌────┐ ┌────┐                        │
+│  │ v1 │ │ v1 │ │ v1 │ │ v1 │                        │
+│  └────┘ └────┘ └────┘ └────┘                        │
+│  Available: 4    Desired: 4    Max: 5    Min: 3      │
+└──────────────────────────────────────────────────────┘
+
+Step 1 -- Scale up v2, scale down v1 (maxSurge=1, maxUnavailable=1):
+┌──────────────────────────────────────────────────────┐
+│  ReplicaSet-v1 (3/3 ready)    ReplicaSet-v2 (1/1)   │
+│  ┌────┐ ┌────┐ ┌────┐        ┌────┐                 │
+│  │ v1 │ │ v1 │ │ v1 │        │ v2 │                 │
+│  └────┘ └────┘ └────┘        └────┘                 │
+│  Total pods: 4    Available: 4    (1 terminated)     │
+└──────────────────────────────────────────────────────┘
+
+Step 2 -- Continue rolling:
+┌──────────────────────────────────────────────────────┐
+│  ReplicaSet-v1 (2/2 ready)    ReplicaSet-v2 (2/2)   │
+│  ┌────┐ ┌────┐               ┌────┐ ┌────┐          │
+│  │ v1 │ │ v1 │               │ v2 │ │ v2 │          │
+│  └────┘ └────┘               └────┘ └────┘          │
+│  Total pods: 4    Available: 4                       │
+└──────────────────────────────────────────────────────┘
+
+Step 3 -- Continue rolling:
+┌──────────────────────────────────────────────────────┐
+│  ReplicaSet-v1 (1/1 ready)    ReplicaSet-v2 (3/3)   │
+│  ┌────┐                      ┌────┐ ┌────┐ ┌────┐   │
+│  │ v1 │                      │ v2 │ │ v2 │ │ v2 │   │
+│  └────┘                      └────┘ └────┘ └────┘   │
+│  Total pods: 4    Available: 4                       │
+└──────────────────────────────────────────────────────┘
+
+Step 4 -- Complete:
+┌──────────────────────────────────────────────────────┐
+│  ReplicaSet-v1 (0/0 kept)     ReplicaSet-v2 (4/4)   │
+│                               ┌────┐ ┌────┐ ┌────┐ ┌────┐
+│                               │ v2 │ │ v2 │ │ v2 │ │ v2 │
+│                               └────┘ └────┘ └────┘ └────┘
+│  Available: 4    Desired: 4    Rollout Complete!     │
+└──────────────────────────────────────────────────────┘
+
+Key: At EVERY step, available pods >= (desired - maxUnavailable) = 3
+     And total pods <= (desired + maxSurge) = 5
+        </pre>
+    </div>
+
+    <h3>Complete Deployment YAML</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">deployment-production.yaml</span>
+            <span class="tag tag-green">Production Ready</span>
+        </div>
+        <pre>
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-api
+  namespace: production
+  labels:
+    app: web-api
+    tier: backend
+    environment: production
+  annotations:
+    kubernetes.io/change-cause: "Update to v2.1.0 - fix memory leak in connection pool"
+spec:
+  replicas: 4                          # Desired number of pod replicas
+  revisionHistoryLimit: 5              # Keep 5 old ReplicaSets for rollback
+  progressDeadlineSeconds: 300         # Fail rollout if no progress in 5 minutes
+
+  # --- Update Strategy ---
+  strategy:
+    type: RollingUpdate                # RollingUpdate (default) or Recreate
+    rollingUpdate:
+      maxSurge: 1                      # Allow 1 extra pod during rollout
+      maxUnavailable: 0                # Zero-downtime: never reduce below desired
+
+  # --- Pod Selector (immutable after creation) ---
+  selector:
+    matchLabels:
+      app: web-api                     # Must match template.metadata.labels
+
+  # --- Pod Template ---
+  template:
+    metadata:
+      labels:
+        app: web-api                   # Must match selector.matchLabels
+        version: v2.1.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      serviceAccountName: web-api-sa
+      terminationGracePeriodSeconds: 45
+
+      # --- Topology Spread for HA ---
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: web-api
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: web-api
+
+      # --- Security Context ---
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+        seccompProfile:
+          type: RuntimeDefault
+
+      # --- Containers ---
+      containers:
+        - name: web-api
+          image: registry.example.com/web-api:v2.1.0
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: metrics
+              containerPort: 9090
+
+          env:
+            - name: GOMAXPROCS
+              valueFrom:
+                resourceFieldRef:
+                  resource: limits.cpu    # Match GOMAXPROCS to CPU limit
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: web-api-secrets
+                  key: database-url
+
+          envFrom:
+            - configMapRef:
+                name: web-api-config     # Load all keys as env vars
+
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 1Gi
+
+          # --- Probes ---
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30         # 150s startup window
+
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+            successThreshold: 1
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: tls-certs
+              mountPath: /etc/tls
+              readOnly: true
+
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]  # Allow LB to drain connections
+
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 100Mi
+        - name: tls-certs
+          secret:
+            secretName: web-api-tls
+            defaultMode: 0400            # Read-only for owner
+
+      imagePullSecrets:
+        - name: registry-credentials
+        </pre>
+    </div>
+
+    <h3>Useful Deployment Commands</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Command</th>
+                <th>Purpose</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>kubectl rollout status deployment/web-api</code></td>
+                <td>Watch rollout progress in real-time</td>
+            </tr>
+            <tr>
+                <td><code>kubectl rollout history deployment/web-api</code></td>
+                <td>List all revisions with change-cause annotations</td>
+            </tr>
+            <tr>
+                <td><code>kubectl rollout undo deployment/web-api</code></td>
+                <td>Rollback to previous revision</td>
+            </tr>
+            <tr>
+                <td><code>kubectl rollout undo deployment/web-api --to-revision=3</code></td>
+                <td>Rollback to specific revision</td>
+            </tr>
+            <tr>
+                <td><code>kubectl rollout pause deployment/web-api</code></td>
+                <td>Pause rollout (for batching multiple changes)</td>
+            </tr>
+            <tr>
+                <td><code>kubectl rollout resume deployment/web-api</code></td>
+                <td>Resume paused rollout</td>
+            </tr>
+            <tr>
+                <td><code>kubectl rollout restart deployment/web-api</code></td>
+                <td>Trigger rolling restart without changing spec</td>
+            </tr>
+            <tr>
+                <td><code>kubectl set image deployment/web-api web-api=image:v2.2.0</code></td>
+                <td>Update image (triggers rollout)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- ============================================================ -->
+    <!-- REPLICASETS -->
+    <!-- ============================================================ -->
+
+    <h2>ReplicaSets</h2>
+
+    <p>A ReplicaSet ensures that a specified number of pod replicas are running at any given time. It is the successor to ReplicationControllers and is primarily used as a mechanism by Deployments to orchestrate pod creation, deletion, and updates.</p>
+
+    <div class="card card-warning">
+        <p><strong>Important:</strong> You rarely create ReplicaSets directly. Use Deployments instead, which manage ReplicaSets for you and provide rollout/rollback capabilities. Understanding ReplicaSets is valuable for debugging (e.g., inspecting why a rollout is stuck).</p>
+    </div>
+
+    <div class="point">
+        <div class="point-num purple">1</div>
+        <div class="point-content">
+            <span class="point-title">Ensures Replica Count:</span> The ReplicaSet controller continuously watches the actual number of pods matching its label selector. If there are too few, it creates new pods. If there are too many (e.g., after scaling down), it deletes excess pods (selecting by creation timestamp -- youngest first).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">2</div>
+        <div class="point-content">
+            <span class="point-title">Label Selectors:</span> Uses <code>matchLabels</code> and/or <code>matchExpressions</code> to identify which pods it manages. A pod is "owned" by a ReplicaSet if its labels match the selector AND it has an ownerReference pointing to that RS. Orphaned matching pods are adopted.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">3</div>
+        <div class="point-content">
+            <span class="point-title">Pod Template Hash:</span> When created by a Deployment, each ReplicaSet gets a unique <code>pod-template-hash</code> label (hash of the pod template spec). This prevents different ReplicaSets from accidentally adopting each other's pods and enables precise rollback targeting.
+        </div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">replicaset.yaml</span>
+            <span class="tag tag-purple">Reference Only</span>
+        </div>
+        <pre>
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: web-api-6799fc88d8         # Typically auto-generated by Deployment
+  namespace: production
+  labels:
+    app: web-api
+    pod-template-hash: 6799fc88d8  # Hash of pod template spec
+  ownerReferences:                 # Points to parent Deployment
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: web-api
+      uid: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: web-api
+      pod-template-hash: 6799fc88d8
+    # matchExpressions example:
+    # matchExpressions:
+    #   - key: environment
+    #     operator: In
+    #     values: ["production", "staging"]
+    #   - key: version
+    #     operator: NotIn
+    #     values: ["deprecated"]
+  template:
+    metadata:
+      labels:
+        app: web-api
+        pod-template-hash: 6799fc88d8
+    spec:
+      containers:
+        - name: web-api
+          image: registry.example.com/web-api:v2.1.0
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 1Gi
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- STATEFULSETS -->
+    <!-- ============================================================ -->
+
+    <h2>StatefulSets</h2>
+
+    <p>StatefulSets manage stateful applications that require stable network identities, persistent storage, and ordered deployment/scaling. Each pod in a StatefulSet gets a persistent identifier that it maintains across rescheduling.</p>
+
+    <div class="card card-info">
+        <p><strong>Use StatefulSets when you need:</strong> Stable unique network identifiers (pod-0, pod-1, ...), stable persistent storage (each pod gets its own PVC), ordered graceful deployment and scaling, ordered automated rolling updates. Common use cases: databases (PostgreSQL, MySQL), distributed systems (Kafka, ZooKeeper, etcd), and any app that requires stable identity.</p>
+    </div>
+
+    <div class="point">
+        <div class="point-num orange">1</div>
+        <div class="point-content">
+            <span class="point-title">Stable Network Identity:</span> Pods are named predictably: <code>{statefulset-name}-{ordinal}</code> (e.g., postgres-0, postgres-1, postgres-2). Each pod gets a stable DNS record: <code>{pod-name}.{headless-service}.{namespace}.svc.cluster.local</code>. This identity persists across rescheduling.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num orange">2</div>
+        <div class="point-content">
+            <span class="point-title">Ordered Deployment:</span> Pods are created sequentially (0, 1, 2, ...) and each must be Running and Ready before the next is created. This enables primary/replica patterns where the primary must initialize first. Scaling down happens in reverse order (highest ordinal first).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num orange">3</div>
+        <div class="point-content">
+            <span class="point-title">Headless Service Requirement:</span> StatefulSets require a Headless Service (clusterIP: None) to provide network identity. Unlike regular Services that load-balance, a Headless Service creates individual DNS A records for each pod, enabling direct peer-to-peer communication.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num orange">4</div>
+        <div class="point-content">
+            <span class="point-title">volumeClaimTemplates:</span> Each pod gets its own PersistentVolumeClaim created from the template. PVCs are named <code>{template-name}-{statefulset-name}-{ordinal}</code>. Critically, PVCs are NOT deleted when pods are deleted or the StatefulSet is scaled down -- data persists for scale-up.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num orange">5</div>
+        <div class="point-content">
+            <span class="point-title">Update Strategies:</span> <code>RollingUpdate</code> (default) updates pods in reverse ordinal order. <code>OnDelete</code> only updates a pod when you manually delete it -- useful for databases where you want to control the update sequence. The <code>partition</code> parameter allows canary-style updates.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num orange">6</div>
+        <div class="point-content">
+            <span class="point-title">Pod Management Policy:</span> <code>OrderedReady</code> (default) enforces sequential startup. <code>Parallel</code> launches all pods simultaneously -- use for stateful apps that do not require ordered startup (e.g., independent cache nodes).
+        </div>
+    </div>
+
+    <h3>Complete StatefulSet YAML</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">statefulset-postgres.yaml</span>
+            <span class="tag tag-orange">Production Ready</span>
+        </div>
+        <pre>
+# Headless Service (REQUIRED for StatefulSet DNS)
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-headless
+  namespace: production
+  labels:
+    app: postgres
+spec:
+  clusterIP: None                    # Headless -- no load balancing
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+# Client-facing Service (load-balanced, for read replicas)
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-read
+  namespace: production
+spec:
+  selector:
+    app: postgres
+    role: replica
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: production
+  labels:
+    app: postgres
+spec:
+  serviceName: postgres-headless     # Must reference Headless Service
+  replicas: 3                        # 1 primary + 2 replicas
+  podManagementPolicy: OrderedReady  # Sequential startup (primary first)
+
+  # --- Update Strategy ---
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0                   # Update all pods (set >0 for canary)
+
+  # --- Persistent Volume Claim Retention (K8s 1.27+) ---
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain              # Keep PVCs when StatefulSet deleted
+    whenScaled: Retain               # Keep PVCs when scaling down
+
+  selector:
+    matchLabels:
+      app: postgres
+
+  template:
+    metadata:
+      labels:
+        app: postgres
+      annotations:
+        checksum/config: "abc123"    # Force rollout on config change
+    spec:
+      serviceAccountName: postgres-sa
+      terminationGracePeriodSeconds: 120  # Allow time for graceful shutdown
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999               # postgres user
+        fsGroup: 999
+
+      # --- Init Container: Set up replication ---
+      initContainers:
+        - name: init-replication
+          image: postgres:16-alpine
+          command:
+            - bash
+            - -c
+            - |
+              # Determine if this is primary (ordinal 0) or replica
+              ORDINAL=${HOSTNAME##*-}
+              if [ "$ORDINAL" -eq 0 ]; then
+                echo "Primary node -- skip replication setup"
+              else
+                echo "Replica node -- configure streaming replication"
+                # Wait for primary to be ready
+                until pg_isready -h postgres-0.postgres-headless -p 5432; do
+                  echo "Waiting for primary..."
+                  sleep 2
+                done
+                # Base backup from primary if data directory is empty
+                if [ ! -f /var/lib/postgresql/data/PG_VERSION ]; then
+                  pg_basebackup -h postgres-0.postgres-headless -D /var/lib/postgresql/data \
+                    -U replicator -Fp -Xs -P -R
+                fi
+              fi
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secrets
+                  key: replication-password
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - name: postgres
+              containerPort: 5432
+
+          env:
+            - name: POSTGRES_DB
+              value: "appdb"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secrets
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secrets
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata  # Subdirectory for PG data
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+
+          resources:
+            requests:
+              cpu: 1000m
+              memory: 2Gi
+            limits:
+              cpu: 4000m
+              memory: 4Gi
+
+          startupProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - postgres
+            periodSeconds: 10
+            failureThreshold: 30
+
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - postgres
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - postgres
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: config
+              mountPath: /etc/postgresql/postgresql.conf
+              subPath: postgresql.conf
+            - name: config
+              mountPath: /etc/postgresql/pg_hba.conf
+              subPath: pg_hba.conf
+
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - su
+                  - postgres
+                  - -c
+                  - "pg_ctl stop -D /var/lib/postgresql/data/pgdata -m fast"
+
+      volumes:
+        - name: config
+          configMap:
+            name: postgres-config
+
+  # --- Volume Claim Templates (one PVC per pod) ---
+  volumeClaimTemplates:
+    - metadata:
+        name: data                   # PVC names: data-postgres-0, data-postgres-1, etc.
+        labels:
+          app: postgres
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: gp3-encrypted  # AWS gp3 with encryption
+        resources:
+          requests:
+            storage: 100Gi
+        </pre>
+    </div>
+
+    <div class="card card-info">
+        <h4>StatefulSet DNS Resolution</h4>
+        <p>With the configuration above, pods get the following stable DNS names:</p>
+        <ul>
+            <li><code>postgres-0.postgres-headless.production.svc.cluster.local</code> (Primary)</li>
+            <li><code>postgres-1.postgres-headless.production.svc.cluster.local</code> (Replica 1)</li>
+            <li><code>postgres-2.postgres-headless.production.svc.cluster.local</code> (Replica 2)</li>
+        </ul>
+        <p>These DNS names persist across pod restarts and rescheduling to different nodes.</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- DAEMONSETS -->
+    <!-- ============================================================ -->
+
+    <h2>DaemonSets</h2>
+
+    <p>A DaemonSet ensures that a copy of a pod runs on all (or a subset of) nodes in the cluster. As nodes are added, DaemonSet pods are automatically scheduled on them. As nodes are removed, those pods are garbage collected.</p>
+
+    <div class="point">
+        <div class="point-num">1</div>
+        <div class="point-content">
+            <span class="point-title">One Pod Per Node:</span> The DaemonSet controller ensures exactly one pod per eligible node. Unlike Deployments where the scheduler places pods, the DaemonSet controller directly sets <code>spec.nodeName</code> (in older versions) or uses node affinity (current behavior) to guarantee placement.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">2</div>
+        <div class="point-content">
+            <span class="point-title">Common Use Cases:</span> Cluster storage daemons (GlusterFS, Ceph), log collectors (Fluentd, Filebeat), node monitoring agents (Prometheus node-exporter, Datadog), network plugins (Calico, Cilium), security agents (Falco, Sysdig), and node-level configuration (NTP, kernel tuning).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">3</div>
+        <div class="point-content">
+            <span class="point-title">Node Scheduling:</span> DaemonSets bypass the normal scheduler. They use nodeAffinity to target specific nodes. You can restrict to a subset of nodes using <code>nodeSelector</code> or <code>affinity</code> rules in the pod template.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">4</div>
+        <div class="point-content">
+            <span class="point-title">Tolerations for Control Plane:</span> By default, DaemonSet pods are NOT scheduled on control plane nodes (which have the <code>node-role.kubernetes.io/control-plane:NoSchedule</code> taint). Add a toleration if the DaemonSet must run everywhere (e.g., CNI plugin, monitoring).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">5</div>
+        <div class="point-content">
+            <span class="point-title">Update Strategy:</span> Supports <code>RollingUpdate</code> (default, maxUnavailable configurable) and <code>OnDelete</code> (manual pod deletion triggers update). maxSurge is supported since K8s 1.22 for DaemonSets, allowing zero-downtime updates.
+        </div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">daemonset-node-exporter.yaml</span>
+            <span class="tag tag-green">Production Ready</span>
+        </div>
+        <pre>
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+  namespace: monitoring
+  labels:
+    app: node-exporter
+spec:
+  selector:
+    matchLabels:
+      app: node-exporter
+
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1            # Update one node at a time
+      maxSurge: 0                  # Don't create extra pods
+
+  template:
+    metadata:
+      labels:
+        app: node-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+    spec:
+      # --- Tolerations: Run on ALL nodes including control plane ---
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master        # Legacy taint (pre-1.24)
+          operator: Exists
+          effect: NoSchedule
+        - key: node.kubernetes.io/not-ready
+          operator: Exists
+          effect: NoExecute          # Run even on NotReady nodes
+        - key: node.kubernetes.io/unreachable
+          operator: Exists
+          effect: NoExecute
+        - key: node.kubernetes.io/disk-pressure
+          operator: Exists
+          effect: NoSchedule
+        - key: node.kubernetes.io/memory-pressure
+          operator: Exists
+          effect: NoSchedule
+
+      hostNetwork: true              # Use host networking (access host metrics)
+      hostPID: true                  # Access host process information
+
+      serviceAccountName: node-exporter
+      automountServiceAccountToken: false
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534             # nobody user
+
+      containers:
+        - name: node-exporter
+          image: prom/node-exporter:v1.7.0
+          args:
+            - --path.procfs=/host/proc
+            - --path.sysfs=/host/sys
+            - --path.rootfs=/host/root
+            - --collector.filesystem.mount-points-exclude
+            - "^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)"
+
+          ports:
+            - name: metrics
+              containerPort: 9100
+              hostPort: 9100         # Expose directly on host
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+              add: ["SYS_TIME"]      # Required for time-related metrics
+
+          volumeMounts:
+            - name: proc
+              mountPath: /host/proc
+              readOnly: true
+            - name: sys
+              mountPath: /host/sys
+              readOnly: true
+            - name: root
+              mountPath: /host/root
+              mountPropagation: HostToContainer
+              readOnly: true
+
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: root
+          hostPath:
+            path: /
+
+      # --- Priority: DaemonSets should not be evicted ---
+      priorityClassName: system-node-critical
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- JOBS & CRONJOBS -->
+    <!-- ============================================================ -->
+
+    <h2>Jobs and CronJobs</h2>
+
+    <p>Jobs create one or more pods and ensure that a specified number successfully terminate. CronJobs create Jobs on a recurring schedule. Both are designed for run-to-completion workloads rather than long-running services.</p>
+
+    <h3>Jobs</h3>
+
+    <div class="point">
+        <div class="point-num green">1</div>
+        <div class="point-content">
+            <span class="point-title">Run-to-Completion:</span> Unlike Deployments which maintain pods indefinitely, Jobs track successful completions. Once the required number of completions is reached, the Job is done. Pods created by Jobs have <code>restartPolicy: Never</code> or <code>OnFailure</code> (never <code>Always</code>).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">2</div>
+        <div class="point-content">
+            <span class="point-title">Parallelism:</span> <code>spec.parallelism</code> controls how many pods run concurrently. <code>spec.completions</code> sets the total number of successful completions needed. Use parallelism=N with completions=M for embarrassingly parallel workloads (e.g., processing M items with N workers).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">3</div>
+        <div class="point-content">
+            <span class="point-title">backoffLimit:</span> Maximum number of retries before marking the Job as failed (default 6). Uses exponential backoff (10s, 20s, 40s, ..., capped at 6 minutes). Each pod failure counts toward this limit, so parallelism can exhaust the backoff limit faster.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">4</div>
+        <div class="point-content">
+            <span class="point-title">activeDeadlineSeconds:</span> Absolute time limit for the entire Job (all retries). If the Job runs longer than this, all pods are terminated and the Job is marked failed. Use to prevent runaway jobs consuming resources indefinitely.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">5</div>
+        <div class="point-content">
+            <span class="point-title">ttlSecondsAfterFinished:</span> Automatically clean up finished Jobs and their pods after the specified duration. Without this, completed Jobs and pods remain until manually deleted or garbage collected by a controller.
+        </div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">job-database-migration.yaml</span>
+            <span class="tag tag-green">Production Ready</span>
+        </div>
+        <pre>
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migration-v2-1-0
+  namespace: production
+  labels:
+    app: web-api
+    type: migration
+    version: v2.1.0
+spec:
+  completions: 1                     # Run exactly once
+  parallelism: 1                     # One pod at a time
+  backoffLimit: 3                    # Retry up to 3 times on failure
+  activeDeadlineSeconds: 600         # Fail if not done in 10 minutes
+  ttlSecondsAfterFinished: 86400    # Clean up after 24 hours
+
+  template:
+    metadata:
+      labels:
+        app: web-api
+        type: migration
+    spec:
+      restartPolicy: Never           # Don't restart; let Job controller handle retries
+      serviceAccountName: migration-sa
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z postgres-0.postgres-headless 5432; do
+                echo "Waiting for database..."
+                sleep 3
+              done
+
+      containers:
+        - name: migrate
+          image: registry.example.com/web-api:v2.1.0
+          command: ["./migrate", "--direction=up", "--steps=all"]
+
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: web-api-secrets
+                  key: database-url
+            - name: MIGRATION_LOCK_TIMEOUT
+              value: "30s"
+
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+        </pre>
+    </div>
+
+    <h3>CronJobs</h3>
+
+    <div class="point">
+        <div class="point-num purple">1</div>
+        <div class="point-content">
+            <span class="point-title">Schedule Syntax:</span> Uses standard cron format: <code>minute hour day-of-month month day-of-week</code>. Examples: <code>*/5 * * * *</code> (every 5 min), <code>0 2 * * *</code> (daily at 2am), <code>0 0 1 * *</code> (monthly), <code>0 */6 * * 1-5</code> (every 6h on weekdays).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">2</div>
+        <div class="point-content">
+            <span class="point-title">Concurrency Policy:</span> <code>Allow</code> (default) permits concurrent Jobs. <code>Forbid</code> skips new Job if previous is still running. <code>Replace</code> cancels the running Job and starts a new one. Use <code>Forbid</code> for database-dependent tasks that cannot safely overlap.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">3</div>
+        <div class="point-content">
+            <span class="point-title">startingDeadlineSeconds:</span> If the CronJob misses its scheduled time by more than this many seconds, it skips the run. Useful when a Job takes longer than the interval -- prevents queueing dozens of missed runs. If unset, all missed runs may execute simultaneously.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">4</div>
+        <div class="point-content">
+            <span class="point-title">History Limits:</span> <code>successfulJobsHistoryLimit</code> (default 3) and <code>failedJobsHistoryLimit</code> (default 1) control how many completed/failed Job objects are retained. Set higher for debugging, lower for cluster cleanliness.
+        </div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">cronjob-backup.yaml</span>
+            <span class="tag tag-purple">Production Ready</span>
+        </div>
+        <pre>
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: database-backup
+  namespace: production
+  labels:
+    app: postgres
+    type: backup
+spec:
+  schedule: "0 2 * * *"             # Daily at 2:00 AM UTC
+  timeZone: "UTC"                    # Explicit timezone (K8s 1.27+)
+  concurrencyPolicy: Forbid          # Never run two backups simultaneously
+  startingDeadlineSeconds: 3600      # Skip if missed by more than 1 hour
+  successfulJobsHistoryLimit: 7      # Keep last 7 successful Job records
+  failedJobsHistoryLimit: 3          # Keep last 3 failed Job records
+  suspend: false                     # Set true to temporarily pause scheduling
+
+  jobTemplate:
+    metadata:
+      labels:
+        app: postgres
+        type: backup
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 3600    # Must complete within 1 hour
+      ttlSecondsAfterFinished: 604800  # Clean up after 7 days
+
+      template:
+        spec:
+          restartPolicy: OnFailure   # Retry in-place before Job creates new pod
+          serviceAccountName: backup-sa
+
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+
+          containers:
+            - name: backup
+              image: registry.example.com/pg-backup:1.5.0
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -euo pipefail
+                  TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+                  BACKUP_FILE="/backups/db_${TIMESTAMP}.sql.gz"
+
+                  echo "Starting backup at ${TIMESTAMP}..."
+                  pg_dump -h postgres-0.postgres-headless \
+                    -U "${PGUSER}" -d appdb \
+                    --no-owner --no-privileges \
+                    | gzip > "${BACKUP_FILE}"
+
+                  echo "Uploading to S3..."
+                  aws s3 cp "${BACKUP_FILE}" \
+                    "s3://${BACKUP_BUCKET}/postgres/${TIMESTAMP}.sql.gz" \
+                    --storage-class STANDARD_IA
+
+                  echo "Cleaning local backup..."
+                  rm -f "${BACKUP_FILE}"
+
+                  echo "Backup completed successfully."
+
+              env:
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-secrets
+                      key: username
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-secrets
+                      key: password
+                - name: BACKUP_BUCKET
+                  valueFrom:
+                    configMapKeyRef:
+                      name: backup-config
+                      key: s3-bucket
+
+              resources:
+                requests:
+                  cpu: 500m
+                  memory: 512Mi
+                limits:
+                  cpu: 2000m
+                  memory: 2Gi
+
+              volumeMounts:
+                - name: backup-scratch
+                  mountPath: /backups
+
+          volumes:
+            - name: backup-scratch
+              emptyDir:
+                sizeLimit: 10Gi
+        </pre>
+    </div>
+
+    <h3>CronJob Schedule Reference</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Schedule</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td><code>*/5 * * * *</code></td><td>Every 5 minutes</td></tr>
+            <tr><td><code>0 * * * *</code></td><td>Every hour at minute 0</td></tr>
+            <tr><td><code>0 2 * * *</code></td><td>Daily at 2:00 AM</td></tr>
+            <tr><td><code>0 0 * * 0</code></td><td>Weekly on Sunday at midnight</td></tr>
+            <tr><td><code>0 0 1 * *</code></td><td>Monthly on the 1st at midnight</td></tr>
+            <tr><td><code>0 */6 * * 1-5</code></td><td>Every 6 hours on weekdays</td></tr>
+            <tr><td><code>30 8 * * 1-5</code></td><td>Weekdays at 8:30 AM</td></tr>
+            <tr><td><code>0 0 1,15 * *</code></td><td>1st and 15th of each month</td></tr>
+        </tbody>
+    </table>
+
+    <!-- ============================================================ -->
+    <!-- INTERVIEW Q&A -->
+    <!-- ============================================================ -->
+
+    <h2>Interview Questions and Answers</h2>
+
+    <div class="qa">
+        <div class="q">Q1: What are the differences between Deployment, StatefulSet, and DaemonSet?</div>
+        <div class="a">
+            <strong>They serve fundamentally different scheduling and identity guarantees:</strong>
+            <ul>
+                <li><strong>Deployment:</strong> For stateless apps. Pods are interchangeable, no stable identity, no persistent storage guarantees. Supports rolling updates and rollback. Pods can land on any node and are named randomly (e.g., web-api-6799fc88d8-x4k2p).</li>
+                <li><strong>StatefulSet:</strong> For stateful apps. Provides stable network identity (pod-0, pod-1), stable persistent storage (dedicated PVC per pod), ordered deployment/scaling, and ordered rolling updates. Requires a Headless Service.</li>
+                <li><strong>DaemonSet:</strong> Ensures exactly one pod per node (or subset of nodes). Used for node-level infrastructure (monitoring, logging, networking). Does not use the scheduler -- directly targets nodes. Pods are tied to specific nodes.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q2: Describe the complete Pod lifecycle from creation to termination.</div>
+        <div class="a">
+            <strong>The lifecycle spans creation, scheduling, initialization, running, and termination:</strong>
+            <ol>
+                <li><strong>Pending:</strong> Pod accepted by API server, stored in etcd. Scheduler evaluates placement. Image pulling may begin.</li>
+                <li><strong>Init Containers:</strong> Run sequentially. Each must exit 0 before the next starts. Failure restarts the pod.</li>
+                <li><strong>Running:</strong> All containers started. Startup probes gate liveness/readiness. Readiness probe success adds pod to Service endpoints.</li>
+                <li><strong>Termination:</strong> Pod receives SIGTERM, preStop hook executes, containers get terminationGracePeriodSeconds (default 30s) to shut down. SIGKILL sent if not terminated. Pod removed from endpoints first (before SIGTERM) to stop receiving traffic.</li>
+            </ol>
+            <p>Pod phase reflects the aggregate: a pod is Running if at least one container is running, regardless of other container states.</p>
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q3: How does a rolling update work internally? What happens if a new pod fails readiness?</div>
+        <div class="a">
+            <strong>The Deployment controller orchestrates ReplicaSet scaling based on maxSurge and maxUnavailable:</strong>
+            <p>During a rolling update, the Deployment creates a new ReplicaSet and incrementally scales it up while scaling the old one down. At each step, it ensures: total pods &lt;= desired + maxSurge AND unavailable pods &lt;= maxUnavailable.</p>
+            <p><strong>If a new pod fails readiness:</strong> The rollout pauses naturally. Since the pod never becomes Ready, it does not count toward "available" replicas. The Deployment cannot scale up the new RS further (violating maxUnavailable) or scale down the old RS (reducing available below threshold). If this persists beyond <code>progressDeadlineSeconds</code>, the Deployment condition is set to Progressing=False, but NO automatic rollback occurs -- you must manually rollback or fix the issue.</p>
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q4: What are init containers and when would you use them?</div>
+        <div class="a">
+            <strong>Init containers run to completion before app containers start, providing setup guarantees:</strong>
+            <ul>
+                <li><strong>Dependency waiting:</strong> Block until a database, API, or message queue is reachable (avoids CrashLoopBackOff from connection failures at startup).</li>
+                <li><strong>Configuration generation:</strong> Populate shared volumes with configs, secrets from Vault, or dynamic data that the app container reads.</li>
+                <li><strong>Security setup:</strong> Run privileged operations (sysctl, iptables) that the app container should not have permission to do.</li>
+                <li><strong>Database schema migration:</strong> Apply migrations before the app starts (though a separate Job is often better for this).</li>
+            </ul>
+            <p>Key properties: run sequentially, can have different images/security contexts from app containers, must exit 0 for the pod to proceed, and share volumes with app containers.</p>
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q5: Explain Kubernetes QoS (Quality of Service) classes and how they affect pod eviction.</div>
+        <div class="a">
+            <strong>QoS classes determine eviction priority when a node is under resource pressure:</strong>
+            <ul>
+                <li><strong>Guaranteed:</strong> Every container has requests == limits for both CPU and memory. Highest priority -- evicted last. OOM score is -997. Use for critical workloads.</li>
+                <li><strong>Burstable:</strong> At least one container has a request or limit set, but requests != limits. Medium priority. OOM score calculated proportionally to memory usage vs request.</li>
+                <li><strong>BestEffort:</strong> No resource requests or limits set at all. Lowest priority -- evicted first when the node runs low on resources. OOM score is 1000.</li>
+            </ul>
+            <p><strong>Eviction order:</strong> When the node hits memory pressure, kubelet evicts BestEffort pods first, then Burstable pods exceeding their requests, then Guaranteed pods (only if truly necessary). Within a class, pods using more memory relative to their request are evicted first.</p>
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q6: What is the difference between liveness, readiness, and startup probes?</div>
+        <div class="a">
+            <strong>Each probe serves a distinct purpose in managing container health:</strong>
+            <ul>
+                <li><strong>Startup Probe:</strong> Protects slow-starting containers. Disables liveness and readiness checks until it succeeds. If it never succeeds (failureThreshold * periodSeconds), the container is killed. Use for apps with long initialization (JVM warmup, data loading).</li>
+                <li><strong>Liveness Probe:</strong> Detects containers that are running but broken (deadlocks, infinite loops). Failure triggers container restart. Does NOT remove from Service endpoints -- that is readiness's job. Be careful not to probe external dependencies here (database down should not kill your pod).</li>
+                <li><strong>Readiness Probe:</strong> Determines if the container can serve traffic. Failure removes the pod from Service endpoints (stops receiving requests). Does NOT restart the container. Use for temporary conditions (loading cache, downstream dependency unavailable).</li>
+            </ul>
+            <p><strong>Common mistake:</strong> Setting liveness == readiness. If your app temporarily cannot serve traffic (database failover), readiness should fail (stop traffic) but liveness should pass (don't restart the container).</p>
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q7: How does Kubernetes handle pod termination? What is the graceful shutdown sequence?</div>
+        <div class="a">
+            <strong>Termination follows a precise sequence to prevent dropped requests:</strong>
+            <ol>
+                <li>Pod state set to Terminating. Pod is removed from Service endpoints (kube-proxy updates rules). New requests stop routing to this pod.</li>
+                <li>preStop hook executes (if defined). Common pattern: <code>sleep 5</code> to allow in-flight requests to complete and LB to propagate endpoint removal.</li>
+                <li>SIGTERM sent to PID 1 in each container. Application should catch this and begin graceful shutdown (close connections, finish in-flight work).</li>
+                <li>Wait up to terminationGracePeriodSeconds (default 30s). The timer starts from step 2 (includes preStop time).</li>
+                <li>SIGKILL sent to any remaining processes. Container is forcefully terminated.</li>
+                <li>Pod object deleted from API server.</li>
+            </ol>
+            <p><strong>Key insight:</strong> There is a race condition between endpoint removal (step 1) and SIGTERM (step 3). Some LBs may still send requests after SIGTERM. The preStop sleep ensures the app stays alive long enough for endpoints to propagate.</p>
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q8: When would you use the Recreate strategy instead of RollingUpdate?</div>
+        <div class="a">
+            <strong>Recreate kills all existing pods before creating new ones -- accepting downtime for correctness:</strong>
+            <ul>
+                <li><strong>Database schema incompatibility:</strong> New code requires schema changes that break old code. You cannot have v1 and v2 running simultaneously against the same database.</li>
+                <li><strong>Shared volume with single-writer:</strong> If pods write to a ReadWriteOnce volume, only one pod can attach at a time. RollingUpdate would fail because the new pod cannot mount the volume while the old one holds it.</li>
+                <li><strong>License constraints:</strong> Software licensed per-instance where running extra instances during rollout violates licensing.</li>
+                <li><strong>Singleton requirement:</strong> Application that must not have concurrent instances (legacy apps with global locks, certain batch processors).</li>
+            </ul>
+            <p>The Recreate strategy is simple: scale old RS to 0, wait for termination, then scale new RS up. Downtime = termination time + startup time.</p>
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q9: How does a StatefulSet handle node failure differently from a Deployment?</div>
+        <div class="a">
+            <strong>StatefulSets are deliberately conservative about rescheduling to prevent data corruption:</strong>
+            <p>When a node becomes unreachable, the node controller marks it NotReady after ~40s. For Deployments, the controller creates a replacement pod immediately on a healthy node (the old pod may still be running on the partitioned node -- this is acceptable for stateless apps).</p>
+            <p>For StatefulSets, Kubernetes does NOT automatically delete the pod or create a replacement. Reason: the pod may still be running and writing to its PVC on the unreachable node. Creating a second pod with the same PVC could cause data corruption (split-brain). An operator must either:</p>
+            <ul>
+                <li>Confirm the node is truly dead, then force-delete the pod: <code>kubectl delete pod postgres-0 --force --grace-period=0</code></li>
+                <li>Or fence the node (cordon + drain) to ensure the old pod is truly gone before rescheduling.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q10: What is the difference between spec.containers and spec.initContainers resource requests for scheduling?</div>
+        <div class="a">
+            <strong>The scheduler uses the maximum of init container requests vs sum of app container requests:</strong>
+            <p>Kubernetes computes the effective resource request for scheduling as:</p>
+            <p><code>effectiveRequest = max(max(initContainer[i].request), sum(container[j].request))</code></p>
+            <p>This is because init containers run sequentially (only one at a time) while app containers run in parallel. So the node must have enough resources to handle whichever is larger: the heaviest init container running alone, or all app containers running together.</p>
+            <p><strong>Example:</strong> If init container requests 2Gi memory and the two app containers request 512Mi each (1Gi total), the pod's effective memory request is 2Gi (the init container dominates). If the app containers requested 1.5Gi each (3Gi total), the effective request would be 3Gi.</p>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TROUBLESHOOTING SCENARIOS -->
+    <!-- ============================================================ -->
+
+    <h2>Troubleshooting Scenarios</h2>
+
+    <div class="scenario">
+        <div class="scenario-header">
+            <span class="icon">&#9888;</span>
+            <span class="title">Scenario: CrashLoopBackOff</span>
+        </div>
+        <div class="scenario-body">
+            <p><strong>Symptom:</strong> Pod repeatedly crashes and enters CrashLoopBackOff with exponentially increasing restart delays (10s, 20s, 40s, ... 5min cap).</p>
+            <p><strong>Debug Steps:</strong></p>
+            <div class="scenario-step">
+                <span class="step-num">1.</span>
+                <span>Check container logs: <code>kubectl logs &lt;pod&gt; -c &lt;container&gt; --previous</code> -- the <code>--previous</code> flag shows logs from the last crashed instance. This is your primary diagnostic tool for application-level errors.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">2.</span>
+                <span>Describe the pod for events: <code>kubectl describe pod &lt;pod&gt;</code> -- look at the Events section for "Back-off restarting failed container", check Last State for exit codes. Exit code 137 = OOMKilled, 1 = application error, 127 = command not found, 126 = permission denied.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">3.</span>
+                <span>Check if it is OOMKilled: <code>kubectl get pod &lt;pod&gt; -o jsonpath='{.status.containerStatuses[*].lastState.terminated.reason}'</code> -- if OOMKilled, increase memory limits or fix memory leak. Also check <code>kubectl top pod</code> for actual memory usage.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">4.</span>
+                <span>Verify command and args: <code>kubectl get pod &lt;pod&gt; -o yaml | grep -A10 'containers:'</code> -- check that <code>command</code> and <code>args</code> are correct. Common mistake: shell syntax in command array (use <code>["/bin/sh", "-c", "my command"]</code> for shell features).</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">5.</span>
+                <span>Debug with ephemeral container or override: <code>kubectl debug &lt;pod&gt; -it --image=busybox --target=&lt;container&gt;</code> or create a temporary pod with the same image but <code>command: ["sleep", "infinity"]</code> to investigate the filesystem, environment variables, and network connectivity without the application crashing.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="scenario">
+        <div class="scenario-header">
+            <span class="icon">&#9888;</span>
+            <span class="title">Scenario: ImagePullBackOff</span>
+        </div>
+        <div class="scenario-body">
+            <p><strong>Symptom:</strong> Pod stuck in ImagePullBackOff or ErrImagePull. Container never starts.</p>
+            <p><strong>Causes and Fixes:</strong></p>
+            <div class="scenario-step">
+                <span class="step-num">1.</span>
+                <span><strong>Image does not exist:</strong> Typo in image name/tag. Verify with <code>kubectl describe pod &lt;pod&gt;</code> -- Events will show the exact pull error. Test manually: <code>docker pull &lt;image&gt;</code> or <code>crictl pull &lt;image&gt;</code> from the node.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">2.</span>
+                <span><strong>Authentication failure:</strong> Private registry requires <code>imagePullSecrets</code>. Verify secret exists: <code>kubectl get secret &lt;name&gt; -o jsonpath='{.data.\.dockerconfigjson}' | base64 -d</code>. Ensure the secret is in the same namespace as the pod.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">3.</span>
+                <span><strong>Network issues:</strong> Node cannot reach the registry. Check from node: <code>curl -v https://&lt;registry&gt;/v2/</code>. Could be DNS, proxy, firewall, or VPC endpoint misconfiguration. Check <code>/etc/resolv.conf</code> on the node.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">4.</span>
+                <span><strong>Rate limiting:</strong> Docker Hub enforces pull rate limits (100 pulls/6h for anonymous, 200 for authenticated). Error message will mention "429 Too Many Requests". Fix: use <code>imagePullSecrets</code> with Docker Hub credentials or mirror images to a private registry.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">5.</span>
+                <span><strong>Platform mismatch:</strong> Image built for wrong architecture (e.g., amd64 image on arm64 node). Error: "no matching manifest for linux/arm64". Fix: use multi-arch images or add <code>nodeSelector</code> for the correct architecture.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="scenario">
+        <div class="scenario-header">
+            <span class="icon">&#9888;</span>
+            <span class="title">Scenario: Pod Pending (Resource Issues)</span>
+        </div>
+        <div class="scenario-body">
+            <p><strong>Symptom:</strong> Pod remains in Pending state. <code>kubectl describe pod</code> shows <code>FailedScheduling</code> event with "Insufficient cpu" or "Insufficient memory".</p>
+            <p><strong>Debug Steps:</strong></p>
+            <div class="scenario-step">
+                <span class="step-num">1.</span>
+                <span>Check the scheduling failure reason: <code>kubectl describe pod &lt;pod&gt; | grep -A5 "Events"</code> -- the message tells you exactly which resource is insufficient and on how many nodes. Example: "0/5 nodes are available: 5 Insufficient memory."</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">2.</span>
+                <span>Inspect node allocatable vs allocated: <code>kubectl describe node &lt;node&gt; | grep -A20 "Allocated resources"</code> -- compare Requests column to Allocatable. If requests total exceeds allocatable, the node is full regardless of actual usage.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">3.</span>
+                <span>Check for resource over-requesting: <code>kubectl top nodes</code> vs <code>kubectl describe nodes | grep -A5 "Allocated"</code> -- if actual usage is low but requests are high, pods are over-requesting. Reduce requests to match actual needs (use VPA recommendations).</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">4.</span>
+                <span>Check ResourceQuota: <code>kubectl get resourcequota -n &lt;namespace&gt;</code> -- namespace quotas can block pod creation even if nodes have capacity. Check if quota for requests.cpu or requests.memory is exhausted.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">5.</span>
+                <span>Resolution options: Scale the cluster (add nodes), reduce pod resource requests, evict lower-priority pods (use PriorityClasses), enable cluster autoscaler, or check if pods can be spread across namespaces with available quota.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="scenario">
+        <div class="scenario-header">
+            <span class="icon">&#9888;</span>
+            <span class="title">Scenario: OOMKilled</span>
+        </div>
+        <div class="scenario-body">
+            <p><strong>Symptom:</strong> Container terminated with reason "OOMKilled" (exit code 137). Pod may enter CrashLoopBackOff if it happens repeatedly.</p>
+            <p><strong>Diagnosis:</strong></p>
+            <div class="scenario-step">
+                <span class="step-num">1.</span>
+                <span>Confirm OOM: <code>kubectl describe pod &lt;pod&gt;</code> -- look for <code>Last State: Terminated, Reason: OOMKilled, Exit Code: 137</code>. This means the container exceeded its memory limit and the kernel's OOM killer terminated it.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">2.</span>
+                <span>Check memory limit vs actual usage: <code>kubectl top pod &lt;pod&gt; --containers</code> -- compare with the memory limit in the pod spec. If usage consistently approaches the limit, the limit is too low. If it spikes suddenly, suspect a memory leak.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">3.</span>
+                <span>Check node-level OOM events: <code>kubectl get events --field-selector reason=OOMKilling -n &lt;namespace&gt;</code> and on the node: <code>dmesg | grep -i "oom\|killed"</code> -- confirms which process was killed and its memory usage at death.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">4.</span>
+                <span>Profile memory usage: For JVM apps, check heap settings (<code>-Xmx</code> should be ~75% of container memory limit to leave room for off-heap). For Go, check goroutine leaks. For Node.js, check <code>--max-old-space-size</code>.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">5.</span>
+                <span>Resolution: Increase memory limit (if legitimate usage), fix memory leak (if a bug), or tune application memory settings. Note: setting requests == limits gives Guaranteed QoS class, making the pod less likely to be evicted but still killed if it exceeds its own limit.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="scenario">
+        <div class="scenario-header">
+            <span class="icon">&#9888;</span>
+            <span class="title">Scenario: Deployment Rollout Stuck</span>
+        </div>
+        <div class="scenario-body">
+            <p><strong>Symptom:</strong> <code>kubectl rollout status</code> shows "Waiting for deployment to finish: X out of Y new replicas have been updated..." and never completes. Deployment condition shows <code>Progressing=False</code>.</p>
+            <p><strong>Debug Steps:</strong></p>
+            <div class="scenario-step">
+                <span class="step-num">1.</span>
+                <span>Check new ReplicaSet's pods: <code>kubectl get rs -l app=&lt;name&gt;</code> to find the new RS, then <code>kubectl get pods -l pod-template-hash=&lt;hash&gt;</code> -- check if new pods are stuck in Pending, CrashLoopBackOff, or never become Ready.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">2.</span>
+                <span>Check pod readiness probe: <code>kubectl describe pod &lt;new-pod&gt;</code> -- if readiness probe is failing, the pod never becomes Ready, the rollout cannot proceed (new pod does not count as available), and old pods cannot be scaled down.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">3.</span>
+                <span>Check Deployment events: <code>kubectl describe deployment &lt;name&gt;</code> -- look for "has timed out progressing" condition. Check if progressDeadlineSeconds has been exceeded. Check for quota or admission webhook rejections.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">4.</span>
+                <span>Check resource availability: If maxSurge > 0 and the cluster is full, new pods cannot be scheduled. The rollout stalls waiting for capacity. Either free resources, scale the cluster, or adjust the strategy.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">5.</span>
+                <span>Resolution: Fix the underlying issue (image, config, resources), then let the rollout continue. If unrecoverable, rollback: <code>kubectl rollout undo deployment/&lt;name&gt;</code>. To investigate without pressure, pause the rollout: <code>kubectl rollout pause deployment/&lt;name&gt;</code>.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- COMMON YAML MISTAKES -->
+    <!-- ============================================================ -->
+
+    <h2>Common YAML Mistakes</h2>
+
+    <p>These are the most frequent YAML errors that cause deployments to fail silently, workloads to misbehave, or pods to never start.</p>
+
+    <h3>Selector Mismatch</h3>
+
+    <div class="grid-2">
+        <div class="card card-danger">
+            <h4>Wrong: Labels do not match selector</h4>
+            <pre style="color: var(--text); font-family: 'Fira Code', monospace; font-size: 0.8rem; margin-top: 0.5rem;">
+spec:
+  selector:
+    matchLabels:
+      app: web-api         # Selector expects this
+  template:
+    metadata:
+      labels:
+        app: web-server    # Template has different label!
+        # Result: Deployment creates pods
+        # but cannot find them. ReplicaSet
+        # shows 0/3 ready forever.</pre>
+        </div>
+        <div class="card card-success">
+            <h4>Correct: Labels match selector exactly</h4>
+            <pre style="color: var(--text); font-family: 'Fira Code', monospace; font-size: 0.8rem; margin-top: 0.5rem;">
+spec:
+  selector:
+    matchLabels:
+      app: web-api         # Selector expects this
+  template:
+    metadata:
+      labels:
+        app: web-api       # Template matches!
+        version: v2.1.0    # Extra labels are fine
+        # The selector labels must be a SUBSET
+        # of the template labels.</pre>
+        </div>
+    </div>
+
+    <h3>Resource Requests/Limits Format</h3>
+
+    <div class="grid-2">
+        <div class="card card-danger">
+            <h4>Wrong: Incorrect resource units</h4>
+            <pre style="color: var(--text); font-family: 'Fira Code', monospace; font-size: 0.8rem; margin-top: 0.5rem;">
+resources:
+  requests:
+    cpu: 250              # No unit! Means 250 CORES
+    memory: 512           # No unit! Means 512 BYTES
+  limits:
+    cpu: 1000m
+    memory: 1g            # Lowercase 'g' = NOT gibibytes
+    # 1g = 10^9 bytes (gigabyte)
+    # 1Gi = 2^30 bytes (gibibyte)
+    # Off by ~7% -- causes unexpected OOM</pre>
+        </div>
+        <div class="card card-success">
+            <h4>Correct: Proper resource units</h4>
+            <pre style="color: var(--text); font-family: 'Fira Code', monospace; font-size: 0.8rem; margin-top: 0.5rem;">
+resources:
+  requests:
+    cpu: 250m             # 250 millicores = 0.25 CPU
+    memory: 512Mi         # 512 mebibytes
+  limits:
+    cpu: 1000m            # or "1" for 1 full core
+    memory: 1Gi           # 1 gibibyte (uppercase Gi)
+    # Always use explicit units:
+    # CPU: m (millicores)
+    # Memory: Mi, Gi (binary units)</pre>
+        </div>
+    </div>
+
+    <h3>Probe Configuration</h3>
+
+    <div class="grid-2">
+        <div class="card card-danger">
+            <h4>Wrong: Liveness probe checks dependencies</h4>
+            <pre style="color: var(--text); font-family: 'Fira Code', monospace; font-size: 0.8rem; margin-top: 0.5rem;">
+livenessProbe:
+  httpGet:
+    path: /health         # This endpoint checks DB
+    port: 8080            # connectivity!
+  # Problem: If the database goes down,
+  # ALL pods get killed simultaneously.
+  # Restart doesn't fix the DB.
+  # You now have a cascading failure
+  # with all pods in CrashLoopBackOff.</pre>
+        </div>
+        <div class="card card-success">
+            <h4>Correct: Liveness only checks the process</h4>
+            <pre style="color: var(--text); font-family: 'Fira Code', monospace; font-size: 0.8rem; margin-top: 0.5rem;">
+livenessProbe:
+  httpGet:
+    path: /healthz/live   # Only checks: is the
+    port: 8080            # process alive and
+                          # responsive?
+readinessProbe:
+  httpGet:
+    path: /healthz/ready  # THIS one checks
+    port: 8080            # dependencies (DB, cache)
+  # If DB is down: readiness fails (stop
+  # sending traffic) but liveness passes
+  # (don't restart the pod).</pre>
+        </div>
+    </div>
+
+    <h3>Container Command Syntax</h3>
+
+    <div class="grid-2">
+        <div class="card card-danger">
+            <h4>Wrong: Shell syntax in command array</h4>
+            <pre style="color: var(--text); font-family: 'Fira Code', monospace; font-size: 0.8rem; margin-top: 0.5rem;">
+containers:
+  - name: app
+    command:
+      - "echo $HOME && ls -la"
+    # Fails! No shell interprets this.
+    # The string is passed as argv[0] to
+    # exec() directly. $HOME is literal,
+    # && is not a shell operator here.
+    # Error: "exec: not found"</pre>
+        </div>
+        <div class="card card-success">
+            <h4>Correct: Use explicit shell invocation</h4>
+            <pre style="color: var(--text); font-family: 'Fira Code', monospace; font-size: 0.8rem; margin-top: 0.5rem;">
+containers:
+  - name: app
+    command: ["/bin/sh", "-c"]
+    args:
+      - |
+        echo $HOME && ls -la
+    # Shell features (pipes, variables,
+    # &&, ||, redirects) require a shell.
+    # Use command for the binary,
+    # args for the shell script.
+    # Or: command: ["/app/binary", "--flag"]</pre>
+        </div>
+    </div>
+
+    <h3>Security Context</h3>
+
+    <div class="grid-2">
+        <div class="card card-danger">
+            <h4>Wrong: Running as root with full capabilities</h4>
+            <pre style="color: var(--text); font-family: 'Fira Code', monospace; font-size: 0.8rem; margin-top: 0.5rem;">
+containers:
+  - name: app
+    image: myapp:latest
+    # No securityContext at all!
+    # Defaults:
+    #   runAsUser: 0 (root)
+    #   allowPrivilegeEscalation: true
+    #   capabilities: ALL inherited
+    # Container escape → full node access
+    # This fails PodSecurity "restricted"</pre>
+        </div>
+        <div class="card card-success">
+            <h4>Correct: Minimal privileges</h4>
+            <pre style="color: var(--text); font-family: 'Fira Code', monospace; font-size: 0.8rem; margin-top: 0.5rem;">
+containers:
+  - name: app
+    image: myapp:v1.2.0
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop: ["ALL"]
+    # Passes PodSecurity "restricted"
+    # Minimal attack surface
+    # Use emptyDir for writable /tmp</pre>
+        </div>
+    </div>
+
+    <h3>ImagePullPolicy with Latest Tag</h3>
+
+    <div class="grid-2">
+        <div class="card card-danger">
+            <h4>Wrong: Mutable tags with IfNotPresent</h4>
+            <pre style="color: var(--text); font-family: 'Fira Code', monospace; font-size: 0.8rem; margin-top: 0.5rem;">
+containers:
+  - name: app
+    image: myapp:latest
+    imagePullPolicy: IfNotPresent
+    # Problem: "latest" is a mutable tag.
+    # Node A has cached v1 (tagged latest)
+    # Node B pulls fresh v2 (also latest)
+    # You now have DIFFERENT versions running
+    # with no way to tell which is which.
+    # Rollbacks are impossible.</pre>
+        </div>
+        <div class="card card-success">
+            <h4>Correct: Immutable tags or digest</h4>
+            <pre style="color: var(--text); font-family: 'Fira Code', monospace; font-size: 0.8rem; margin-top: 0.5rem;">
+containers:
+  - name: app
+    image: myapp:v1.2.0          # Immutable tag
+    imagePullPolicy: IfNotPresent
+    # Or use digest for absolute immutability:
+    # image: myapp@sha256:abc123...
+    # Every node guaranteed same binary.
+    # Rollbacks target exact version.
+    # Clear audit trail of what ran.</pre>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- WORKLOAD COMPARISON TABLE -->
+    <!-- ============================================================ -->
+
+    <h2>Workload Resource Comparison</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Feature</th>
+                <th>Deployment</th>
+                <th>StatefulSet</th>
+                <th>DaemonSet</th>
+                <th>Job</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Pod Identity</td>
+                <td>Random hash suffix</td>
+                <td>Stable ordinal (pod-0, pod-1)</td>
+                <td>Per-node naming</td>
+                <td>Random hash suffix</td>
+            </tr>
+            <tr>
+                <td>Scaling Model</td>
+                <td>Horizontal (replicas)</td>
+                <td>Ordered horizontal</td>
+                <td>1 per node (auto)</td>
+                <td>Parallelism + completions</td>
+            </tr>
+            <tr>
+                <td>Storage</td>
+                <td>Shared PVC or none</td>
+                <td>Dedicated PVC per pod</td>
+                <td>Usually hostPath</td>
+                <td>Ephemeral</td>
+            </tr>
+            <tr>
+                <td>Network Identity</td>
+                <td>Service ClusterIP (LB)</td>
+                <td>Headless Service (per-pod DNS)</td>
+                <td>hostNetwork or ClusterIP</td>
+                <td>None (no service)</td>
+            </tr>
+            <tr>
+                <td>Update Strategy</td>
+                <td>RollingUpdate / Recreate</td>
+                <td>RollingUpdate / OnDelete</td>
+                <td>RollingUpdate / OnDelete</td>
+                <td>N/A (immutable)</td>
+            </tr>
+            <tr>
+                <td>Pod Lifetime</td>
+                <td>Long-running</td>
+                <td>Long-running</td>
+                <td>Long-running</td>
+                <td>Run-to-completion</td>
+            </tr>
+            <tr>
+                <td>Rollback</td>
+                <td>Yes (revision history)</td>
+                <td>Yes (with partition)</td>
+                <td>Yes (revision history)</td>
+                <td>No (create new Job)</td>
+            </tr>
+            <tr>
+                <td>Use Case</td>
+                <td>Stateless web apps, APIs</td>
+                <td>Databases, distributed systems</td>
+                <td>Node agents, monitoring</td>
+                <td>Batch, migrations</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- ============================================================ -->
+    <!-- FOOTER -->
+    <!-- ============================================================ -->
+
+    <hr>
+
+    <footer>
+        <p>K8s/DevOps/SRE Reference Notes | Kubernetes Workloads</p>
+        <p>Built for interview prep and daily reference</p>
+    </footer>
+
+</div>
+
+</body>
+</html>

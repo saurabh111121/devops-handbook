@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linux & Networking Fundamentals - DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html" class="active">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> / Linux & Networking
+        </div>
+
+        <h1>Linux & Networking Fundamentals</h1>
+        <p class="subtitle">Core Linux internals, process management, TCP/IP networking, and cloud infrastructure patterns</p>
+
+        <!-- ============================================ -->
+        <!-- 1. Process Management -->
+        <!-- ============================================ -->
+        <h2>1. Process Management</h2>
+
+        <div class="card card-info">
+            <h4>Process Fundamentals</h4>
+            <ul>
+                <li><strong>PID:</strong> Process ID - unique identifier assigned by the kernel. PID 1 is the init process (systemd on modern Linux)</li>
+                <li><strong>PPID:</strong> Parent Process ID - the PID of the process that spawned this one</li>
+                <li><strong>init/systemd:</strong> First process started by the kernel. Adopts orphaned processes. Manages service lifecycle</li>
+                <li><strong>Fork/Exec:</strong> How processes are created: fork() creates a copy, exec() replaces it with a new program</li>
+            </ul>
+        </div>
+
+        <h3>Signals</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Signal</th>
+                    <th>Number</th>
+                    <th>Default Action</th>
+                    <th>Description</th>
+                    <th>Catchable?</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>SIGTERM</code></td>
+                    <td>15</td>
+                    <td>Terminate</td>
+                    <td>Graceful shutdown request. Process can clean up.</td>
+                    <td>Yes</td>
+                </tr>
+                <tr>
+                    <td><code>SIGKILL</code></td>
+                    <td>9</td>
+                    <td>Kill</td>
+                    <td>Immediate termination. Cannot be caught or ignored.</td>
+                    <td>No</td>
+                </tr>
+                <tr>
+                    <td><code>SIGHUP</code></td>
+                    <td>1</td>
+                    <td>Terminate</td>
+                    <td>Hangup. Often used to reload configuration.</td>
+                    <td>Yes</td>
+                </tr>
+                <tr>
+                    <td><code>SIGINT</code></td>
+                    <td>2</td>
+                    <td>Terminate</td>
+                    <td>Interrupt (Ctrl+C). Graceful stop.</td>
+                    <td>Yes</td>
+                </tr>
+                <tr>
+                    <td><code>SIGSTOP</code></td>
+                    <td>19</td>
+                    <td>Stop</td>
+                    <td>Pause process. Cannot be caught.</td>
+                    <td>No</td>
+                </tr>
+                <tr>
+                    <td><code>SIGCONT</code></td>
+                    <td>18</td>
+                    <td>Continue</td>
+                    <td>Resume a stopped process.</td>
+                    <td>Yes</td>
+                </tr>
+                <tr>
+                    <td><code>SIGCHLD</code></td>
+                    <td>17</td>
+                    <td>Ignore</td>
+                    <td>Child process terminated or stopped.</td>
+                    <td>Yes</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Process States</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Linux Process State Transitions</div>
+            <pre>
+                     fork()
+                       |
+                       v
+                +-------------+
+                |   CREATED   |
+                +------+------+
+                       |
+                       v
+              +--------+--------+
+              |    READY (R)    |<-----------+
+              | (Runnable/      |            |
+              |  Ready to run)  |            |
+              +--------+--------+            |
+                       |                     |
+              Scheduler picks          I/O complete /
+                       |              signal received
+                       v                     |
+              +--------+--------+    +-------+--------+
+              |  RUNNING (R)    |    |  SLEEPING      |
+              |  (On CPU)       |    |                |
+              +---+----+----+---+    | S = Interrupt. |
+                  |    |    |        | D = Uninterr.  |
+                  |    |    |        +----------------+
+                  |    |    |               ^
+       exit()    |    |    +-- I/O wait ---+
+                  |    |
+                  |    +-- stopped (SIGSTOP) --> T (Stopped)
+                  |                               |
+                  v                     SIGCONT --+
+          +-------+-------+
+          | ZOMBIE (Z)    |
+          | (Terminated,  |
+          |  waiting for  |
+          |  parent wait) |
+          +-------+-------+
+                  |
+          parent calls wait()
+                  |
+                  v
+          +-------+-------+
+          |   REMOVED     |
+          | (From table)  |
+          +---------------+
+            </pre>
+        </div>
+
+        <h3>Zombie Processes</h3>
+
+        <div class="card card-warning">
+            <h4>What is a Zombie Process?</h4>
+            <p>A zombie is a process that has finished execution but still has an entry in the process table. It exists so the parent can read its exit status via <code>wait()</code>.</p>
+            <ul>
+                <li><strong>Cause:</strong> Parent did not call <code>wait()</code> or <code>waitpid()</code></li>
+                <li><strong>Problem:</strong> Zombies consume PID entries (limited resource)</li>
+                <li><strong>Detection:</strong> <code>ps aux | grep Z</code> shows state as Z (zombie)</li>
+                <li><strong>Fix:</strong> Kill the parent process (orphaned zombies are adopted by init/systemd which reaps them)</li>
+                <li><strong>In containers:</strong> PID 1 must handle SIGCHLD - this is the "PID 1 problem" (use tini or --init)</li>
+            </ul>
+        </div>
+
+        <h3>systemctl Commands</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">systemd Service Management</span>
+                <span class="tag tag-blue">systemctl</span>
+            </div>
+            <pre>
+# Service lifecycle
+systemctl start nginx          # Start a service
+systemctl stop nginx           # Stop a service
+systemctl restart nginx        # Restart (stop + start)
+systemctl reload nginx         # Reload config without restart (SIGHUP)
+systemctl status nginx         # Show status, PID, logs
+
+# Boot behavior
+systemctl enable nginx         # Start on boot (creates symlink)
+systemctl disable nginx        # Don't start on boot
+systemctl is-enabled nginx     # Check if enabled
+
+# Inspect
+systemctl list-units --type=service          # All loaded services
+systemctl list-units --type=service --failed # Failed services
+systemctl cat nginx                          # Show unit file
+systemctl show nginx --property=MainPID      # Specific property
+
+# System
+systemctl daemon-reload        # Reload unit files after editing
+journalctl -u nginx -f         # Follow logs for a service
+journalctl -u nginx --since "1 hour ago"  # Recent logs
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 2. Containers & Linux Primitives -->
+        <!-- ============================================ -->
+        <h2>2. Containers & Linux Primitives</h2>
+
+        <div class="card card-info">
+            <h4>What Makes a Container?</h4>
+            <p>A container is NOT a VM. It is a regular Linux process with <strong>namespaces</strong> for isolation and <strong>cgroups</strong> for resource limits. The container sees its own isolated view of the system.</p>
+        </div>
+
+        <h3>Linux Namespaces</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Namespace</th>
+                    <th>Isolates</th>
+                    <th>What the container sees</th>
+                    <th>K8s Usage</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>PID</strong></td>
+                    <td>Process IDs</td>
+                    <td>Own PID tree starting from PID 1</td>
+                    <td>Each pod gets its own PID namespace (containers in a pod share it)</td>
+                </tr>
+                <tr>
+                    <td><strong>Network (net)</strong></td>
+                    <td>Network stack</td>
+                    <td>Own interfaces, IPs, routes, iptables</td>
+                    <td>Each pod gets its own network namespace (containers in a pod share it)</td>
+                </tr>
+                <tr>
+                    <td><strong>Mount (mnt)</strong></td>
+                    <td>Filesystem mounts</td>
+                    <td>Own mount table, root filesystem</td>
+                    <td>Container image layers + volumes</td>
+                </tr>
+                <tr>
+                    <td><strong>User</strong></td>
+                    <td>User/Group IDs</td>
+                    <td>Can be root inside but non-root outside</td>
+                    <td>User namespace remapping (rootless containers)</td>
+                </tr>
+                <tr>
+                    <td><strong>UTS</strong></td>
+                    <td>Hostname, domain</td>
+                    <td>Own hostname</td>
+                    <td>Pod hostname set via spec.hostname</td>
+                </tr>
+                <tr>
+                    <td><strong>IPC</strong></td>
+                    <td>Inter-process communication</td>
+                    <td>Own semaphores, message queues, shared mem</td>
+                    <td>Containers in same pod share IPC namespace</td>
+                </tr>
+                <tr>
+                    <td><strong>Cgroup</strong></td>
+                    <td>Cgroup root directory</td>
+                    <td>Own cgroup hierarchy view</td>
+                    <td>Resource isolation per container</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Control Groups (cgroups)</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">How Kubernetes Uses Namespaces + Cgroups</div>
+            <pre>
+  Kubernetes Node (Linux Host)
+  ================================================================
+
+  +-- kubelet
+  |     |
+  |     +-- Pod A (namespaces: net, PID, IPC, UTS shared by containers)
+  |     |     |
+  |     |     +-- Container 1 -----> cgroup: /kubepods/podA/container1
+  |     |     |     CPU: 100m-500m       (cpu.shares, cpu.cfs_quota_us)
+  |     |     |     MEM: 128Mi-512Mi     (memory.limit_in_bytes)
+  |     |     |
+  |     |     +-- Container 2 -----> cgroup: /kubepods/podA/container2
+  |     |           CPU: 200m-1000m
+  |     |           MEM: 256Mi-1Gi
+  |     |
+  |     +-- Pod B
+  |           |
+  |           +-- Container 3 -----> cgroup: /kubepods/podB/container3
+  |
+  +-- Host Processes (outside any container namespace)
+
+  NAMESPACES provide ISOLATION (what you can see)
+  CGROUPS provide LIMITS (how much you can use)
+            </pre>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>CPU Cgroup Controls</h4>
+                <ul>
+                    <li><strong>cpu.shares:</strong> Relative weight (requests). 1024 = 1 CPU core equivalent</li>
+                    <li><strong>cpu.cfs_quota_us:</strong> Hard limit (limits). Max CPU time per period</li>
+                    <li><strong>cpu.cfs_period_us:</strong> Period length (default 100ms)</li>
+                    <li><strong>cpuset.cpus:</strong> Pin to specific CPU cores</li>
+                </ul>
+                <p><code>K8s 100m = 100 millicores = 10% of one core</code></p>
+            </div>
+            <div class="card">
+                <h4>Memory Cgroup Controls</h4>
+                <ul>
+                    <li><strong>memory.limit_in_bytes:</strong> Hard limit. OOM kill if exceeded</li>
+                    <li><strong>memory.soft_limit_in_bytes:</strong> Soft limit (reclaim target)</li>
+                    <li><strong>memory.usage_in_bytes:</strong> Current usage</li>
+                    <li><strong>memory.oom_control:</strong> OOM killer behavior</li>
+                </ul>
+                <p><code>K8s 128Mi = 128 mebibytes memory limit</code></p>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 3. Performance Troubleshooting -->
+        <!-- ============================================ -->
+        <h2>3. Performance Troubleshooting</h2>
+
+        <h3>CPU Troubleshooting</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Command</th>
+                    <th>Purpose</th>
+                    <th>Key Output</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>top / htop</code></td>
+                    <td>Real-time process monitor</td>
+                    <td>%CPU, %MEM, load average, per-process stats</td>
+                </tr>
+                <tr>
+                    <td><code>mpstat -P ALL 1</code></td>
+                    <td>Per-CPU utilization</td>
+                    <td>%usr, %sys, %iowait, %idle per core</td>
+                </tr>
+                <tr>
+                    <td><code>pidstat 1</code></td>
+                    <td>Per-process CPU stats</td>
+                    <td>%CPU per process over time</td>
+                </tr>
+                <tr>
+                    <td><code>uptime</code></td>
+                    <td>Load averages</td>
+                    <td>1, 5, 15 min load (compare to CPU count)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Memory Troubleshooting</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Command</th>
+                    <th>Purpose</th>
+                    <th>Key Output</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>free -h</code></td>
+                    <td>Memory overview</td>
+                    <td>Total, used, free, buffers/cache, available</td>
+                </tr>
+                <tr>
+                    <td><code>vmstat 1</code></td>
+                    <td>Virtual memory stats</td>
+                    <td>si/so (swap in/out), free, buff, cache</td>
+                </tr>
+                <tr>
+                    <td><code>slabtop</code></td>
+                    <td>Kernel slab cache usage</td>
+                    <td>Which kernel caches are consuming memory</td>
+                </tr>
+                <tr>
+                    <td><code>pmap -x PID</code></td>
+                    <td>Process memory map</td>
+                    <td>Memory segments, RSS, dirty pages</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Disk I/O Troubleshooting</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Command</th>
+                    <th>Purpose</th>
+                    <th>Key Output</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>iostat -xz 1</code></td>
+                    <td>Disk I/O statistics</td>
+                    <td>%util, await, r/s, w/s per device</td>
+                </tr>
+                <tr>
+                    <td><code>df -h</code></td>
+                    <td>Filesystem disk usage</td>
+                    <td>Used/available space per mount</td>
+                </tr>
+                <tr>
+                    <td><code>du -sh /path/*</code></td>
+                    <td>Directory size</td>
+                    <td>Size of each directory</td>
+                </tr>
+                <tr>
+                    <td><code>iotop</code></td>
+                    <td>Per-process I/O</td>
+                    <td>Which process is doing the most I/O</td>
+                </tr>
+                <tr>
+                    <td><code>lsof +D /path</code></td>
+                    <td>Open files in directory</td>
+                    <td>Which processes have files open</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Network Troubleshooting</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Command</th>
+                    <th>Purpose</th>
+                    <th>Key Output</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>ss -tlnp</code></td>
+                    <td>Listening sockets</td>
+                    <td>Port, PID, state of all TCP listeners</td>
+                </tr>
+                <tr>
+                    <td><code>ss -s</code></td>
+                    <td>Socket statistics summary</td>
+                    <td>Total connections, states, protocols</td>
+                </tr>
+                <tr>
+                    <td><code>netstat -an</code></td>
+                    <td>All connections (legacy)</td>
+                    <td>Connection states, ports</td>
+                </tr>
+                <tr>
+                    <td><code>tcpdump -i eth0 port 80</code></td>
+                    <td>Packet capture</td>
+                    <td>Raw network traffic on interface</td>
+                </tr>
+                <tr>
+                    <td><code>mtr hostname</code></td>
+                    <td>Traceroute + ping combined</td>
+                    <td>Per-hop latency and packet loss</td>
+                </tr>
+                <tr>
+                    <td><code>curl -w @- -o /dev/null -s</code></td>
+                    <td>HTTP timing breakdown</td>
+                    <td>DNS, connect, TLS, TTFB, total time</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>System-Level Troubleshooting</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Command</th>
+                    <th>Purpose</th>
+                    <th>Key Output</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>strace -p PID</code></td>
+                    <td>Trace system calls</td>
+                    <td>What syscalls a process is making (debug hangs)</td>
+                </tr>
+                <tr>
+                    <td><code>sar -n DEV 1</code></td>
+                    <td>Historical system stats</td>
+                    <td>Network, CPU, memory, disk over time</td>
+                </tr>
+                <tr>
+                    <td><code>dmesg -T</code></td>
+                    <td>Kernel messages</td>
+                    <td>OOM kills, hardware errors, driver issues</td>
+                </tr>
+                <tr>
+                    <td><code>perf top</code></td>
+                    <td>CPU profiling</td>
+                    <td>Which functions consume the most CPU</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ============================================ -->
+        <!-- 4. TCP/IP Networking -->
+        <!-- ============================================ -->
+        <h2>4. TCP/IP Networking</h2>
+
+        <h3>OSI Model</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Layer</th>
+                    <th>Name</th>
+                    <th>Protocol Examples</th>
+                    <th>Data Unit</th>
+                    <th>Devices</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>7</td>
+                    <td>Application</td>
+                    <td>HTTP, DNS, SMTP, gRPC</td>
+                    <td>Data</td>
+                    <td>Load Balancer (L7)</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Presentation</td>
+                    <td>TLS/SSL, JPEG, ASCII</td>
+                    <td>Data</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>Session</td>
+                    <td>NetBIOS, RPC</td>
+                    <td>Data</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>Transport</td>
+                    <td>TCP, UDP</td>
+                    <td>Segment</td>
+                    <td>Load Balancer (L4)</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Network</td>
+                    <td>IP, ICMP, IPSec</td>
+                    <td>Packet</td>
+                    <td>Router</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Data Link</td>
+                    <td>Ethernet, ARP, VLAN</td>
+                    <td>Frame</td>
+                    <td>Switch</td>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>Physical</td>
+                    <td>Cables, Radio, Fiber</td>
+                    <td>Bits</td>
+                    <td>Hub, NIC</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>TCP Three-Way Handshake</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">TCP Connection Establishment (3-Way Handshake)</div>
+            <pre>
+    Client                                  Server
+      |                                       |
+      |  1. SYN (seq=x)                      |
+      |--------------------------------------&gt;|   Client: SYN_SENT
+      |                                       |   Server: LISTEN -> SYN_RECEIVED
+      |                                       |
+      |  2. SYN-ACK (seq=y, ack=x+1)         |
+      |&lt;--------------------------------------|   Server: SYN_RECEIVED
+      |                                       |
+      |  3. ACK (seq=x+1, ack=y+1)           |
+      |--------------------------------------&gt;|   Both: ESTABLISHED
+      |                                       |
+      |  ====== Data Transfer ======          |
+      |                                       |
+
+    TCP Connection Termination (4-Way Handshake):
+
+    Client                                  Server
+      |                                       |
+      |  1. FIN (seq=u)                       |
+      |--------------------------------------&gt;|   Client: FIN_WAIT_1
+      |                                       |
+      |  2. ACK (ack=u+1)                     |
+      |&lt;--------------------------------------|   Client: FIN_WAIT_2
+      |                                       |   Server: CLOSE_WAIT
+      |  3. FIN (seq=v)                       |
+      |&lt;--------------------------------------|   Server: LAST_ACK
+      |                                       |
+      |  4. ACK (ack=v+1)                     |
+      |--------------------------------------&gt;|   Client: TIME_WAIT (2*MSL)
+      |                                       |   Server: CLOSED
+      |  (wait 2*MSL = ~60s)                  |
+      |  Client: CLOSED                       |
+            </pre>
+        </div>
+
+        <h3>TCP vs UDP</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th>TCP</th>
+                    <th>UDP</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Connection</strong></td>
+                    <td>Connection-oriented (handshake)</td>
+                    <td>Connectionless</td>
+                </tr>
+                <tr>
+                    <td><strong>Reliability</strong></td>
+                    <td>Guaranteed delivery, ordering, retransmission</td>
+                    <td>Best-effort, no guarantees</td>
+                </tr>
+                <tr>
+                    <td><strong>Ordering</strong></td>
+                    <td>In-order delivery</td>
+                    <td>No ordering</td>
+                </tr>
+                <tr>
+                    <td><strong>Speed</strong></td>
+                    <td>Slower (overhead of reliability)</td>
+                    <td>Faster (minimal overhead)</td>
+                </tr>
+                <tr>
+                    <td><strong>Header Size</strong></td>
+                    <td>20-60 bytes</td>
+                    <td>8 bytes</td>
+                </tr>
+                <tr>
+                    <td><strong>Flow Control</strong></td>
+                    <td>Yes (sliding window)</td>
+                    <td>No</td>
+                </tr>
+                <tr>
+                    <td><strong>Congestion Control</strong></td>
+                    <td>Yes (slow start, AIMD)</td>
+                    <td>No</td>
+                </tr>
+                <tr>
+                    <td><strong>Use Cases</strong></td>
+                    <td>HTTP, SSH, email, file transfer</td>
+                    <td>DNS, video streaming, gaming, VoIP</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Common Ports</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Port</th>
+                    <th>Protocol</th>
+                    <th>Service</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>22</td><td>TCP</td><td>SSH</td></tr>
+                <tr><td>53</td><td>TCP/UDP</td><td>DNS</td></tr>
+                <tr><td>80</td><td>TCP</td><td>HTTP</td></tr>
+                <tr><td>443</td><td>TCP</td><td>HTTPS</td></tr>
+                <tr><td>3306</td><td>TCP</td><td>MySQL</td></tr>
+                <tr><td>5432</td><td>TCP</td><td>PostgreSQL</td></tr>
+                <tr><td>6379</td><td>TCP</td><td>Redis</td></tr>
+                <tr><td>8080</td><td>TCP</td><td>HTTP Alt (app servers)</td></tr>
+                <tr><td>9090</td><td>TCP</td><td>Prometheus</td></tr>
+                <tr><td>2379</td><td>TCP</td><td>etcd (K8s)</td></tr>
+                <tr><td>6443</td><td>TCP</td><td>K8s API Server</td></tr>
+                <tr><td>10250</td><td>TCP</td><td>Kubelet API</td></tr>
+            </tbody>
+        </table>
+
+        <!-- ============================================ -->
+        <!-- 5. HTTP/2 & gRPC -->
+        <!-- ============================================ -->
+        <h2>5. HTTP/2 & gRPC</h2>
+
+        <div class="grid-2">
+            <div class="card card-info">
+                <h4>HTTP/2 Key Features</h4>
+                <ul>
+                    <li><strong>Multiplexing:</strong> Multiple requests/responses over a single TCP connection simultaneously (no head-of-line blocking at HTTP level)</li>
+                    <li><strong>Header Compression:</strong> HPACK reduces redundant headers (cookies, user-agent sent once)</li>
+                    <li><strong>Server Push:</strong> Server can send resources before client requests them</li>
+                    <li><strong>Binary Framing:</strong> More efficient parsing than HTTP/1.1 text-based</li>
+                    <li><strong>Stream Prioritization:</strong> Client can indicate priority of requests</li>
+                </ul>
+            </div>
+            <div class="card card-success">
+                <h4>gRPC</h4>
+                <ul>
+                    <li><strong>Built on HTTP/2:</strong> Gets multiplexing, streaming, header compression for free</li>
+                    <li><strong>Protocol Buffers:</strong> Binary serialization (smaller, faster than JSON)</li>
+                    <li><strong>Strongly typed:</strong> Service contracts defined in .proto files</li>
+                    <li><strong>Code generation:</strong> Client/server stubs auto-generated in any language</li>
+                    <li><strong>Streaming types:</strong></li>
+                </ul>
+                <ol>
+                    <li>Unary (request-response)</li>
+                    <li>Server streaming (one request, stream of responses)</li>
+                    <li>Client streaming (stream of requests, one response)</li>
+                    <li>Bidirectional streaming (both stream simultaneously)</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">HTTP/2 Multiplexing vs HTTP/1.1</div>
+            <pre>
+  HTTP/1.1 (6 TCP connections needed):      HTTP/2 (1 TCP connection):
+
+  Connection 1: GET /style.css -------->    Single Connection:
+  Connection 2: GET /app.js ----------->      Stream 1: GET /style.css
+  Connection 3: GET /image1.png ------->      Stream 2: GET /app.js
+  Connection 4: GET /image2.png ------->      Stream 3: GET /image1.png
+  Connection 5: GET /api/data --------->      Stream 4: GET /image2.png
+  Connection 6: GET /api/user --------->      Stream 5: GET /api/data
+                                              Stream 6: GET /api/user
+  (Head-of-line blocking per conn)
+                                            (All interleaved on one connection)
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 6. Load Balancing -->
+        <!-- ============================================ -->
+        <h2>6. Load Balancing</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Algorithm</th>
+                    <th>How It Works</th>
+                    <th>Best For</th>
+                    <th>Drawback</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Round Robin</strong></td>
+                    <td>Requests distributed sequentially to each server</td>
+                    <td>Homogeneous servers, stateless apps</td>
+                    <td>Ignores server load/capacity differences</td>
+                </tr>
+                <tr>
+                    <td><strong>Least Connections</strong></td>
+                    <td>Routes to server with fewest active connections</td>
+                    <td>Long-lived connections (WebSocket, DB)</td>
+                    <td>Doesn't account for request weight</td>
+                </tr>
+                <tr>
+                    <td><strong>Weighted Round Robin</strong></td>
+                    <td>Round robin with weights (bigger server gets more)</td>
+                    <td>Heterogeneous server fleet</td>
+                    <td>Static weights don't adapt to load</td>
+                </tr>
+                <tr>
+                    <td><strong>IP Hash</strong></td>
+                    <td>Hash client IP to pick server (same client -> same server)</td>
+                    <td>Session affinity without cookies</td>
+                    <td>Uneven distribution if clients behind NAT</td>
+                </tr>
+                <tr>
+                    <td><strong>Consistent Hashing</strong></td>
+                    <td>Hash ring. Minimal redistribution when servers added/removed</td>
+                    <td>Caches, distributed systems, session stores</td>
+                    <td>More complex implementation</td>
+                </tr>
+                <tr>
+                    <td><strong>Least Response Time</strong></td>
+                    <td>Routes to server with lowest response time + fewest connections</td>
+                    <td>Latency-sensitive applications</td>
+                    <td>Requires health check overhead</td>
+                </tr>
+                <tr>
+                    <td><strong>Random</strong></td>
+                    <td>Randomly select a server</td>
+                    <td>Simple, works well at scale (power of 2 random choices)</td>
+                    <td>Can create hotspots at small scale</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="diagram">
+            <div class="diagram-label">L4 vs L7 Load Balancing</div>
+            <pre>
+  L4 (Transport Layer):                    L7 (Application Layer):
+
+  - Sees: IP + Port                        - Sees: HTTP headers, URL, cookies
+  - Fast: No payload inspection            - Slower: Must parse HTTP
+  - Use: TCP/UDP forwarding                - Use: Content-based routing
+  - Example: NLB, HAProxy (TCP mode)       - Example: ALB, Nginx, Envoy
+
+  Client --[TCP]--> L4 LB --[TCP]--> Server
+                    (NAT/DSR)
+
+  Client --[HTTP]--> L7 LB --[HTTP]--> Server
+                     (Terminates connection,
+                      reads headers,
+                      routes by path/host)
+
+  L7 Can:
+    - Route /api/* to backend-api
+    - Route /web/* to backend-web
+    - Add/modify headers
+    - Rate limit by API key
+    - Terminate TLS
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 7. Resilience Patterns -->
+        <!-- ============================================ -->
+        <h2>7. Resilience Patterns</h2>
+
+        <h3>Circuit Breaker</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Circuit Breaker State Machine</div>
+            <pre>
+                    Success
+              +-------------------+
+              |                   |
+              v                   |
+  +--------+------+     +--------+--------+
+  |    CLOSED     |     |   HALF-OPEN     |
+  | (Normal flow) |     | (Test with      |
+  |               |     |  limited reqs)  |
+  +-------+-------+     +--------+--------+
+          |                       ^
+          | Failure threshold     | Timer expires
+          | exceeded              |
+          v                       |
+  +-------+-------+              |
+  |     OPEN      |--------------+
+  | (Fail fast,   |
+  |  reject calls)|  Timeout (e.g., 30s)
+  +--------------+
+
+  CLOSED:    All requests pass through. Count failures.
+             If failures > threshold (e.g., 5 in 10s) --> OPEN
+
+  OPEN:      All requests immediately fail (no network call).
+             After timeout --> HALF-OPEN
+
+  HALF-OPEN: Allow limited requests through.
+             If success --> CLOSED
+             If failure --> OPEN
+            </pre>
+        </div>
+
+        <h3>Retry with Exponential Backoff</h3>
+
+        <div class="card">
+            <h4>Formula</h4>
+            <p><code>wait_time = base_delay * 2^attempt + random_jitter</code></p>
+            <ul>
+                <li><strong>Attempt 1:</strong> wait 1s + jitter</li>
+                <li><strong>Attempt 2:</strong> wait 2s + jitter</li>
+                <li><strong>Attempt 3:</strong> wait 4s + jitter</li>
+                <li><strong>Attempt 4:</strong> wait 8s + jitter</li>
+                <li><strong>Max retries:</strong> Cap at N attempts or max_delay</li>
+            </ul>
+            <p><strong>Jitter is critical:</strong> Without jitter, all clients retry at the same time ("thundering herd"). Random jitter spreads retries over time.</p>
+            <p><strong>Full jitter:</strong> <code>wait_time = random(0, base_delay * 2^attempt)</code></p>
+        </div>
+
+        <h3>Rate Limiting - Token Bucket</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Token Bucket Algorithm</div>
+            <pre>
+  +-------------------------------------------+
+  |              TOKEN BUCKET                  |
+  |                                           |
+  |  Tokens added at fixed rate               |
+  |  (e.g., 10 tokens/second)                 |
+  |           |                               |
+  |           v                               |
+  |  +------------------+                     |
+  |  | Bucket           |  Max capacity: 100  |
+  |  | [T][T][T][T][T]  |                     |
+  |  | [T][T][T][ ][ ]  |  Current: 8 tokens  |
+  |  +--------+---------+                     |
+  |           |                               |
+  |           v                               |
+  |  Request arrives:                         |
+  |    - Has token? --> Allow + remove token  |
+  |    - No token?  --> Reject (429) or queue |
+  +-------------------------------------------+
+
+  Properties:
+  - Allows bursts up to bucket capacity
+  - Steady-state rate = refill rate
+  - Smooth traffic over time
+
+  Alternatives:
+  - Leaky Bucket: Fixed output rate, queue excess
+  - Sliding Window: Count requests in time window
+  - Fixed Window: Count per time period (boundary issues)
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 8. DNS -->
+        <!-- ============================================ -->
+        <h2>8. DNS</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">DNS Resolution Steps</div>
+            <pre>
+  User types: www.example.com
+       |
+       v
+  1. Browser Cache (local)
+       |  miss
+       v
+  2. OS Resolver Cache (/etc/resolv.conf)
+       |  miss
+       v
+  3. Recursive Resolver (ISP or 8.8.8.8)
+       |  miss
+       v
+  4. Root Nameserver (.)
+       |  "Ask .com TLD servers"
+       v
+  5. TLD Nameserver (.com)
+       |  "Ask example.com authoritative NS"
+       v
+  6. Authoritative Nameserver (ns1.example.com)
+       |  "www.example.com = 93.184.216.34"
+       v
+  7. Response cached at each level (per TTL)
+       |
+       v
+  8. Browser connects to 93.184.216.34
+
+  Total: ~50-200ms (first query), ~0ms (cached)
+            </pre>
+        </div>
+
+        <h3>DNS Record Types</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Purpose</th>
+                    <th>Example</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>A</strong></td>
+                    <td>Maps hostname to IPv4 address</td>
+                    <td><code>example.com -> 93.184.216.34</code></td>
+                </tr>
+                <tr>
+                    <td><strong>AAAA</strong></td>
+                    <td>Maps hostname to IPv6 address</td>
+                    <td><code>example.com -> 2606:2800:220:1:...</code></td>
+                </tr>
+                <tr>
+                    <td><strong>CNAME</strong></td>
+                    <td>Alias to another hostname</td>
+                    <td><code>www.example.com -> example.com</code></td>
+                </tr>
+                <tr>
+                    <td><strong>MX</strong></td>
+                    <td>Mail server for domain (with priority)</td>
+                    <td><code>example.com -> 10 mail.example.com</code></td>
+                </tr>
+                <tr>
+                    <td><strong>TXT</strong></td>
+                    <td>Arbitrary text (SPF, DKIM, verification)</td>
+                    <td><code>example.com -> "v=spf1 include:_spf.google.com"</code></td>
+                </tr>
+                <tr>
+                    <td><strong>SRV</strong></td>
+                    <td>Service location (port + host)</td>
+                    <td><code>_sip._tcp.example.com -> 10 5 5060 sip.example.com</code></td>
+                </tr>
+                <tr>
+                    <td><strong>NS</strong></td>
+                    <td>Authoritative nameserver for domain</td>
+                    <td><code>example.com -> ns1.example.com</code></td>
+                </tr>
+                <tr>
+                    <td><strong>PTR</strong></td>
+                    <td>Reverse DNS (IP to hostname)</td>
+                    <td><code>34.216.184.93.in-addr.arpa -> example.com</code></td>
+                </tr>
+                <tr>
+                    <td><strong>SOA</strong></td>
+                    <td>Start of Authority (zone metadata)</td>
+                    <td>Primary NS, admin email, serial, refresh</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="card">
+            <h4>TTL (Time To Live)</h4>
+            <ul>
+                <li><strong>What:</strong> How long resolvers should cache this record (in seconds)</li>
+                <li><strong>Low TTL (60-300s):</strong> Faster propagation of changes, more DNS queries (cost)</li>
+                <li><strong>High TTL (3600-86400s):</strong> Better caching, slower to update</li>
+                <li><strong>Strategy:</strong> Lower TTL before migrations, raise after stable</li>
+            </ul>
+        </div>
+
+        <h3>Route 53 Routing Policies</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Policy</th>
+                    <th>Use Case</th>
+                    <th>How It Works</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Simple</strong></td>
+                    <td>Single resource</td>
+                    <td>Returns one or all values (client picks randomly)</td>
+                </tr>
+                <tr>
+                    <td><strong>Weighted</strong></td>
+                    <td>A/B testing, gradual migration</td>
+                    <td>Distribute traffic by weight (e.g., 90/10 split)</td>
+                </tr>
+                <tr>
+                    <td><strong>Latency-based</strong></td>
+                    <td>Multi-region, best performance</td>
+                    <td>Routes to region with lowest latency from user</td>
+                </tr>
+                <tr>
+                    <td><strong>Failover</strong></td>
+                    <td>Active-passive DR</td>
+                    <td>Primary unless health check fails, then secondary</td>
+                </tr>
+                <tr>
+                    <td><strong>Geolocation</strong></td>
+                    <td>Compliance, localization</td>
+                    <td>Routes based on user's geographic location</td>
+                </tr>
+                <tr>
+                    <td><strong>Geoproximity</strong></td>
+                    <td>Fine-grained geo routing</td>
+                    <td>Routes based on distance + bias values</td>
+                </tr>
+                <tr>
+                    <td><strong>Multi-value answer</strong></td>
+                    <td>Simple load balancing</td>
+                    <td>Returns up to 8 healthy records (client picks)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ============================================ -->
+        <!-- 9. VPC & Cloud Networking -->
+        <!-- ============================================ -->
+        <h2>9. VPC & Cloud Networking</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">AWS VPC Architecture</div>
+            <pre>
+  +====================================================================+
+  |  VPC: 10.0.0.0/16                                                  |
+  |                                                                    |
+  |  +--- Availability Zone A ---+    +--- Availability Zone B ---+    |
+  |  |                           |    |                           |    |
+  |  |  Public Subnet            |    |  Public Subnet            |    |
+  |  |  10.0.1.0/24              |    |  10.0.2.0/24              |    |
+  |  |  +------+  +------+      |    |  +------+  +------+      |    |
+  |  |  | ALB  |  | NAT  |      |    |  | ALB  |  | NAT  |      |    |
+  |  |  | Node |  |  GW  |      |    |  | Node |  |  GW  |      |    |
+  |  |  +------+  +--+---+      |    |  +------+  +--+---+      |    |
+  |  |                |          |    |                |          |    |
+  |  +----------------|----------+    +----------------|----------+    |
+  |                   |                                |               |
+  |  +----------------|----------+    +----------------|----------+    |
+  |  |  Private Subnet|          |    |  Private Subnet|          |    |
+  |  |  10.0.3.0/24   v          |    |  10.0.4.0/24   v          |    |
+  |  |  +------+ +------+       |    |  +------+ +------+       |    |
+  |  |  | App  | | App  |       |    |  | App  | | App  |       |    |
+  |  |  | Pod  | | Pod  |       |    |  | Pod  | | Pod  |       |    |
+  |  |  +------+ +------+       |    |  +------+ +------+       |    |
+  |  +---------------------------+    +---------------------------+    |
+  |                                                                    |
+  |  +---------------------------+    +---------------------------+    |
+  |  |  Private Subnet (Data)    |    |  Private Subnet (Data)    |    |
+  |  |  10.0.5.0/24              |    |  10.0.6.0/24              |    |
+  |  |  +------+ +------+       |    |  +------+ +------+       |    |
+  |  |  |  RDS | | Redis|       |    |  |  RDS | | Redis|       |    |
+  |  |  |(Prim)| |      |       |    |  |(Repl)| |      |       |    |
+  |  |  +------+ +------+       |    |  +------+ +------+       |    |
+  |  +---------------------------+    +---------------------------+    |
+  |                                                                    |
+  +====================+======================+========================+
+                       |                      |
+               +-------+------+       +-------+------+
+               | Internet GW  |       |  VPC Peering  |
+               | (IGW)        |       |  / Transit GW |
+               +--------------+       +---------------+
+                       |
+                   Internet
+            </pre>
+        </div>
+
+        <h3>Security Groups vs NACLs</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th>Security Groups</th>
+                    <th>Network ACLs</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Level</strong></td>
+                    <td>Instance/ENI level</td>
+                    <td>Subnet level</td>
+                </tr>
+                <tr>
+                    <td><strong>State</strong></td>
+                    <td>Stateful (return traffic auto-allowed)</td>
+                    <td>Stateless (must allow return traffic explicitly)</td>
+                </tr>
+                <tr>
+                    <td><strong>Rules</strong></td>
+                    <td>Allow only (implicit deny all)</td>
+                    <td>Allow and Deny (processed in order)</td>
+                </tr>
+                <tr>
+                    <td><strong>Evaluation</strong></td>
+                    <td>All rules evaluated (most permissive wins)</td>
+                    <td>Rules processed in number order (first match)</td>
+                </tr>
+                <tr>
+                    <td><strong>Scope</strong></td>
+                    <td>Applied to specific instances</td>
+                    <td>Applied to all instances in subnet</td>
+                </tr>
+                <tr>
+                    <td><strong>Default</strong></td>
+                    <td>Deny all inbound, allow all outbound</td>
+                    <td>Allow all inbound and outbound</td>
+                </tr>
+                <tr>
+                    <td><strong>Reference SG</strong></td>
+                    <td>Can reference other SGs as source</td>
+                    <td>Only CIDR-based rules</td>
+                </tr>
+                <tr>
+                    <td><strong>Use Case</strong></td>
+                    <td>Primary firewall for instances</td>
+                    <td>Subnet-level guardrail, block known bad IPs</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="card">
+            <h4>Key VPC Components</h4>
+            <ul>
+                <li><strong>Internet Gateway (IGW):</strong> Allows public subnet resources to reach the internet</li>
+                <li><strong>NAT Gateway:</strong> Allows private subnet resources to reach internet (outbound only)</li>
+                <li><strong>Route Tables:</strong> Define traffic routing rules per subnet</li>
+                <li><strong>VPC Peering:</strong> Connect two VPCs (non-transitive)</li>
+                <li><strong>Transit Gateway:</strong> Hub-and-spoke connectivity for multiple VPCs</li>
+                <li><strong>VPC Endpoints:</strong> Private access to AWS services without internet (Gateway for S3/DynamoDB, Interface for others)</li>
+                <li><strong>PrivateLink:</strong> Expose services across VPCs/accounts privately</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 10. Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>10. Interview Q&A</h2>
+
+        <div class="card">
+            <h4>Q1: What is the difference between cgroups and namespaces?</h4>
+            <p><strong>Answer:</strong> Namespaces provide <strong>isolation</strong> (what a process can see) - PID namespace gives own PID tree, network namespace gives own interfaces/IPs. Cgroups provide <strong>resource limits</strong> (how much a process can use) - CPU shares/quotas, memory limits, I/O bandwidth. Together they make containers: namespaces isolate the view, cgroups limit the resources. A container is just a process with both applied.</p>
+        </div>
+
+        <div class="card">
+            <h4>Q2: What is the PID 1 problem in containers?</h4>
+            <p><strong>Answer:</strong> In a container, the main process becomes PID 1 (init). PID 1 has special responsibilities: (1) it must reap zombie processes (call wait() on children), (2) it must forward signals properly (SIGTERM for graceful shutdown). Most applications are NOT designed to be PID 1 and ignore SIGTERM or don't reap zombies. Solution: use a lightweight init like <code>tini</code> (Docker's --init flag) or <code>dumb-init</code> as the entrypoint, which handles signal forwarding and zombie reaping, then execs your application.</p>
+        </div>
+
+        <div class="card">
+            <h4>Q3: Explain the TCP three-way handshake and why it is needed.</h4>
+            <p><strong>Answer:</strong> The 3-way handshake (SYN, SYN-ACK, ACK) establishes a reliable TCP connection. (1) Client sends SYN with initial sequence number x. (2) Server responds with SYN-ACK: acknowledges x+1 and sends its own sequence number y. (3) Client sends ACK acknowledging y+1. Purpose: both sides agree on initial sequence numbers (needed for ordering), confirm both can send AND receive, and allocate resources (buffers). Without it, you cannot guarantee reliable, ordered communication.</p>
+        </div>
+
+        <div class="card">
+            <h4>Q4: What is the difference between a reverse proxy and a load balancer?</h4>
+            <p><strong>Answer:</strong> A <strong>reverse proxy</strong> sits in front of servers, terminating client connections and creating new ones to backends. It can cache, compress, terminate TLS, and hide backend topology. A <strong>load balancer</strong> distributes traffic across multiple servers using algorithms (round-robin, least-connections). In practice, they overlap heavily: Nginx/Envoy/HAProxy do both. Key distinction: a reverse proxy can work with one backend (security, caching), a load balancer implies multiple backends for availability and scaling.</p>
+        </div>
+
+        <div class="card">
+            <h4>Q5: Walk through what happens when you type a URL in a browser.</h4>
+            <p><strong>Answer:</strong> (1) DNS resolution: browser cache -> OS cache -> recursive resolver -> root -> TLD -> authoritative NS. (2) TCP connection: 3-way handshake with server IP. (3) TLS handshake: client hello, server hello + cert, key exchange, finished. (4) HTTP request: GET / with headers. (5) Server processes request, returns response (status code + body). (6) Browser parses HTML, discovers sub-resources (CSS, JS, images), fetches them (HTTP/2 multiplexing). (7) Render: DOM tree + CSSOM -> render tree -> layout -> paint.</p>
+        </div>
+
+        <div class="card">
+            <h4>Q6: How would you design a VPC for a production workload?</h4>
+            <p><strong>Answer:</strong> Multi-AZ for HA (minimum 2, preferably 3). Three subnet tiers: public (ALB, NAT GW), private (application), private-data (RDS, ElastiCache). Use /16 VPC CIDR with /24 subnets (allows growth). Security: SGs for instance-level (reference other SGs, not CIDRs), NACLs for subnet guardrails. NAT GW in each AZ for resilience. VPC endpoints for AWS services (avoid internet routing). Flow logs enabled for troubleshooting. Consider: CIDR ranges should not overlap if VPC peering is needed later.</p>
+        </div>
+
+        <div class="card">
+            <h4>Q7: What is consistent hashing and why is it used in load balancing?</h4>
+            <p><strong>Answer:</strong> Consistent hashing maps both servers and requests onto a ring (0 to 2^32). A request is routed to the nearest server clockwise on the ring. When a server is added/removed, only K/N keys need to remap (K=total keys, N=servers) rather than reshuffling everything. This is critical for caches (Memcached, Redis cluster) where remapping means cache misses. Virtual nodes (multiple points per server on the ring) improve distribution uniformity.</p>
+        </div>
+
+        <div class="card">
+            <h4>Q8: How does a circuit breaker prevent cascade failures?</h4>
+            <p><strong>Answer:</strong> Without a circuit breaker, when service B is down, service A keeps sending requests that timeout, consuming threads/connections, eventually making A unresponsive too (cascade failure). The circuit breaker monitors failure rate and OPENS (trips) after a threshold, immediately rejecting calls to B without waiting for timeouts. This frees A's resources to serve other requests. After a timeout, it enters HALF-OPEN to test if B recovered. This pattern gives failing services time to recover without being overwhelmed by retry storms.</p>
+        </div>
+
+    </div>
+
+</body>
+</html>

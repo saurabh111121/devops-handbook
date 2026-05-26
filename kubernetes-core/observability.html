@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes Observability | K8s Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html" class="active">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <p class="breadcrumb"><a href="../index.html">Home</a> / Kubernetes Observability</p>
+
+        <h1>Kubernetes Observability</h1>
+        <p class="subtitle">Health probes, logging architecture, monitoring with Prometheus, alerting, events, and distributed tracing</p>
+
+        <!-- ============================================ -->
+        <!-- SECTION 1: Health Probes -->
+        <!-- ============================================ -->
+        <h2>1. Health Probes</h2>
+
+        <h3>Probe Types Comparison</h3>
+
+        <table>
+            <tr><th>Probe</th><th>Purpose</th><th>Failure Action</th><th>When to Use</th></tr>
+            <tr>
+                <td><code>livenessProbe</code></td>
+                <td>Is the container alive?</td>
+                <td>Container is killed and restarted</td>
+                <td>Detect deadlocks, unrecoverable states</td>
+            </tr>
+            <tr>
+                <td><code>readinessProbe</code></td>
+                <td>Is the container ready to serve traffic?</td>
+                <td>Pod removed from Service endpoints</td>
+                <td>Warmup time, dependency checks, load shedding</td>
+            </tr>
+            <tr>
+                <td><code>startupProbe</code></td>
+                <td>Has the container started successfully?</td>
+                <td>Container is killed and restarted (after failureThreshold)</td>
+                <td>Slow-starting applications (replaces liveness during startup)</td>
+            </tr>
+        </table>
+
+        <div class="card card-warning">
+            <p><strong>Key Differences:</strong></p>
+            <ul>
+                <li><strong>Liveness</strong> kills the container; <strong>readiness</strong> only removes it from the Service (no restart)</li>
+                <li><strong>Startup probe</strong> disables liveness and readiness probes until it succeeds</li>
+                <li>A failing readiness probe means the pod stays running but receives no traffic</li>
+                <li>A failing liveness probe causes a restart (CrashLoopBackOff if repeated)</li>
+            </ul>
+        </div>
+
+        <h3>Probe Mechanisms</h3>
+
+        <table>
+            <tr><th>Mechanism</th><th>How It Works</th><th>Success Criteria</th></tr>
+            <tr><td><code>httpGet</code></td><td>HTTP GET to specified path and port</td><td>Status code 200-399</td></tr>
+            <tr><td><code>tcpSocket</code></td><td>TCP connection to specified port</td><td>Connection established</td></tr>
+            <tr><td><code>exec</code></td><td>Executes a command inside the container</td><td>Exit code 0</td></tr>
+            <tr><td><code>grpc</code></td><td>gRPC health check on specified port</td><td>SERVING status returned</td></tr>
+        </table>
+
+        <h3>HTTP Probe Example</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">probes-http.yaml</span>
+                <span class="tag tag-blue">All three probes</span>
+            </div>
+<pre>
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-app
+spec:
+  containers:
+  - name: app
+    image: myapp:v2
+    ports:
+    - containerPort: 8080
+    # Startup probe - gives app up to 5min (30 * 10s) to start
+    startupProbe:
+      httpGet:
+        path: /healthz/started
+        port: 8080
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      failureThreshold: 30
+      successThreshold: 1
+    # Liveness probe - enabled after startup succeeds
+    livenessProbe:
+      httpGet:
+        path: /healthz/live
+        port: 8080
+        httpHeaders:
+        - name: X-Health-Check
+          value: "liveness"
+      initialDelaySeconds: 0
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+      successThreshold: 1
+    # Readiness probe - controls Service membership
+    readinessProbe:
+      httpGet:
+        path: /healthz/ready
+        port: 8080
+      initialDelaySeconds: 0
+      periodSeconds: 5
+      timeoutSeconds: 2
+      failureThreshold: 3
+      successThreshold: 1
+</pre>
+        </div>
+
+        <h3>TCP Socket Probe</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">probe-tcp.yaml</span>
+                <span class="tag tag-green">Database</span>
+            </div>
+<pre>
+apiVersion: v1
+kind: Pod
+metadata:
+  name: database
+spec:
+  containers:
+  - name: postgres
+    image: postgres:15
+    ports:
+    - containerPort: 5432
+    livenessProbe:
+      tcpSocket:
+        port: 5432
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readinessProbe:
+      tcpSocket:
+        port: 5432
+      initialDelaySeconds: 5
+      periodSeconds: 5
+</pre>
+        </div>
+
+        <h3>Exec Probe</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">probe-exec.yaml</span>
+                <span class="tag tag-orange">Custom check</span>
+            </div>
+<pre>
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker
+spec:
+  containers:
+  - name: worker
+    image: worker:v1
+    livenessProbe:
+      exec:
+        command:
+        - /bin/sh
+        - -c
+        - "test -f /tmp/healthy && [ $(find /tmp/healthy -mmin -1) ]"
+      initialDelaySeconds: 15
+      periodSeconds: 20
+    readinessProbe:
+      exec:
+        command:
+        - /bin/sh
+        - -c
+        - "pg_isready -h localhost -p 5432"
+      periodSeconds: 5
+</pre>
+        </div>
+
+        <h3>gRPC Probe</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">probe-grpc.yaml</span>
+                <span class="tag tag-purple">gRPC health</span>
+            </div>
+<pre>
+apiVersion: v1
+kind: Pod
+metadata:
+  name: grpc-service
+spec:
+  containers:
+  - name: server
+    image: grpc-server:v1
+    ports:
+    - containerPort: 50051
+    livenessProbe:
+      grpc:
+        port: 50051
+        service: ""    # Empty = check overall server health
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    readinessProbe:
+      grpc:
+        port: 50051
+        service: "myservice.v1.Health"
+      periodSeconds: 5
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 2: Logging -->
+        <!-- ============================================ -->
+        <h2>2. Logging Architecture</h2>
+
+        <h3>Node-Level Logging</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Kubernetes Logging Architecture</div>
+<pre>
+ +--Node-1--------------------------------------------------+
+ |                                                           |
+ |  +----------+  +----------+  +----------+                |
+ |  | Pod A    |  | Pod B    |  | Pod C    |                |
+ |  | stdout/  |  | stdout/  |  | stdout/  |                |
+ |  | stderr   |  | stderr   |  | stderr   |                |
+ |  +----+-----+  +----+-----+  +----+-----+                |
+ |       |             |             |                       |
+ |       v             v             v                       |
+ |  +----+-------------+-------------+-----+                 |
+ |  |     Container Runtime (containerd)    |                 |
+ |  |     Writes to /var/log/containers/    |                 |
+ |  |     and /var/log/pods/                |                 |
+ |  +----+-------------+-------------+-----+                 |
+ |       |             |             |                       |
+ |       v             v             v                       |
+ |  +----+-------------+-------------+-----+                 |
+ |  |         Log Files on Node             |                 |
+ |  |  /var/log/containers/*.log            |                 |
+ |  |  (JSON format, rotated by kubelet)    |                 |
+ |  +----+---------------------------------+                 |
+ |       |                                                   |
+ +-------+---------------------------------------------------+
+         |
+         v
+ +-------+---------------------------------------------------+
+ |           DaemonSet Log Collector                          |
+ |   (Fluentd / Fluent Bit / Promtail / Vector)              |
+ |                                                           |
+ |   - Mounts /var/log from host                             |
+ |   - Tails log files                                       |
+ |   - Adds K8s metadata (pod, namespace, labels)            |
+ |   - Parses, filters, transforms                           |
+ |   - Ships to backend                                      |
+ +------+-------------------+--------------------------------+
+        |                   |
+        v                   v
+ +------+------+    +-------+--------+
+ | Elasticsearch|    | Grafana Loki   |
+ | (EFK Stack) |    | (Loki Stack)   |
+ +------+------+    +-------+--------+
+        |                   |
+        v                   v
+ +------+------+    +-------+--------+
+ | Kibana      |    | Grafana        |
+ | (Visualize) |    | (Visualize)    |
+ +-------------+    +----------------+
+</pre>
+        </div>
+
+        <h3>DaemonSet Log Collector (Fluent Bit)</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">fluent-bit-daemonset.yaml</span>
+                <span class="tag tag-blue">Logging</span>
+            </div>
+<pre>
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluent-bit
+  namespace: logging
+  labels:
+    app: fluent-bit
+spec:
+  selector:
+    matchLabels:
+      app: fluent-bit
+  template:
+    metadata:
+      labels:
+        app: fluent-bit
+    spec:
+      serviceAccountName: fluent-bit
+      tolerations:
+      - operator: Exists    # Run on ALL nodes including control plane
+      containers:
+      - name: fluent-bit
+        image: fluent/fluent-bit:2.2
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+          readOnly: true
+        - name: containers-log
+          mountPath: /var/log/containers
+          readOnly: true
+        - name: config
+          mountPath: /fluent-bit/etc/
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: containers-log
+        hostPath:
+          path: /var/log/containers
+      - name: config
+        configMap:
+          name: fluent-bit-config
+</pre>
+        </div>
+
+        <h3>EFK vs Loki Stack</h3>
+
+        <table>
+            <tr><th>Aspect</th><th>EFK (Elasticsearch + Fluentd + Kibana)</th><th>Loki (Promtail + Loki + Grafana)</th></tr>
+            <tr><td>Indexing</td><td>Full-text index on all fields</td><td>Only indexes labels (metadata)</td></tr>
+            <tr><td>Storage</td><td>High (indexes everything)</td><td>Low (stores compressed chunks)</td></tr>
+            <tr><td>Query</td><td>Powerful full-text search (Lucene)</td><td>LogQL (label-based, then grep)</td></tr>
+            <tr><td>Cost</td><td>Expensive (RAM-heavy)</td><td>Cheap (runs on object storage)</td></tr>
+            <tr><td>Best For</td><td>Complex search, analytics, compliance</td><td>K8s-native, cost-effective, Grafana users</td></tr>
+            <tr><td>Collector</td><td>Fluentd / Fluent Bit</td><td>Promtail / Grafana Agent</td></tr>
+        </table>
+
+        <h3>Structured Logging Best Practices</h3>
+
+        <div class="card card-info">
+            <ul>
+                <li>Always use JSON format for application logs (machine-parseable)</li>
+                <li>Include: timestamp, level, message, request_id, user_id, service name</li>
+                <li>Use consistent field names across all services</li>
+                <li>Include correlation IDs (trace_id) for distributed tracing</li>
+                <li>Avoid logging sensitive data (PII, credentials)</li>
+                <li>Use log levels appropriately: DEBUG (dev only), INFO (normal ops), WARN (degraded), ERROR (failures)</li>
+                <li>Set resource limits on log collectors to prevent node pressure</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 3: Monitoring -->
+        <!-- ============================================ -->
+        <h2>3. Monitoring with Prometheus</h2>
+
+        <h3>Prometheus Architecture</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Prometheus Monitoring Architecture</div>
+<pre>
+                            +-------------------+
+                            |    Grafana        |
+                            |  (Visualization)  |
+                            |  - Dashboards     |
+                            |  - Alerts panel   |
+                            +--------+----------+
+                                     |
+                                     | PromQL queries
+                                     v
+ +-------------------+     +---------+----------+     +--------------------+
+ |  Alertmanager     |&lt;----+    Prometheus       |     | Thanos / Cortex    |
+ |                   |     |    Server           |     | (Long-term storage)|
+ |  - Route alerts   |     |                    +----&gt;|                    |
+ |  - Deduplicate    |     |  - TSDB (local)    |     +--------------------+
+ |  - Silence        |     |  - Rule evaluation |
+ |  - Notify         |     |  - Alert firing    |
+ +-------------------+     |  - Service disc.   |
+                            +---------+----------+
+                                     |
+                          Pull metrics (scrape)
+                                     |
+         +---------------------------+---------------------------+
+         |                           |                           |
+         v                           v                           v
+ +-------+--------+        +--------+--------+        +---------+-------+
+ | kube-state-    |        | node-exporter    |        | Application     |
+ | metrics        |        |                  |        | Pods            |
+ |                |        | (DaemonSet)      |        |                 |
+ | - Deployment   |        | - CPU, Memory    |        | - /metrics      |
+ |   replicas     |        | - Disk, Network  |        |   endpoint      |
+ | - Pod status   |        | - Filesystem     |        | - Custom        |
+ | - Node cond.   |        | - Hardware       |        |   business      |
+ | - PVC status   |        |                  |        |   metrics       |
+ +----------------+        +------------------+        +-----------------+
+         ^                           ^                           ^
+         |                           |                           |
+         +---------------------------+---------------------------+
+                                     |
+                         ServiceMonitor / PodMonitor
+                         (tells Prometheus what to scrape)
+</pre>
+        </div>
+
+        <h3>ServiceMonitor YAML</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">servicemonitor.yaml</span>
+                <span class="tag tag-blue">monitoring.coreos.com/v1</span>
+            </div>
+<pre>
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: web-app-monitor
+  namespace: monitoring
+  labels:
+    release: prometheus    # Must match Prometheus operator's serviceMonitorSelector
+spec:
+  namespaceSelector:
+    matchNames:
+    - production
+    - staging
+  selector:
+    matchLabels:
+      app: web-app
+  endpoints:
+  - port: metrics         # Name of the Service port
+    path: /metrics
+    interval: 15s
+    scrapeTimeout: 10s
+    honorLabels: true
+  - port: metrics
+    path: /metrics/detailed
+    interval: 60s
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: "go_.*"
+      action: drop        # Drop Go runtime metrics to reduce cardinality
+</pre>
+        </div>
+
+        <h3>Key Metrics Sources</h3>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>kube-state-metrics</h4>
+                <p>Generates metrics from the Kubernetes API about the state of objects:</p>
+                <ul>
+                    <li><code>kube_deployment_status_replicas</code></li>
+                    <li><code>kube_pod_status_phase</code></li>
+                    <li><code>kube_node_status_condition</code></li>
+                    <li><code>kube_pod_container_status_restarts_total</code></li>
+                    <li><code>kube_horizontalpodautoscaler_status_current_replicas</code></li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>node-exporter</h4>
+                <p>Exposes hardware and OS metrics from each node (DaemonSet):</p>
+                <ul>
+                    <li><code>node_cpu_seconds_total</code></li>
+                    <li><code>node_memory_MemAvailable_bytes</code></li>
+                    <li><code>node_filesystem_avail_bytes</code></li>
+                    <li><code>node_disk_io_time_seconds_total</code></li>
+                    <li><code>node_network_receive_bytes_total</code></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 4: Alerting -->
+        <!-- ============================================ -->
+        <h2>4. Alerting</h2>
+
+        <h3>Alertmanager Configuration</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">alertmanager-config.yaml</span>
+                <span class="tag tag-orange">Alertmanager</span>
+            </div>
+<pre>
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-config
+  namespace: monitoring
+stringData:
+  alertmanager.yaml: |
+    global:
+      resolve_timeout: 5m
+      slack_api_url: 'https://hooks.slack.com/services/XXX/YYY/ZZZ'
+
+    route:
+      receiver: 'default-slack'
+      group_by: ['alertname', 'namespace', 'job']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      routes:
+      # Critical alerts - page immediately
+      - match:
+          severity: critical
+        receiver: 'pagerduty-critical'
+        group_wait: 10s
+        repeat_interval: 1h
+      # Warning alerts - Slack channel
+      - match:
+          severity: warning
+        receiver: 'slack-warnings'
+        group_wait: 1m
+        repeat_interval: 4h
+      # Info alerts - low priority
+      - match:
+          severity: info
+        receiver: 'slack-info'
+        repeat_interval: 12h
+
+    receivers:
+    - name: 'default-slack'
+      slack_configs:
+      - channel: '#alerts-default'
+        title: '{{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+
+    - name: 'pagerduty-critical'
+      pagerduty_configs:
+      - service_key: 'YOUR_PAGERDUTY_KEY'
+        severity: 'critical'
+
+    - name: 'slack-warnings'
+      slack_configs:
+      - channel: '#alerts-warning'
+        send_resolved: true
+
+    - name: 'slack-info'
+      slack_configs:
+      - channel: '#alerts-info'
+        send_resolved: false
+
+    inhibit_rules:
+    - source_match:
+        severity: 'critical'
+      target_match:
+        severity: 'warning'
+      equal: ['alertname', 'namespace']
+</pre>
+        </div>
+
+        <h3>PrometheusRule (Alert Rules)</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">prometheus-rules.yaml</span>
+                <span class="tag tag-red">Alert rules</span>
+            </div>
+<pre>
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kubernetes-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  groups:
+  - name: kubernetes.pod.rules
+    rules:
+    # Pod CrashLooping
+    - alert: PodCrashLooping
+      expr: |
+        rate(kube_pod_container_status_restarts_total[15m]) * 60 * 5 > 0
+      for: 15m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is crash looping"
+        description: "Pod has restarted {{ $value | humanize }} times in last 15m"
+        runbook_url: "https://runbooks.example.com/pod-crashloop"
+
+    # Pod not ready
+    - alert: PodNotReady
+      expr: |
+        kube_pod_status_ready{condition="true"} == 0
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} not ready"
+
+    # High memory usage
+    - alert: ContainerMemoryHigh
+      expr: |
+        container_memory_working_set_bytes / container_spec_memory_limit_bytes > 0.9
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Container {{ $labels.container }} in {{ $labels.pod }} using >90% memory"
+
+  - name: kubernetes.node.rules
+    rules:
+    # Node not ready
+    - alert: NodeNotReady
+      expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Node {{ $labels.node }} is NotReady"
+
+    # Node disk pressure
+    - alert: NodeDiskPressure
+      expr: kube_node_status_condition{condition="DiskPressure",status="true"} == 1
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Node {{ $labels.node }} has disk pressure"
+
+  - name: slo.burn.rate
+    rules:
+    # Burn-rate alert (Multi-window, multi-burn-rate)
+    - alert: ErrorBudgetBurnHigh
+      expr: |
+        (
+          job:slo_errors_per_request:ratio_rate1h{job="web-api"} > (14.4 * 0.001)
+          and
+          job:slo_errors_per_request:ratio_rate5m{job="web-api"} > (14.4 * 0.001)
+        )
+      for: 2m
+      labels:
+        severity: critical
+        slo: "availability"
+      annotations:
+        summary: "High error budget burn rate for {{ $labels.job }}"
+        description: "Burning error budget 14.4x faster than sustainable. Will exhaust in ~1h."
+
+    - alert: ErrorBudgetBurnSlow
+      expr: |
+        (
+          job:slo_errors_per_request:ratio_rate6h{job="web-api"} > (1 * 0.001)
+          and
+          job:slo_errors_per_request:ratio_rate30m{job="web-api"} > (1 * 0.001)
+        )
+      for: 15m
+      labels:
+        severity: warning
+        slo: "availability"
+      annotations:
+        summary: "Slow error budget burn for {{ $labels.job }}"
+        description: "Burning error budget 1x faster than sustainable. Will exhaust in ~30 days."
+</pre>
+        </div>
+
+        <h3>Burn-Rate Alerts Explained</h3>
+
+        <div class="card card-info">
+            <p><strong>Multi-window, multi-burn-rate alerts</strong> balance detection speed with false-positive rate:</p>
+            <ul>
+                <li><strong>Fast burn (14.4x)</strong> - Consumes monthly budget in ~1 hour. Use short windows (1h + 5m). Page immediately.</li>
+                <li><strong>Medium burn (6x)</strong> - Consumes budget in ~5 hours. Windows: 6h + 30m. Alert with urgency.</li>
+                <li><strong>Slow burn (1x)</strong> - Consumes budget at sustainable pace over 30 days. Windows: 3d + 6h. Ticket/low priority.</li>
+            </ul>
+            <p>Two windows per alert prevent alerting on very brief spikes (short window) while ensuring recent relevance (long window).</p>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 5: Kubernetes Events -->
+        <!-- ============================================ -->
+        <h2>5. Kubernetes Events</h2>
+
+        <div class="card card-info">
+            <p>Events are API objects that record state changes and important occurrences. They provide insight into what is happening inside the cluster without needing external monitoring.</p>
+        </div>
+
+        <h3>Watching Events</h3>
+
+        <div class="cmd">kubectl get events --sort-by='.lastTimestamp' -n production</div>
+        <div class="cmd">kubectl get events --field-selector type=Warning -A</div>
+        <div class="cmd">kubectl get events --field-selector involvedObject.kind=Pod,involvedObject.name=my-pod</div>
+        <div class="cmd">kubectl get events -w  # Watch mode (stream new events)</div>
+
+        <h3>Event Lifecycle</h3>
+
+        <div class="point">
+            <span class="point-num">1</span>
+            <div class="point-content">
+                <span class="point-title">TTL</span> - Events have a default TTL of 1 hour. After that, they are garbage collected. For persistence, export events to a logging system.
+            </div>
+        </div>
+        <div class="point">
+            <span class="point-num">2</span>
+            <div class="point-content">
+                <span class="point-title">Deduplication</span> - Repeated identical events are aggregated (count incremented, lastTimestamp updated) instead of creating new objects.
+            </div>
+        </div>
+        <div class="point">
+            <span class="point-num">3</span>
+            <div class="point-content">
+                <span class="point-title">Types</span> - <code>Normal</code> (informational) and <code>Warning</code> (something may be wrong).
+            </div>
+        </div>
+
+        <h3>Useful Event Patterns</h3>
+
+        <table>
+            <tr><th>Event Reason</th><th>Source</th><th>Indicates</th></tr>
+            <tr><td><code>Scheduled</code></td><td>scheduler</td><td>Pod successfully assigned to node</td></tr>
+            <tr><td><code>Pulling</code> / <code>Pulled</code></td><td>kubelet</td><td>Image pull in progress / complete</td></tr>
+            <tr><td><code>Created</code> / <code>Started</code></td><td>kubelet</td><td>Container created / started</td></tr>
+            <tr><td><code>Unhealthy</code></td><td>kubelet</td><td>Probe failed (liveness/readiness)</td></tr>
+            <tr><td><code>Killing</code></td><td>kubelet</td><td>Container being stopped (failed probe, preemption)</td></tr>
+            <tr><td><code>FailedScheduling</code></td><td>scheduler</td><td>No suitable node found</td></tr>
+            <tr><td><code>BackOff</code></td><td>kubelet</td><td>Back-off restarting failed container</td></tr>
+            <tr><td><code>FailedMount</code></td><td>kubelet</td><td>Volume mount failed</td></tr>
+            <tr><td><code>OOMKilling</code></td><td>kernel</td><td>Container exceeded memory limit</td></tr>
+            <tr><td><code>ScalingReplicaSet</code></td><td>deployment-controller</td><td>Deployment scaling up/down</td></tr>
+            <tr><td><code>SuccessfulRescale</code></td><td>HPA</td><td>HPA scaled the workload</td></tr>
+        </table>
+
+        <!-- ============================================ -->
+        <!-- SECTION 6: Distributed Tracing -->
+        <!-- ============================================ -->
+        <h2>6. Distributed Tracing</h2>
+
+        <div class="card card-info">
+            <p>Distributed tracing follows a request as it traverses multiple services, providing visibility into latency, errors, and dependencies across the system.</p>
+        </div>
+
+        <h3>Core Concepts</h3>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Trace</h4>
+                <p>The entire journey of a request through the system. Contains multiple spans. Identified by a unique <code>trace_id</code>.</p>
+            </div>
+            <div class="card">
+                <h4>Span</h4>
+                <p>A single operation within a trace (e.g., HTTP call, DB query). Has start time, duration, tags, and parent span reference.</p>
+            </div>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">Distributed Trace Visualization</div>
+<pre>
+ Request: POST /api/orders
+ Trace ID: abc123
+
+ |-- [API Gateway] ------------------------------------------|  120ms
+     |-- [Auth Service] -----------|                            15ms
+     |-- [Order Service] --------------------------------------|  95ms
+         |-- [Inventory Check] ---------|                        20ms
+         |-- [Payment Service] ----------------------|           45ms
+             |-- [Stripe API] --------------|                    30ms
+         |-- [Send Confirmation Email] -|                        10ms
+
+ Each bar is a SPAN with:
+ - span_id, parent_span_id
+ - service name, operation name
+ - start_time, duration
+ - tags: http.method, http.status_code, error
+ - logs: timestamped events within the span
+</pre>
+        </div>
+
+        <h3>OpenTelemetry Architecture</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">OpenTelemetry Collection Pipeline</div>
+<pre>
+ +--Application Pods------------------------------------+
+ |                                                      |
+ |  +-------------+  +-------------+  +-------------+  |
+ |  | Service A   |  | Service B   |  | Service C   |  |
+ |  | (OTel SDK)  |  | (OTel SDK)  |  | (OTel SDK)  |  |
+ |  +------+------+  +------+------+  +------+------+  |
+ |         |                |                |          |
+ +---------|----------------|----------------|----------+
+           |                |                |
+           v                v                v
+    +------+----------------+----------------+------+
+    |         OpenTelemetry Collector                |
+    |         (DaemonSet or Sidecar)                 |
+    |                                               |
+    |  Receivers:  OTLP, Jaeger, Zipkin             |
+    |  Processors: Batch, Filter, Tail-sample       |
+    |  Exporters:  Jaeger, Tempo, X-Ray             |
+    +---+-------------------+-------------------+---+
+        |                   |                   |
+        v                   v                   v
+ +------+------+    +-------+------+    +-------+------+
+ | Jaeger      |    | Grafana Tempo|    | AWS X-Ray    |
+ | (Traces)    |    | (Traces)     |    | (Traces)     |
+ +------+------+    +-------+------+    +--------------+
+        |                   |
+        v                   v
+ +------+-------------------+------+
+ |         Grafana                  |
+ |   (Unified: Metrics + Logs +    |
+ |    Traces correlated together)  |
+ +----------------------------------+
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">otel-collector.yaml</span>
+                <span class="tag tag-purple">OpenTelemetry</span>
+            </div>
+<pre>
+apiVersion: opentelemetry.io/v1alpha1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-collector
+  namespace: observability
+spec:
+  mode: daemonset
+  config: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    processors:
+      batch:
+        timeout: 5s
+        send_batch_size: 1024
+      memory_limiter:
+        limit_mib: 512
+        spike_limit_mib: 128
+      tail_sampling:
+        policies:
+        - name: errors
+          type: status_code
+          status_code: {status_codes: [ERROR]}
+        - name: slow-requests
+          type: latency
+          latency: {threshold_ms: 1000}
+        - name: probabilistic
+          type: probabilistic
+          probabilistic: {sampling_percentage: 10}
+    exporters:
+      otlp/jaeger:
+        endpoint: jaeger-collector:4317
+        tls:
+          insecure: true
+      prometheus:
+        endpoint: 0.0.0.0:8889
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, tail_sampling, batch]
+          exporters: [otlp/jaeger]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [prometheus]
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 7: Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>7. Interview Q&A</h2>
+
+        <div class="qa">
+            <p class="q">Q: What is the difference between a liveness probe and a readiness probe?</p>
+            <div class="a">
+                <p><strong>Liveness probe:</strong> Determines if the container is alive. If it fails, kubelet <strong>kills and restarts</strong> the container. Use to detect deadlocks or unrecoverable states.</p>
+                <p><strong>Readiness probe:</strong> Determines if the container can serve traffic. If it fails, the pod is <strong>removed from Service endpoints</strong> but NOT restarted. Use during startup, warmup, or when temporarily unable to serve (e.g., loading cache, waiting for dependency).</p>
+                <p><strong>Common mistake:</strong> Using the same endpoint for both. Liveness should check "am I alive?" (simple), readiness should check "can I handle requests?" (may include dependency checks).</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: How would you set up monitoring for a Kubernetes cluster from scratch?</p>
+            <div class="a">
+                <p><strong>Step-by-step approach:</strong></p>
+                <ol>
+                    <li><strong>Deploy kube-prometheus-stack</strong> (Helm chart) - includes Prometheus, Alertmanager, Grafana, node-exporter, kube-state-metrics</li>
+                    <li><strong>Configure ServiceMonitors</strong> for each application to define scrape targets</li>
+                    <li><strong>Set up Grafana dashboards</strong> - import community dashboards for cluster, node, pod metrics</li>
+                    <li><strong>Define PrometheusRules</strong> for alerts (pod crashes, node issues, SLO violations)</li>
+                    <li><strong>Configure Alertmanager</strong> routing to Slack/PagerDuty based on severity</li>
+                    <li><strong>Add long-term storage</strong> (Thanos/Cortex) if needed for retention beyond local TSDB</li>
+                    <li><strong>Deploy logging</strong> (Loki + Promtail) and tracing (Tempo + OTel) for full observability</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: Explain the USE and RED methods for monitoring.</p>
+            <div class="a">
+                <p><strong>USE Method</strong> (for infrastructure/resources - by Brendan Gregg):</p>
+                <ul>
+                    <li><strong>U</strong>tilization - Percentage of time the resource is busy (CPU %, disk I/O %)</li>
+                    <li><strong>S</strong>aturation - Amount of queued work (CPU run queue, disk queue depth)</li>
+                    <li><strong>E</strong>rrors - Count of error events (disk errors, network drops)</li>
+                </ul>
+                <p><strong>RED Method</strong> (for services/requests - by Tom Wilkie):</p>
+                <ul>
+                    <li><strong>R</strong>ate - Requests per second</li>
+                    <li><strong>E</strong>rrors - Error rate (failed requests / total requests)</li>
+                    <li><strong>D</strong>uration - Latency distribution (p50, p95, p99)</li>
+                </ul>
+                <p><strong>When to use:</strong> USE for nodes/infrastructure, RED for microservices/APIs. Together they provide full coverage.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: What is a burn-rate alert and why is it better than threshold-based alerting?</p>
+            <div class="a">
+                <p><strong>Burn-rate alerts</strong> measure how fast you are consuming your error budget relative to the budget period (usually 30 days).</p>
+                <p><strong>Why better than thresholds:</strong></p>
+                <ul>
+                    <li><strong>Context-aware:</strong> A 1% error rate might be fine at low traffic but critical at high traffic. Burn rate considers the impact on SLO.</li>
+                    <li><strong>Reduced alert fatigue:</strong> Brief spikes that don't materially impact the SLO don't trigger alerts</li>
+                    <li><strong>Actionable:</strong> "You will exhaust your budget in 2 hours" is more actionable than "error rate is 2%"</li>
+                    <li><strong>Multi-window:</strong> Using both long and short windows prevents false positives while maintaining detection speed</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: How do you handle alert fatigue in a Kubernetes environment?</p>
+            <div class="a">
+                <p><strong>Strategies to reduce alert fatigue:</strong></p>
+                <ul>
+                    <li><strong>SLO-based alerting:</strong> Only alert when error budget is being consumed too fast (burn-rate alerts)</li>
+                    <li><strong>Proper severity levels:</strong> Critical = page (customer impact), Warning = ticket (degraded), Info = dashboard only</li>
+                    <li><strong>Inhibition rules:</strong> Suppress downstream alerts when root cause is known (e.g., suppress pod alerts when node is down)</li>
+                    <li><strong>Grouping:</strong> Aggregate related alerts into a single notification</li>
+                    <li><strong>For/duration:</strong> Add <code>for: 5m</code> to prevent alerting on transient blips</li>
+                    <li><strong>Regular review:</strong> Delete alerts that are never actioned, tune noisy ones</li>
+                    <li><strong>Runbooks:</strong> Every alert should have a runbook_url with diagnosis steps</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: What is OpenTelemetry and how does it relate to Jaeger/Zipkin?</p>
+            <div class="a">
+                <p><strong>OpenTelemetry (OTel)</strong> is a vendor-neutral observability framework that provides APIs, SDKs, and tools for generating and collecting telemetry data (traces, metrics, logs).</p>
+                <p><strong>Relationship to Jaeger/Zipkin:</strong></p>
+                <ul>
+                    <li>OTel is the <strong>instrumentation and collection layer</strong> (generates and ships data)</li>
+                    <li>Jaeger/Zipkin/Tempo are <strong>backends</strong> (store and query traces)</li>
+                    <li>OTel replaces vendor-specific SDKs (Jaeger client, Zipkin client) with one standard</li>
+                    <li>OTel Collector can receive data in multiple formats and export to any backend</li>
+                </ul>
+                <p>Think of OTel as the "universal adapter" - instrument once, export anywhere.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: How do Kubernetes events differ from logs and metrics?</p>
+            <div class="a">
+                <p><strong>Events:</strong> Kubernetes API objects recording cluster state changes. Short-lived (1h TTL), generated by controllers/kubelet. Great for understanding "what happened" (scheduling, scaling, probe failures).</p>
+                <p><strong>Logs:</strong> Application output (stdout/stderr). Long-lived (stored in logging backend). Detailed application behavior and debugging info.</p>
+                <p><strong>Metrics:</strong> Numeric time-series data. Aggregated, queryable, and alertable. Best for dashboards, trends, and automated alerting.</p>
+                <p><strong>Together:</strong> Metrics tell you something is wrong, events tell you what Kubernetes did about it, logs tell you why the application failed.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <p class="q">Q: What is the startup probe and when should you use it instead of increasing liveness probe initialDelaySeconds?</p>
+            <div class="a">
+                <p><strong>Startup probe</strong> provides a dedicated mechanism for slow-starting containers. While it runs, liveness and readiness probes are disabled.</p>
+                <p><strong>Why not just increase initialDelaySeconds on liveness?</strong></p>
+                <ul>
+                    <li>A high initialDelaySeconds means if the app crashes <strong>after</strong> startup, detection is delayed by that same amount on restart</li>
+                    <li>Startup probe allows: generous startup time (e.g., 5 minutes) + fast liveness detection after startup (e.g., 10 seconds)</li>
+                    <li>Example: <code>startupProbe.failureThreshold: 30</code> with <code>periodSeconds: 10</code> = 5 min max startup, then <code>livenessProbe.periodSeconds: 10</code> detects failures quickly</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 8: Scenarios -->
+        <!-- ============================================ -->
+        <h2>8. Real-World Scenarios</h2>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#9888;</span>
+                <span class="title">Scenario: Readiness Probe Failing - Pod Removed from Service</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> Users report intermittent 503 errors. Some pods are Running but READY shows 0/1. Service has fewer endpoints than expected.</p>
+                <div class="scenario-step"><span class="step-num">1.</span> Check pod status: <code>kubectl get pods -l app=web -o wide</code> - look for pods with READY 0/1</div>
+                <div class="scenario-step"><span class="step-num">2.</span> Describe the pod: <code>kubectl describe pod web-xyz</code> - check Events for "Readiness probe failed"</div>
+                <div class="scenario-step"><span class="step-num">3.</span> Check endpoints: <code>kubectl get endpoints web-service</code> - verify which pods are in the endpoint list</div>
+                <div class="scenario-step"><span class="step-num">4.</span> Test the readiness endpoint manually: <code>kubectl exec web-xyz -- curl -s localhost:8080/healthz/ready</code></div>
+                <div class="scenario-step"><span class="step-num">5.</span> Check application logs: <code>kubectl logs web-xyz</code> - look for dependency failures (DB, cache)</div>
+                <p><strong>Common Causes:</strong> Database connection pool exhausted, downstream service unavailable, application overloaded (increase failureThreshold or adjust probe endpoint logic).</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#9888;</span>
+                <span class="title">Scenario: Liveness Probe Restart Loop (CrashLoopBackOff)</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> Pod restarts every 30 seconds. Events show "Liveness probe failed" followed by "Killing container." RESTARTS count climbing.</p>
+                <div class="scenario-step"><span class="step-num">1.</span> Check events: <code>kubectl describe pod app-xyz</code> - note the probe failure message</div>
+                <div class="scenario-step"><span class="step-num">2.</span> Check if app needs more startup time: compare <code>initialDelaySeconds</code> with actual startup duration</div>
+                <div class="scenario-step"><span class="step-num">3.</span> Add a startup probe if the app is slow to start (separates startup from ongoing liveness)</div>
+                <div class="scenario-step"><span class="step-num">4.</span> Verify the liveness endpoint is correct: wrong path or port causes perpetual failure</div>
+                <div class="scenario-step"><span class="step-num">5.</span> Check resource limits: OOM kills can look like liveness failures (container dies before probe runs)</div>
+                <div class="scenario-step"><span class="step-num">6.</span> Check if liveness probe does too much: liveness should NOT check external dependencies</div>
+                <p><strong>Fix:</strong> Add startup probe, increase failureThreshold, ensure liveness is a simple "am I alive?" check (not a full health check including dependencies).</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#9888;</span>
+                <span class="title">Scenario: Missing Metrics - Prometheus Not Scraping</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> Grafana dashboard shows "No Data" for application metrics. Prometheus targets page shows the target as DOWN or missing.</p>
+                <div class="scenario-step"><span class="step-num">1.</span> Check Prometheus targets UI: <code>http://prometheus:9090/targets</code> - is the target listed? What error?</div>
+                <div class="scenario-step"><span class="step-num">2.</span> Verify ServiceMonitor labels match Prometheus operator's <code>serviceMonitorSelector</code></div>
+                <div class="scenario-step"><span class="step-num">3.</span> Check that the Service has the correct labels matching the ServiceMonitor's <code>selector</code></div>
+                <div class="scenario-step"><span class="step-num">4.</span> Verify the metrics port name in Service matches the ServiceMonitor's <code>endpoints[].port</code></div>
+                <div class="scenario-step"><span class="step-num">5.</span> Test metrics endpoint directly: <code>kubectl port-forward pod/app-xyz 8080</code> then <code>curl localhost:8080/metrics</code></div>
+                <div class="scenario-step"><span class="step-num">6.</span> Check RBAC: Prometheus ServiceAccount needs permissions to discover services in target namespaces</div>
+                <p><strong>Root Cause:</strong> Usually label mismatch between ServiceMonitor and Service, wrong port name, or namespace not included in <code>namespaceSelector</code>.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#9888;</span>
+                <span class="title">Scenario: Alert Fatigue - Too Many Non-Actionable Alerts</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> On-call engineer receives 50+ alerts per shift. Most are ignored. Critical alerts get lost in the noise. Team morale dropping.</p>
+                <div class="scenario-step"><span class="step-num">1.</span> Audit all alerts: categorize as actionable vs informational over 2 weeks</div>
+                <div class="scenario-step"><span class="step-num">2.</span> Delete or downgrade alerts that never lead to action (move to dashboards)</div>
+                <div class="scenario-step"><span class="step-num">3.</span> Add <code>for:</code> durations to prevent alerting on transient spikes (5m minimum for warnings)</div>
+                <div class="scenario-step"><span class="step-num">4.</span> Implement inhibition rules: if node is down, suppress all pod alerts on that node</div>
+                <div class="scenario-step"><span class="step-num">5.</span> Switch to SLO-based (burn-rate) alerts instead of raw metric thresholds</div>
+                <div class="scenario-step"><span class="step-num">6.</span> Require every alert to have a runbook_url annotation before merging</div>
+                <div class="scenario-step"><span class="step-num">7.</span> Set up proper severity routing: only critical pages, warnings go to Slack/ticket</div>
+                <p><strong>Goal:</strong> Every page should require human action within 5 minutes. If you can wait, it is not a page.</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            Kubernetes Observability Reference | <a href="../index.html">Back to Home</a>
+        </footer>
+
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git - DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html" class="active">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; <a href="../index.html">DevOps</a> &gt; Git
+        </div>
+
+        <h1>Git</h1>
+        <p class="subtitle">Distributed version control - branching strategies, workflows, advanced operations, and CI/CD integration</p>
+
+        <!-- ============================================ -->
+        <!-- 1. Git Basics -->
+        <!-- ============================================ -->
+        <h2>1. Git Basics</h2>
+
+        <div class="card card-info">
+            <h4>What is Git?</h4>
+            <p>Git is a <strong>distributed version control system</strong> that tracks changes in source code. Every developer has a full copy of the repository history, enabling offline work and fast operations.</p>
+        </div>
+
+        <h3>Essential Commands</h3>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Repository Setup</h4>
+                <div class="cmd">git init</div>
+                <p>Initialize a new Git repository in the current directory.</p>
+                <div class="cmd">git clone https://github.com/user/repo.git</div>
+                <p>Clone an existing remote repository locally.</p>
+            </div>
+            <div class="card">
+                <h4>Daily Workflow</h4>
+                <div class="cmd">git status</div>
+                <p>Show working tree status (modified, staged, untracked).</p>
+                <div class="cmd">git diff</div>
+                <p>Show unstaged changes. Use <code>--staged</code> for staged changes.</p>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Staging & Committing</h4>
+                <div class="cmd">git add file.txt</div>
+                <p>Stage a specific file for commit.</p>
+                <div class="cmd">git add -A</div>
+                <p>Stage all changes (new, modified, deleted).</p>
+                <div class="cmd">git commit -m "feat: add user auth"</div>
+                <p>Commit staged changes with a message.</p>
+            </div>
+            <div class="card">
+                <h4>Remote Operations</h4>
+                <div class="cmd">git push origin main</div>
+                <p>Push commits to remote repository.</p>
+                <div class="cmd">git pull origin main</div>
+                <p>Fetch and merge remote changes (fetch + merge).</p>
+                <div class="cmd">git fetch origin</div>
+                <p>Download remote changes without merging.</p>
+            </div>
+        </div>
+
+        <h3>Working Tree / Staging / Repository Model</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Git Three-Tree Architecture</div>
+<pre>
+ Working Directory          Staging Area (Index)         Local Repository         Remote Repository
+ (Your files on disk)       (Next commit snapshot)       (.git directory)         (GitHub/GitLab)
++-------------------+      +-------------------+       +-------------------+    +-------------------+
+|                   |      |                   |       |                   |    |                   |
+|  modified files   | ---> |  staged changes   | --->  |  commit history   | -->|  shared commits   |
+|                   | add  |                   | commit|                   |push|                   |
+|                   |      |                   |       |                   |    |                   |
++-------------------+      +-------------------+       +-------------------+    +-------------------+
+         ^                                                      |                        |
+         |                                                      |                        |
+         +---------------------- checkout -----------------------+                        |
+         |                                                                               |
+         +------------------------------- pull / fetch ----------------------------------+
+
+File States:
+  Untracked --> Staged --> Committed --> Pushed
+  Modified  --> Staged --> Committed --> Pushed
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 2. Branching -->
+        <!-- ============================================ -->
+        <h2>2. Branching</h2>
+
+        <div class="card">
+            <h4>Branch Operations</h4>
+            <p>Branches are lightweight pointers to commits. They enable parallel development without affecting the main codebase.</p>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Creating & Switching</h4>
+                <div class="cmd">git branch feature/login</div>
+                <p>Create a new branch.</p>
+                <div class="cmd">git switch feature/login</div>
+                <p>Switch to branch (modern, preferred over checkout).</p>
+                <div class="cmd">git switch -c feature/login</div>
+                <p>Create and switch in one command.</p>
+            </div>
+            <div class="card">
+                <h4>Merging & Deleting</h4>
+                <div class="cmd">git merge feature/login</div>
+                <p>Merge branch into current branch.</p>
+                <div class="cmd">git branch -d feature/login</div>
+                <p>Delete branch (safe, only if merged).</p>
+                <div class="cmd">git branch -D feature/login</div>
+                <p>Force delete branch (even if unmerged).</p>
+            </div>
+        </div>
+
+        <h3>Branch Visualization</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Branch and Merge Workflow</div>
+<pre>
+main:     A --- B --- C --------- G (merge commit)
+                \               /
+feature:         D --- E --- F
+
+  A = Initial commit
+  B = Second commit on main
+  C = Third commit on main (branch point)
+  D, E, F = Feature work
+  G = Merge commit (combines C and F)
+
+Fast-Forward Merge (when main hasn't diverged):
+main:     A --- B --- C --- D --- E
+                           ^
+                      feature (fast-forward, no merge commit)
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 3. Branching Strategies -->
+        <!-- ============================================ -->
+        <h2>3. Branching Strategies</h2>
+
+        <h3>GitFlow</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">GitFlow Branch Model</div>
+<pre>
+          hotfix/fix-bug
+             |
+main:    ----*-----------*-----------*---------> (production releases)
+             |          /|          /
+release:     |    -----* |    -----*
+             |   /       |   /
+develop: ----*--*---*---*---*---*---*----------> (integration branch)
+              \   /       \   /
+feature:       --*         --*
+           feature/auth  feature/payment
+
+Branch Types:
+  main      = Production-ready code, tagged with versions
+  develop   = Integration branch for features
+  feature/* = New features (branch from develop, merge to develop)
+  release/* = Release preparation (branch from develop, merge to main + develop)
+  hotfix/*  = Emergency fixes (branch from main, merge to main + develop)
+</pre>
+        </div>
+
+        <h3>Trunk-Based Development</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Trunk-Based Development</div>
+<pre>
+main (trunk): ----*----*----*----*----*----*----*----*----> (continuous integration)
+                   \  /      \  /      \  /
+short-lived:        **        **        **
+                  (hours)   (hours)   (hours)
+
+Key Principles:
+  - Single long-lived branch (main/trunk)
+  - Short-lived feature branches (< 1-2 days)
+  - Frequent integration (multiple times per day)
+  - Feature flags for incomplete features
+  - Continuous deployment from trunk
+</pre>
+        </div>
+
+        <h3>GitHub Flow</h3>
+
+        <div class="card">
+            <p><strong>GitHub Flow</strong> is a simplified model: one main branch + feature branches + pull requests.</p>
+            <ol>
+                <li>Create a branch from <code>main</code></li>
+                <li>Add commits</li>
+                <li>Open a Pull Request</li>
+                <li>Discuss and review code</li>
+                <li>Deploy for testing</li>
+                <li>Merge to <code>main</code></li>
+            </ol>
+        </div>
+
+        <h3>Strategy Comparison</h3>
+
+        <table>
+            <tr>
+                <th>Aspect</th>
+                <th>GitFlow</th>
+                <th>Trunk-Based</th>
+                <th>GitHub Flow</th>
+            </tr>
+            <tr>
+                <td>Complexity</td>
+                <td>High (5 branch types)</td>
+                <td>Low (1 branch + short-lived)</td>
+                <td>Medium (main + feature)</td>
+            </tr>
+            <tr>
+                <td>Release Cadence</td>
+                <td>Scheduled releases</td>
+                <td>Continuous deployment</td>
+                <td>On-demand</td>
+            </tr>
+            <tr>
+                <td>Team Size</td>
+                <td>Large teams, multiple versions</td>
+                <td>Any size, high maturity</td>
+                <td>Small to medium teams</td>
+            </tr>
+            <tr>
+                <td>CI/CD Requirement</td>
+                <td>Optional</td>
+                <td>Mandatory (feature flags)</td>
+                <td>Recommended</td>
+            </tr>
+            <tr>
+                <td>Merge Conflicts</td>
+                <td>More likely (long-lived branches)</td>
+                <td>Rare (frequent integration)</td>
+                <td>Moderate</td>
+            </tr>
+            <tr>
+                <td>Best For</td>
+                <td>Versioned software, mobile apps</td>
+                <td>SaaS, web apps, microservices</td>
+                <td>Open source, web projects</td>
+            </tr>
+        </table>
+
+        <!-- ============================================ -->
+        <!-- 4. Merge vs Rebase -->
+        <!-- ============================================ -->
+        <h2>4. Merge vs Rebase</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">Merge vs Rebase Visual Comparison</div>
+<pre>
+BEFORE (same starting point):
+main:     A --- B --- C
+                \
+feature:         D --- E
+
+AFTER MERGE (git merge feature from main):
+main:     A --- B --- C --- M (merge commit)
+                \         /
+feature:         D --- E -
+
+AFTER REBASE (git rebase main from feature, then fast-forward merge):
+main:     A --- B --- C --- D' --- E' (linear history)
+
+  D' and E' are NEW commits (different SHA) with same changes as D and E
+  Original D and E are orphaned (eventually garbage collected)
+</pre>
+        </div>
+
+        <div class="grid-2">
+            <div class="card card-success">
+                <h4>When to Use Merge</h4>
+                <ul>
+                    <li>Preserving complete branch history</li>
+                    <li>Working on shared/public branches</li>
+                    <li>Team collaboration on same branch</li>
+                    <li>When traceability matters (audit trails)</li>
+                    <li>Non-destructive operation (safe)</li>
+                </ul>
+            </div>
+            <div class="card card-info">
+                <h4>When to Use Rebase</h4>
+                <ul>
+                    <li>Cleaning up local commits before sharing</li>
+                    <li>Maintaining linear project history</li>
+                    <li>Updating feature branch with latest main</li>
+                    <li>Before creating a pull request</li>
+                    <li>Squashing messy commits</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card card-danger">
+            <h4>The Golden Rule of Rebasing</h4>
+            <p><strong>NEVER rebase commits that have been pushed to a public/shared branch.</strong></p>
+            <p>Rebasing rewrites commit history (new SHAs). If others have based work on the original commits, rebasing will cause divergence and confusion. Only rebase your own local, unpushed commits.</p>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 5. Conflict Resolution -->
+        <!-- ============================================ -->
+        <h2>5. Conflict Resolution</h2>
+
+        <div class="card">
+            <h4>How Conflicts Happen</h4>
+            <p>Conflicts occur when two branches modify the <strong>same lines</strong> in the same file, or when one branch deletes a file that the other modified. Git cannot automatically determine which change to keep.</p>
+        </div>
+
+        <h3>Resolving Step-by-Step</h3>
+
+        <div class="point">
+            <div class="point-num">1</div>
+            <div class="point-content">
+                <div class="point-title">Identify conflicts</div>
+                <div class="cmd">git status</div>
+                <p>Files marked "both modified" have conflicts.</p>
+            </div>
+        </div>
+        <div class="point">
+            <div class="point-num">2</div>
+            <div class="point-content">
+                <div class="point-title">Open conflicted file</div>
+                <p>Look for conflict markers:</p>
+                <div class="code-block">
+                    <div class="code-header"><span class="filename">file.txt (with conflict markers)</span></div>
+<pre>
+&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+your changes on current branch
+=======
+their changes from incoming branch
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; feature/login
+</pre>
+                </div>
+            </div>
+        </div>
+        <div class="point">
+            <div class="point-num">3</div>
+            <div class="point-content">
+                <div class="point-title">Resolve the conflict</div>
+                <p>Edit the file to keep the desired content. Remove all conflict markers (<code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code>, <code>=======</code>, <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code>).</p>
+            </div>
+        </div>
+        <div class="point">
+            <div class="point-num">4</div>
+            <div class="point-content">
+                <div class="point-title">Stage and commit</div>
+                <div class="cmd">git add file.txt</div>
+                <div class="cmd">git commit -m "resolve: merge conflict in file.txt"</div>
+            </div>
+        </div>
+
+        <h3>Merge Tools</h3>
+
+        <table>
+            <tr>
+                <th>Tool</th>
+                <th>Type</th>
+                <th>Setup Command</th>
+            </tr>
+            <tr>
+                <td>VS Code</td>
+                <td>GUI (built-in 3-way merge editor)</td>
+                <td><code>git config --global merge.tool vscode</code></td>
+            </tr>
+            <tr>
+                <td>vimdiff</td>
+                <td>Terminal</td>
+                <td><code>git config --global merge.tool vimdiff</code></td>
+            </tr>
+            <tr>
+                <td>meld</td>
+                <td>GUI (Linux)</td>
+                <td><code>git config --global merge.tool meld</code></td>
+            </tr>
+            <tr>
+                <td>kdiff3</td>
+                <td>GUI (cross-platform)</td>
+                <td><code>git config --global merge.tool kdiff3</code></td>
+            </tr>
+        </table>
+
+        <div class="cmd">git mergetool</div>
+        <p>Opens the configured merge tool for resolving conflicts interactively.</p>
+
+        <!-- ============================================ -->
+        <!-- 6. Advanced Git -->
+        <!-- ============================================ -->
+        <h2>6. Advanced Git</h2>
+
+        <h3>Cherry-Pick</h3>
+
+        <div class="card">
+            <p>Apply a specific commit from another branch to your current branch without merging the entire branch.</p>
+            <div class="cmd">git cherry-pick abc1234</div>
+            <p>Creates a new commit on the current branch with the same changes as <code>abc1234</code>.</p>
+            <div class="cmd">git cherry-pick abc1234..def5678</div>
+            <p>Cherry-pick a range of commits (exclusive of the first, inclusive of the last).</p>
+        </div>
+
+        <h3>Stash</h3>
+
+        <div class="card">
+            <p>Temporarily shelve uncommitted changes to work on something else.</p>
+            <div class="cmd">git stash</div>
+            <p>Stash working directory and staged changes.</p>
+            <div class="cmd">git stash list</div>
+            <p>List all stashed changes.</p>
+            <div class="cmd">git stash pop</div>
+            <p>Apply most recent stash and remove it from the stash list.</p>
+            <div class="cmd">git stash apply stash@{2}</div>
+            <p>Apply a specific stash without removing it.</p>
+            <div class="cmd">git stash drop stash@{0}</div>
+            <p>Delete a specific stash entry.</p>
+        </div>
+
+        <h3>Reset (Soft / Mixed / Hard)</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">git reset Modes Comparison</div>
+<pre>
+                     Working Dir    Staging Area    Commit History
+                     -----------    ------------    --------------
+git reset --soft      Unchanged      Unchanged      Moves HEAD back
+git reset --mixed     Unchanged      Reset          Moves HEAD back  (DEFAULT)
+git reset --hard      Reset          Reset          Moves HEAD back  (DANGEROUS)
+
+Example: Undo last 2 commits
+  git reset --soft HEAD~2   -> Changes back in staging (ready to re-commit)
+  git reset --mixed HEAD~2  -> Changes in working dir (need to re-add)
+  git reset --hard HEAD~2   -> Changes GONE (destructive!)
+</pre>
+        </div>
+
+        <h3>Revert</h3>
+
+        <div class="card">
+            <p><strong>Revert</strong> creates a NEW commit that undoes a previous commit. Safe for public branches because it doesn't rewrite history.</p>
+            <div class="cmd">git revert abc1234</div>
+            <p>Create a new commit that reverses the changes from <code>abc1234</code>.</p>
+            <div class="cmd">git revert HEAD~3..HEAD</div>
+            <p>Revert the last 3 commits (creates 3 new revert commits).</p>
+        </div>
+
+        <h3>Reflog</h3>
+
+        <div class="card">
+            <p><strong>Reflog</strong> records every change to HEAD, even those not in the regular log. It's your safety net for recovering "lost" commits.</p>
+            <div class="cmd">git reflog</div>
+            <p>Show reference log with all HEAD movements.</p>
+            <div class="cmd">git reset --hard HEAD@{5}</div>
+            <p>Recover state from 5 operations ago.</p>
+        </div>
+
+        <h3>Bisect</h3>
+
+        <div class="card">
+            <p><strong>Bisect</strong> uses binary search to find the commit that introduced a bug.</p>
+            <div class="cmd">git bisect start</div>
+            <div class="cmd">git bisect bad</div>
+            <p>Mark current commit as bad (has the bug).</p>
+            <div class="cmd">git bisect good v1.0</div>
+            <p>Mark a known good commit. Git will checkout the middle commit for testing.</p>
+            <div class="cmd">git bisect good</div>
+            <p>or <code>git bisect bad</code> after testing each commit. Repeat until the culprit is found.</p>
+            <div class="cmd">git bisect reset</div>
+            <p>End the bisect session.</p>
+        </div>
+
+        <h3>Interactive Rebase & Squash</h3>
+
+        <div class="card">
+            <p>Rewrite commit history by combining, reordering, editing, or dropping commits.</p>
+            <div class="cmd">git rebase -i HEAD~5</div>
+            <p>Opens editor with last 5 commits. Actions available:</p>
+            <div class="code-block">
+                <div class="code-header"><span class="filename">Interactive rebase commands</span></div>
+<pre>
+pick   abc1234 feat: add login page       # keep as-is
+squash def5678 fix: typo in login          # combine with previous
+fixup  ghi9012 fix: another typo           # combine, discard message
+reword jkl3456 feat: add dashboard         # edit commit message
+edit   mno7890 feat: add settings          # pause to amend
+drop   pqr1234 WIP: temporary commit       # remove entirely
+</pre>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 7. Git Hooks -->
+        <!-- ============================================ -->
+        <h2>7. Git Hooks</h2>
+
+        <div class="card">
+            <h4>What are Git Hooks?</h4>
+            <p>Scripts that run automatically at certain points in the Git workflow. Located in <code>.git/hooks/</code> (local) or managed via tools like <strong>Husky</strong> (shared with team).</p>
+        </div>
+
+        <table>
+            <tr>
+                <th>Hook</th>
+                <th>Trigger</th>
+                <th>Common Use</th>
+            </tr>
+            <tr>
+                <td><code>pre-commit</code></td>
+                <td>Before commit is created</td>
+                <td>Lint code, run formatters, check for secrets</td>
+            </tr>
+            <tr>
+                <td><code>commit-msg</code></td>
+                <td>After commit message is entered</td>
+                <td>Validate commit message format (Conventional Commits)</td>
+            </tr>
+            <tr>
+                <td><code>pre-push</code></td>
+                <td>Before push to remote</td>
+                <td>Run tests, check branch naming</td>
+            </tr>
+            <tr>
+                <td><code>prepare-commit-msg</code></td>
+                <td>Before commit message editor opens</td>
+                <td>Add ticket number from branch name</td>
+            </tr>
+            <tr>
+                <td><code>post-merge</code></td>
+                <td>After successful merge</td>
+                <td>Install dependencies if lock file changed</td>
+            </tr>
+        </table>
+
+        <h3>Hook Examples</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">.git/hooks/pre-commit</span>
+                <span class="tag tag-green">Shell</span>
+            </div>
+<pre>
+#!/bin/sh
+# Run linter before allowing commit
+echo "Running ESLint..."
+npx eslint --ext .js,.ts src/
+
+if [ $? -ne 0 ]; then
+  echo "Lint errors found. Fix them before committing."
+  exit 1
+fi
+
+# Check for secrets/credentials
+if git diff --cached --name-only | xargs grep -l "AWS_SECRET\|password\|api_key" 2>/dev/null; then
+  echo "Potential secrets detected! Review staged files."
+  exit 1
+fi
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">.git/hooks/commit-msg</span>
+                <span class="tag tag-green">Shell</span>
+            </div>
+<pre>
+#!/bin/sh
+# Enforce Conventional Commits format
+commit_msg=$(cat "$1")
+pattern="^(feat|fix|docs|style|refactor|test|chore|ci|perf|build)(\(.+\))?: .{1,72}$"
+
+if ! echo "$commit_msg" | grep -qE "$pattern"; then
+  echo "Invalid commit message format!"
+  echo "Expected: type(scope): description"
+  echo "Examples: feat(auth): add OAuth2 login"
+  echo "          fix: resolve null pointer in parser"
+  exit 1
+fi
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">package.json (Husky + lint-staged)</span>
+                <span class="tag tag-blue">JSON</span>
+            </div>
+<pre>
+{
+  "scripts": {
+    "prepare": "husky install"
+  },
+  "lint-staged": {
+    "*.{js,ts}": ["eslint --fix", "prettier --write"],
+    "*.{css,md}": ["prettier --write"]
+  }
+}
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 8. .gitignore -->
+        <!-- ============================================ -->
+        <h2>8. .gitignore</h2>
+
+        <div class="card">
+            <h4>Pattern Rules</h4>
+            <ul>
+                <li><code>*.log</code> - Ignore all .log files</li>
+                <li><code>build/</code> - Ignore entire directory</li>
+                <li><code>!important.log</code> - Negate (don't ignore this file)</li>
+                <li><code>**/temp</code> - Match in any subdirectory</li>
+                <li><code>doc/*.pdf</code> - Ignore PDFs only in doc/ (not subdirs)</li>
+                <li><code>doc/**/*.pdf</code> - Ignore PDFs in doc/ and all subdirs</li>
+                <li><code>#</code> - Comments</li>
+            </ul>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">.gitignore (common template)</span>
+                <span class="tag tag-orange">Config</span>
+            </div>
+<pre>
+# Dependencies
+node_modules/
+vendor/
+.venv/
+__pycache__/
+
+# Build output
+dist/
+build/
+*.o
+*.pyc
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment & Secrets
+.env
+.env.local
+*.pem
+*.key
+credentials.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Coverage & Testing
+coverage/
+.nyc_output/
+htmlcov/
+</pre>
+        </div>
+
+        <div class="card">
+            <h4>Global .gitignore</h4>
+            <p>Set a global gitignore for OS/IDE files that should never be committed from any repo:</p>
+            <div class="cmd">git config --global core.excludesfile ~/.gitignore_global</div>
+            <p>Add patterns like <code>.DS_Store</code>, <code>.idea/</code>, <code>*.swp</code> to your global file.</p>
+        </div>
+
+        <div class="card card-warning">
+            <h4>Already Tracked Files</h4>
+            <p>Adding a file to <code>.gitignore</code> won't remove it if it's already tracked. You must untrack it first:</p>
+            <div class="cmd">git rm --cached file.txt</div>
+            <p>Removes from tracking but keeps the file on disk.</p>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 9. Git in CI/CD -->
+        <!-- ============================================ -->
+        <h2>9. Git in CI/CD</h2>
+
+        <h3>Semantic Versioning</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Semantic Versioning (SemVer)</div>
+<pre>
+  MAJOR.MINOR.PATCH
+    |     |     |
+    |     |     +-- Bug fixes, patches (backward compatible)
+    |     +-------- New features (backward compatible)
+    +-------------- Breaking changes (incompatible API changes)
+
+  Examples:
+    1.0.0 -> 1.0.1  (patch: bug fix)
+    1.0.1 -> 1.1.0  (minor: new feature)
+    1.1.0 -> 2.0.0  (major: breaking change)
+
+  Pre-release: 1.0.0-alpha.1, 1.0.0-beta.2, 1.0.0-rc.1
+</pre>
+        </div>
+
+        <h3>Tags & Releases</h3>
+
+        <div class="card">
+            <div class="cmd">git tag v1.2.0</div>
+            <p>Create a lightweight tag.</p>
+            <div class="cmd">git tag -a v1.2.0 -m "Release 1.2.0: add OAuth support"</div>
+            <p>Create an annotated tag (recommended for releases).</p>
+            <div class="cmd">git push origin v1.2.0</div>
+            <p>Push a specific tag to remote.</p>
+            <div class="cmd">git push origin --tags</div>
+            <p>Push all tags to remote.</p>
+        </div>
+
+        <h3>Release Workflow (CI/CD)</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">.github/workflows/release.yml</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+name: Release
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: make build
+      - name: Run Tests
+        run: make test
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">.github/workflows/ci.yml (branch-based)</span>
+                <span class="tag tag-blue">YAML</span>
+            </div>
+<pre>
+name: CI
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for versioning
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to production
+        run: ./deploy.sh
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 10. Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>10. Interview Q&A</h2>
+
+        <div class="qa">
+            <div class="q">Q1: What is the difference between merge and rebase?</div>
+            <div class="a">
+                <p><strong>Merge</strong> creates a new merge commit that combines two branches, preserving the complete history and branch topology. <strong>Rebase</strong> replays commits from one branch onto another, creating a linear history but rewriting commit SHAs.</p>
+                <p>Use merge for shared branches (preserves context); use rebase for local cleanup (cleaner history). Never rebase public branches.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q2: How do you resolve a merge conflict?</div>
+            <div class="a">
+                <p>1) Run <code>git status</code> to identify conflicted files. 2) Open each file and look for conflict markers (<code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code>, <code>=======</code>, <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code>). 3) Edit to keep desired changes and remove markers. 4) <code>git add</code> resolved files. 5) <code>git commit</code> (or <code>git rebase --continue</code> if rebasing). Optionally use <code>git mergetool</code> for a visual diff.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q3: Compare GitFlow vs Trunk-Based Development. When would you use each?</div>
+            <div class="a">
+                <p><strong>GitFlow:</strong> Multiple long-lived branches (main, develop, feature, release, hotfix). Best for versioned releases, mobile apps, or teams needing strict release management.</p>
+                <p><strong>Trunk-Based:</strong> Single main branch with very short-lived feature branches. Requires strong CI/CD, feature flags, and team discipline. Best for SaaS, microservices, and continuous deployment.</p>
+                <p>Choose GitFlow when you need multiple supported versions; choose Trunk-Based for maximum velocity and continuous delivery.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q4: What is the difference between git reset and git revert?</div>
+            <div class="a">
+                <p><strong>git reset</strong> moves the HEAD pointer backward, potentially rewriting history. It's suitable for local/unpushed commits. Has three modes: <code>--soft</code> (keep staging), <code>--mixed</code> (unstage, keep working dir), <code>--hard</code> (discard everything).</p>
+                <p><strong>git revert</strong> creates a new commit that undoes a previous commit's changes. It's safe for public branches because it doesn't rewrite history.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q5: What are some use cases for cherry-pick?</div>
+            <div class="a">
+                <p>1) Backporting a bug fix from develop to a release branch. 2) Pulling a specific feature commit into a hotfix branch. 3) Recovering a commit from a deleted branch. 4) Applying a fix across multiple release versions. Be cautious: cherry-picked commits have different SHAs, so merging later may cause duplicates.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q6: How do you undo the last commit?</div>
+            <div class="a">
+                <p><strong>If not pushed:</strong> <code>git reset --soft HEAD~1</code> (keeps changes staged) or <code>git reset --mixed HEAD~1</code> (unstages changes).</p>
+                <p><strong>If already pushed:</strong> <code>git revert HEAD</code> (creates a new undo commit, safe for shared branches).</p>
+                <p><strong>If you want to discard entirely:</strong> <code>git reset --hard HEAD~1</code> (destructive, use with caution).</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q7: How do you squash commits?</div>
+            <div class="a">
+                <p>Use interactive rebase: <code>git rebase -i HEAD~N</code> where N is the number of commits to squash. In the editor, change <code>pick</code> to <code>squash</code> (or <code>fixup</code>) for commits to combine. Alternatively, when merging a PR, use "Squash and Merge" on GitHub/GitLab to combine all PR commits into one.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q8: What is git reflog and when would you use it?</div>
+            <div class="a">
+                <p>Reflog is a local log of all HEAD movements (commits, resets, checkouts, rebases). Use it to recover "lost" commits after a hard reset, find a previous state after a bad rebase, or identify when a branch was at a specific point. Example recovery: <code>git reflog</code> to find the SHA, then <code>git reset --hard HEAD@{n}</code>.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q9: What is git bisect and how does it work?</div>
+            <div class="a">
+                <p>Git bisect performs a binary search through commit history to find the exact commit that introduced a bug. You mark a "bad" commit (has the bug) and a "good" commit (before the bug). Git checks out the midpoint commit for you to test, then you mark it good or bad. This halves the search space each time, finding the culprit in O(log n) steps.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q10: How do Git hooks help in a team workflow?</div>
+            <div class="a">
+                <p>Git hooks automate quality gates: <strong>pre-commit</strong> runs linters/formatters (ensuring consistent code style), <strong>commit-msg</strong> enforces message conventions (Conventional Commits), <strong>pre-push</strong> runs tests (preventing broken pushes). Tools like <strong>Husky</strong> + <strong>lint-staged</strong> make hooks shareable via package.json. This shifts quality left, catching issues before code review.</p>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 11. Scenarios -->
+        <!-- ============================================ -->
+        <h2>11. Real-World Scenarios</h2>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#9888;</span>
+                <span class="title">Scenario: Accidentally Pushed Sensitive Data to Main</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Situation:</strong> A developer accidentally committed and pushed a file containing API keys to the main branch.</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span><strong>Immediately rotate the exposed credentials</strong> - consider them compromised regardless of how quickly you act.</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span><strong>Remove from history</strong> using git filter-branch or BFG Repo Cleaner:</span>
+                </div>
+
+                <div class="cmd">git filter-branch --force --index-filter 'git rm --cached --ignore-unmatch secrets.env' --prune-empty --tag-name-filter cat -- --all</div>
+                <p>Or use the faster BFG tool:</p>
+                <div class="cmd">bfg --delete-files secrets.env</div>
+                <div class="cmd">git reflog expire --expire=now --all && git gc --prune=now --aggressive</div>
+                <div class="cmd">git push --force-with-lease --all</div>
+
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span><strong>Add to .gitignore</strong> and set up pre-commit hooks to prevent future leaks.</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">4.</span>
+                    <span><strong>Notify team</strong> to re-clone or force-pull since history was rewritten.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#128270;</span>
+                <span class="title">Scenario: Lost Commits After Bad Reset (Reflog Recovery)</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Situation:</strong> A developer ran <code>git reset --hard HEAD~5</code> and lost important commits.</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span><strong>Don't panic.</strong> The commits still exist in the reflog for ~90 days.</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span><strong>Find the lost commit:</strong></span>
+                </div>
+                <div class="cmd">git reflog</div>
+                <div class="code-block">
+                    <div class="code-header"><span class="filename">reflog output</span></div>
+<pre>
+abc1234 HEAD@{0}: reset: moving to HEAD~5
+def5678 HEAD@{1}: commit: feat: add payment processing
+ghi9012 HEAD@{2}: commit: feat: add cart functionality
+jkl3456 HEAD@{3}: commit: fix: resolve auth bug
+</pre>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span><strong>Recover by resetting to the desired state:</strong></span>
+                </div>
+                <div class="cmd">git reset --hard def5678</div>
+                <p>Or create a new branch from the lost commit:</p>
+                <div class="cmd">git branch recovered-work def5678</div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#128295;</span>
+                <span class="title">Scenario: Merge Conflict in Pull Request</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Situation:</strong> Your PR cannot be merged because of conflicts with the target branch.</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span><strong>Update your local main:</strong></span>
+                </div>
+                <div class="cmd">git switch main && git pull origin main</div>
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span><strong>Switch to feature and merge/rebase main:</strong></span>
+                </div>
+                <div class="cmd">git switch feature/my-work</div>
+                <div class="cmd">git rebase main</div>
+                <p>(or <code>git merge main</code> if you prefer merge commits)</p>
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span><strong>Resolve conflicts</strong> in each file, then continue:</span>
+                </div>
+                <div class="cmd">git add resolved-file.txt</div>
+                <div class="cmd">git rebase --continue</div>
+                <div class="scenario-step">
+                    <span class="step-num">4.</span>
+                    <span><strong>Force push</strong> (only if you rebased, since SHAs changed):</span>
+                </div>
+                <div class="cmd">git push --force-with-lease origin feature/my-work</div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#128230;</span>
+                <span class="title">Scenario: Large File Accidentally Committed</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Situation:</strong> A 500MB binary file was committed and push fails or bloats the repo.</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span><strong>If not yet pushed</strong>, remove from history:</span>
+                </div>
+                <div class="cmd">git reset --soft HEAD~1</div>
+                <div class="cmd">git rm --cached large-file.bin</div>
+                <p>Add to <code>.gitignore</code>, then recommit.</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span><strong>If already pushed</strong>, use BFG or filter-branch:</span>
+                </div>
+                <div class="cmd">bfg --strip-blobs-bigger-than 100M</div>
+                <div class="cmd">git reflog expire --expire=now --all && git gc --prune=now</div>
+                <div class="cmd">git push --force-with-lease --all</div>
+
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span><strong>For future large files</strong>, use Git LFS:</span>
+                </div>
+                <div class="cmd">git lfs install</div>
+                <div class="cmd">git lfs track "*.bin" "*.zip" "*.tar.gz"</div>
+                <div class="cmd">git add .gitattributes</div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            Git Reference | K8s/DevOps/SRE Study Guide | 2026
+        </footer>
+
+    </div>
+
+</body>
+</html>

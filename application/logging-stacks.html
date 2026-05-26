@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logging Stacks - DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html" class="active">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> / <a href="../index.html">Application</a> / Logging Stacks
+        </div>
+
+        <h1>Logging Stacks</h1>
+        <p class="subtitle">ELK, EFK, Loki - log collection, aggregation, querying, and operational patterns for Kubernetes environments</p>
+
+        <!-- ============================================ -->
+        <!-- 1. Logging Architecture -->
+        <!-- ============================================ -->
+        <h2>1. Logging Architecture</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">Kubernetes Logging Pipeline</div>
+            <pre>
+  +------------------+     +------------------+     +------------------+
+  |   Application    |     |   Application    |     |   Application    |
+  |  (container)     |     |  (container)     |     |  (container)     |
+  +--------+---------+     +--------+---------+     +--------+---------+
+           |                         |                         |
+     stdout/stderr             stdout/stderr             stdout/stderr
+           |                         |                         |
+           v                         v                         v
+  +--------+---------+     +--------+---------+     +--------+---------+
+  | Container Runtime|     | Container Runtime|     | Container Runtime|
+  | (containerd/CRI) |     | (containerd/CRI) |     | (containerd/CRI) |
+  +--------+---------+     +--------+---------+     +--------+---------+
+           |                         |                         |
+           v                         v                         v
+  +--------+-------------------------+-------------------------+--------+
+  |                     Node Filesystem                                 |
+  |  /var/log/containers/&lt;pod&gt;_&lt;namespace&gt;_&lt;container&gt;-&lt;id&gt;.log        |
+  |  /var/log/pods/&lt;namespace&gt;_&lt;pod&gt;_&lt;uid&gt;/&lt;container&gt;/0.log           |
+  +--------+------------------------------------------------------------+
+           |
+           v  (DaemonSet collector reads from node)
+  +--------+-------------------------------------------+
+  |          LOG COLLECTOR (DaemonSet per node)         |
+  |  Fluent Bit / Fluentd / Promtail / Filebeat        |
+  |  - Tail log files                                  |
+  |  - Parse (JSON/regex)                              |
+  |  - Enrich (K8s metadata: pod, namespace, labels)   |
+  |  - Buffer                                          |
+  |  - Forward                                         |
+  +--------+-------------------------------------------+
+           |
+           v  (Optional aggregation layer)
+  +--------+-------------------------------------------+
+  |          AGGREGATOR (optional)                      |
+  |  Fluentd / Logstash / Vector                       |
+  |  - Cross-node aggregation                          |
+  |  - Complex transformations                         |
+  |  - Routing to multiple outputs                     |
+  +--------+-------------------------------------------+
+           |
+           v
+  +--------+-------------------------------------------+
+  |          STORAGE + INDEXING                          |
+  |  Elasticsearch / Loki / CloudWatch Logs             |
+  +--------+-------------------------------------------+
+           |
+           v
+  +--------+-------------------------------------------+
+  |          VISUALIZATION + QUERY                      |
+  |  Kibana / Grafana                                   |
+  +----------------------------------------------------+
+            </pre>
+        </div>
+
+        <div class="card card-info">
+            <h4>K8s Logging Fundamentals</h4>
+            <ul>
+                <li><strong>stdout/stderr:</strong> Container runtime captures stdout/stderr and writes to JSON log files on the node</li>
+                <li><strong>Log rotation:</strong> kubelet manages log rotation (default: 10MB per file, 5 files per container)</li>
+                <li><strong>Node path:</strong> <code>/var/log/containers/</code> contains symlinks to <code>/var/log/pods/</code></li>
+                <li><strong>kubectl logs:</strong> Reads from the container runtime API (only shows current/previous container logs)</li>
+                <li><strong>Log lifecycle:</strong> Logs are lost when a pod is deleted (unless collected by an external system)</li>
+                <li><strong>Multi-line:</strong> Stack traces appear as multiple log entries unless the application uses structured logging</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 2. Structured Logging -->
+        <!-- ============================================ -->
+        <h2>2. Structured Logging</h2>
+
+        <div class="grid-2">
+            <div class="card card-danger">
+                <h4>Unstructured (Bad)</h4>
+                <pre style="color: var(--text); font-size: 0.8rem; white-space: pre-wrap;">
+2024-03-15 10:23:45 ERROR Failed to process payment for user 12345: connection timeout to payment-gateway:443 after 30s
+2024-03-15 10:23:45 WARN Retrying payment for order #98765 (attempt 2/3)
+                </pre>
+                <p style="color: var(--text-muted); margin-top: 0.5rem;">Hard to parse, search, and aggregate. Requires regex/grok patterns.</p>
+            </div>
+
+            <div class="card card-success">
+                <h4>Structured JSON (Good)</h4>
+                <pre style="color: var(--text); font-size: 0.8rem; white-space: pre-wrap;">
+{"timestamp":"2024-03-15T10:23:45.123Z","level":"ERROR","service":"payment-api","trace_id":"abc123def456","span_id":"789xyz","message":"Failed to process payment","user_id":"12345","order_id":"98765","error":"connection timeout","target":"payment-gateway:443","timeout_ms":30000,"attempt":1,"max_attempts":3}
+                </pre>
+                <p style="color: var(--text-muted); margin-top: 0.5rem;">Machine-parseable, searchable by any field, easy to aggregate and correlate.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h4>Essential Structured Log Fields</h4>
+            <table>
+                <thead>
+                    <tr><th>Field</th><th>Purpose</th><th>Example</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>timestamp</code></td><td>ISO 8601 with timezone</td><td><code>2024-03-15T10:23:45.123Z</code></td></tr>
+                    <tr><td><code>level</code></td><td>Severity for filtering</td><td><code>ERROR</code>, <code>WARN</code>, <code>INFO</code></td></tr>
+                    <tr><td><code>service</code></td><td>Source service name</td><td><code>payment-api</code></td></tr>
+                    <tr><td><code>trace_id</code></td><td>Distributed trace correlation</td><td><code>abc123def456</code></td></tr>
+                    <tr><td><code>span_id</code></td><td>Specific operation within trace</td><td><code>789xyz</code></td></tr>
+                    <tr><td><code>message</code></td><td>Human-readable description</td><td><code>Failed to process payment</code></td></tr>
+                    <tr><td><code>error</code></td><td>Error type/message if applicable</td><td><code>connection timeout</code></td></tr>
+                    <tr><td><code>environment</code></td><td>Deployment environment</td><td><code>production</code></td></tr>
+                    <tr><td><code>version</code></td><td>Application version/commit</td><td><code>v2.3.1</code>, <code>abc123</code></td></tr>
+                    <tr><td><code>request_id</code></td><td>Unique request identifier</td><td><code>req-uuid-here</code></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 3. ELK Stack -->
+        <!-- ============================================ -->
+        <h2>3. ELK Stack (Elasticsearch + Logstash + Kibana)</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">ELK Architecture</div>
+            <pre>
+  +----------+     +----------+     +----------+
+  |  Beats   |     |  Beats   |     |  Beats   |     (Lightweight shippers)
+  | Filebeat |     | Filebeat |     | Filebeat |     on every node
+  +----+-----+     +----+-----+     +----+-----+
+       |                |                |
+       +----------------+----------------+
+                        |
+                        v
+          +-------------+-------------+
+          |         LOGSTASH           |
+          |  +--------+  +--------+   |
+          |  | Input  |->| Filter |   |    (Heavy processing)
+          |  | (beats)|  | (grok, |   |
+          |  |        |  |  mutate|   |
+          |  +--------+  +---+----+   |
+          |                   |       |
+          |              +----+----+  |
+          |              | Output  |  |
+          |              | (ES)    |  |
+          |              +---------+  |
+          +-------------+-------------+
+                        |
+                        v
+  +---------------------+---------------------+
+  |            ELASTICSEARCH CLUSTER           |
+  |  +--------+   +--------+   +--------+    |
+  |  | Master |   | Master |   | Master |    |  (3 masters for quorum)
+  |  +--------+   +--------+   +--------+    |
+  |  +--------+   +--------+   +--------+    |
+  |  |  Data  |   |  Data  |   |  Data  |    |  (Data nodes hold shards)
+  |  | (Hot)  |   | (Hot)  |   | (Warm) |    |
+  |  +--------+   +--------+   +--------+    |
+  +-------------------------------------------+
+                        |
+                        v
+          +-------------+-------------+
+          |          KIBANA            |
+          |  - Discover (search)       |
+          |  - Visualize (charts)      |
+          |  - Dashboards              |
+          |  - Dev Tools (query DSL)   |
+          +---------------------------+
+            </pre>
+        </div>
+
+        <div class="card">
+            <h4>Elasticsearch Concepts</h4>
+            <ul>
+                <li><strong>Index:</strong> Collection of documents (like a database table). Typically one index per day: <code>logs-2024.03.15</code></li>
+                <li><strong>Shard:</strong> Subdivision of an index. Each shard is a Lucene instance. Primary + Replica shards</li>
+                <li><strong>Replica:</strong> Copy of a primary shard on a different node for HA and read scaling</li>
+                <li><strong>Mapping:</strong> Schema defining field types (text, keyword, date, integer). Dynamic mapping auto-detects</li>
+                <li><strong>Inverted index:</strong> Core data structure - maps terms to documents containing them (enables fast full-text search)</li>
+                <li><strong>ILM (Index Lifecycle Management):</strong> Automates rollover, shrink, delete based on age/size</li>
+            </ul>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">logstash.conf - Pipeline Configuration</span>
+                <span class="tag tag-purple">Logstash</span>
+            </div>
+            <pre>
+input {
+  beats {
+    port => 5044
+    ssl => true
+    ssl_certificate => "/etc/logstash/certs/logstash.crt"
+    ssl_key => "/etc/logstash/certs/logstash.key"
+  }
+}
+
+filter {
+  # Parse JSON logs
+  if [message] =~ /^\{/ {
+    json {
+      source => "message"
+      target => "app"
+    }
+  } else {
+    # Parse unstructured logs with Grok
+    grok {
+      match => {
+        "message" => "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:msg}"
+      }
+    }
+  }
+
+  # Add Kubernetes metadata enrichment
+  if [kubernetes][namespace] {
+    mutate {
+      add_field => {
+        "environment" => "%{[kubernetes][namespace]}"
+        "service" => "%{[kubernetes][labels][app]}"
+      }
+    }
+  }
+
+  # Parse timestamps
+  date {
+    match => ["timestamp", "ISO8601", "yyyy-MM-dd HH:mm:ss"]
+    target => "@timestamp"
+  }
+
+  # Remove verbose/unnecessary fields
+  mutate {
+    remove_field => ["agent", "ecs", "host", "input"]
+  }
+
+  # GeoIP enrichment for access logs
+  if [client_ip] {
+    geoip {
+      source => "client_ip"
+      target => "geo"
+    }
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["https://es-cluster:9200"]
+    index => "logs-%{[kubernetes][namespace]}-%{+YYYY.MM.dd}"
+    user => "logstash_writer"
+    password => "${ES_PASSWORD}"
+    ssl => true
+    cacert => "/etc/logstash/certs/ca.crt"
+  }
+
+  # Dead letter queue for failed events
+  # (configured in logstash.yml: dead_letter_queue.enable: true)
+}
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 4. EFK Stack -->
+        <!-- ============================================ -->
+        <h2>4. EFK Stack (Elasticsearch + Fluentd + Kibana)</h2>
+
+        <div class="card card-info">
+            <h4>Fluentd vs Logstash</h4>
+            <table>
+                <thead>
+                    <tr><th>Feature</th><th>Fluentd</th><th>Logstash</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Language</td><td>Ruby + C</td><td>JRuby (JVM)</td></tr>
+                    <tr><td>Memory</td><td>~40MB (Fluent Bit: ~5MB)</td><td>~500MB-1GB (JVM)</td></tr>
+                    <tr><td>Buffering</td><td>Built-in (memory + file)</td><td>In-memory (persistent queues optional)</td></tr>
+                    <tr><td>Plugin ecosystem</td><td>700+ plugins</td><td>200+ plugins</td></tr>
+                    <tr><td>K8s native</td><td>CNCF graduated project</td><td>Elastic ecosystem</td></tr>
+                    <tr><td>Config format</td><td>Tag-based routing</td><td>Pipeline (input->filter->output)</td></tr>
+                    <tr><td>Backpressure</td><td>Built-in with retry/buffer</td><td>Requires tuning</td></tr>
+                    <tr><td>Best for</td><td>K8s, resource-constrained, routing</td><td>Complex transformations, ELK ecosystem</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">fluent.conf - Fluentd Configuration</span>
+                <span class="tag tag-green">Fluentd</span>
+            </div>
+            <pre>
+# INPUT: Tail container logs
+&lt;source&gt;
+  @type tail
+  path /var/log/containers/*.log
+  pos_file /var/log/fluentd-containers.pos
+  tag kubernetes.*
+  read_from_head true
+  &lt;parse&gt;
+    @type json
+    time_key time
+    time_format %Y-%m-%dT%H:%M:%S.%NZ
+  &lt;/parse&gt;
+&lt;/source&gt;
+
+# FILTER: Add Kubernetes metadata
+&lt;filter kubernetes.**&gt;
+  @type kubernetes_metadata
+  @id filter_kube_metadata
+  kubernetes_url "https://#{ENV['KUBERNETES_SERVICE_HOST']}:#{ENV['KUBERNETES_SERVICE_PORT']}"
+  cache_size 1000
+  watch true
+&lt;/filter&gt;
+
+# FILTER: Parse application JSON logs
+&lt;filter kubernetes.**&gt;
+  @type parser
+  key_name log
+  reserve_data true
+  remove_key_name_field true
+  &lt;parse&gt;
+    @type json
+    json_parser json
+  &lt;/parse&gt;
+&lt;/filter&gt;
+
+# FILTER: Exclude health check logs
+&lt;filter kubernetes.**&gt;
+  @type grep
+  &lt;exclude&gt;
+    key $.kubernetes.container_name
+    pattern /^(istio-proxy|linkerd-proxy)$/
+  &lt;/exclude&gt;
+  &lt;exclude&gt;
+    key message
+    pattern /health_check|readiness|liveness/
+  &lt;/exclude&gt;
+&lt;/filter&gt;
+
+# BUFFER + OUTPUT: Send to Elasticsearch
+&lt;match kubernetes.**&gt;
+  @type elasticsearch
+  @id out_es
+  host elasticsearch.monitoring.svc
+  port 9200
+  scheme https
+  user fluentd
+  password "#{ENV['ES_PASSWORD']}"
+  logstash_format true
+  logstash_prefix k8s-logs
+  logstash_dateformat %Y.%m.%d
+  include_tag_key true
+
+  &lt;buffer&gt;
+    @type file
+    path /var/log/fluentd-buffers/es-buffer
+    flush_mode interval
+    flush_interval 5s
+    flush_thread_count 2
+    retry_type exponential_backoff
+    retry_wait 1s
+    retry_max_interval 60s
+    retry_forever true
+    chunk_limit_size 8MB
+    queue_limit_length 32
+    overflow_action block
+  &lt;/buffer&gt;
+&lt;/match&gt;
+            </pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">fluentd-daemonset.yaml</span>
+                <span class="tag tag-blue">K8s DaemonSet</span>
+            </div>
+            <pre>
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd
+  namespace: logging
+  labels:
+    app: fluentd
+spec:
+  selector:
+    matchLabels:
+      app: fluentd
+  template:
+    metadata:
+      labels:
+        app: fluentd
+    spec:
+      serviceAccountName: fluentd
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
+      containers:
+        - name: fluentd
+          image: fluent/fluentd-kubernetes-daemonset:v1.16-debian-elasticsearch8
+          env:
+            - name: FLUENT_ELASTICSEARCH_HOST
+              value: "elasticsearch.monitoring.svc"
+            - name: FLUENT_ELASTICSEARCH_PORT
+              value: "9200"
+            - name: ES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elasticsearch-credentials
+                  key: password
+          resources:
+            requests:
+              cpu: 100m
+              memory: 200Mi
+            limits:
+              cpu: 500m
+              memory: 500Mi
+          volumeMounts:
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+            - name: containers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+            - name: fluentd-config
+              mountPath: /fluentd/etc
+            - name: buffer
+              mountPath: /var/log/fluentd-buffers
+      volumes:
+        - name: varlog
+          hostPath:
+            path: /var/log
+        - name: containers
+          hostPath:
+            path: /var/lib/docker/containers
+        - name: fluentd-config
+          configMap:
+            name: fluentd-config
+        - name: buffer
+          emptyDir: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fluentd
+  namespace: logging
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: fluentd
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "namespaces"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: fluentd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: fluentd
+subjects:
+  - kind: ServiceAccount
+    name: fluentd
+    namespace: logging
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 5. Loki + Promtail + Grafana -->
+        <!-- ============================================ -->
+        <h2>5. Loki + Promtail + Grafana</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">Loki Architecture (Like Prometheus, But for Logs)</div>
+            <pre>
+  +----------+     +----------+     +----------+
+  | Promtail |     | Promtail |     | Promtail |     (DaemonSet on each node)
+  | (Agent)  |     | (Agent)  |     | (Agent)  |     Tails log files, adds labels
+  +----+-----+     +----+-----+     +----+-----+
+       |                |                |
+       +----------------+----------------+
+                        |
+                        v (Push logs with labels)
+          +-------------+-------------+
+          |            LOKI            |
+          |  +---------------------+  |
+          |  |    Distributor      |  |   Validates, routes to ingesters
+          |  +----------+----------+  |
+          |             |             |
+          |  +----------v----------+  |
+          |  |     Ingester        |  |   Builds chunks in memory
+          |  +----------+----------+  |
+          |             |             |
+          |  +----------v----------+  |
+          |  |   Chunk Storage     |  |   S3/GCS/filesystem
+          |  |   (Only labels are  |  |
+          |  |    indexed, NOT     |  |
+          |  |    log content!)    |  |
+          |  +---------------------+  |
+          |  |   Index (BoltDB/    |  |
+          |  |   TSDB)             |  |
+          |  +---------------------+  |
+          |  |      Querier        |  |   Executes LogQL queries
+          |  +---------------------+  |
+          +---------------------------+
+                        |
+                        v
+          +-------------+-------------+
+          |          GRAFANA           |
+          |  - Explore (LogQL)         |
+          |  - Log panels in           |
+          |    dashboards              |
+          |  - Correlate with          |
+          |    Prometheus metrics      |
+          +---------------------------+
+
+  KEY INSIGHT: Loki only indexes LABELS (like Prometheus)
+  not the full log content. This makes it:
+  - Much cheaper to store (no full-text index)
+  - Much cheaper to operate (less CPU/memory)
+  - Slower for grep-style searches across all logs
+  - Fast for targeted queries with known labels
+            </pre>
+        </div>
+
+        <h3>LogQL Query Examples</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">LogQL Queries</span>
+                <span class="tag tag-purple">LogQL</span>
+            </div>
+            <pre>
+# Stream selectors (like Prometheus label selectors)
+{namespace="production", app="payment-api"}
+{namespace=~"prod|staging", container!="istio-proxy"}
+
+# Log pipeline: filter by content
+{app="payment-api"} |= "error"                    # Contains "error"
+{app="payment-api"} !~ "health_check|readiness"   # Does NOT match regex
+{app="payment-api"} |= "timeout" |= "payment"     # Contains both
+
+# Parse JSON logs and filter by fields
+{app="payment-api"} | json | level="ERROR"
+{app="payment-api"} | json | latency_ms > 1000
+{app="payment-api"} | json | status >= 500 | line_format "{{.message}}"
+
+# Parse with regex (for unstructured logs)
+{app="nginx"} | regexp `(?P&lt;ip&gt;\S+) .* (?P&lt;status&gt;\d{3}) (?P&lt;size&gt;\d+)`
+  | status >= 500
+
+# Metrics from logs (like recording rules)
+# Count errors per minute
+sum(rate({app="payment-api"} |= "error" [1m])) by (namespace)
+
+# Error rate percentage
+sum(rate({app="payment-api"} | json | level="ERROR" [5m])) by (service)
+/
+sum(rate({app="payment-api"} [5m])) by (service)
+* 100
+
+# P99 latency from log fields
+quantile_over_time(0.99,
+  {app="payment-api"} | json | unwrap latency_ms [5m]
+) by (endpoint)
+
+# Bytes rate (log volume)
+sum(bytes_rate({namespace="production"}[5m])) by (app)
+
+# Top 5 log producers
+topk(5, sum(rate({namespace="production"}[1h])) by (app))
+            </pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">promtail-config.yaml</span>
+                <span class="tag tag-green">Promtail</span>
+            </div>
+            <pre>
+server:
+  http_listen_port: 3101
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki.monitoring.svc:3100/loki/api/v1/push
+    tenant_id: default
+    batchwait: 1s
+    batchsize: 1048576   # 1MB
+    backoff_config:
+      min_period: 500ms
+      max_period: 5m
+      max_retries: 10
+
+scrape_configs:
+  # Scrape all K8s pod logs
+  - job_name: kubernetes-pods
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      # Only scrape pods with annotation
+      - source_labels: [__meta_kubernetes_pod_annotation_promtail_io_scrape]
+        action: drop
+        regex: false
+      # Use pod name as label
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      # Use namespace
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+      # Use container name
+      - source_labels: [__meta_kubernetes_pod_container_name]
+        target_label: container
+      # Use app label
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        target_label: app
+      # Set log path
+      - replacement: /var/log/pods/*$1/*.log
+        separator: /
+        source_labels:
+          - __meta_kubernetes_pod_uid
+          - __meta_kubernetes_pod_container_name
+        target_label: __path__
+
+    pipeline_stages:
+      # Parse container runtime log format
+      - cri: {}
+      # Parse JSON application logs
+      - json:
+          expressions:
+            level: level
+            message: message
+            trace_id: trace_id
+      # Set level as label (low cardinality)
+      - labels:
+          level:
+      # Drop debug logs in production
+      - match:
+          selector: '{namespace="production"}'
+          stages:
+            - drop:
+                expression: ".*level.*DEBUG.*"
+      # Add timestamp from log
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 6. ELK vs Loki Comparison -->
+        <!-- ============================================ -->
+        <h2>6. ELK vs Loki Comparison</h2>
+
+        <table>
+            <thead>
+                <tr><th>Aspect</th><th>ELK/EFK (Elasticsearch)</th><th>Loki + Grafana</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>Indexing</strong></td><td>Full-text inverted index (indexes ALL content)</td><td>Only indexes labels (not log content)</td></tr>
+                <tr><td><strong>Storage cost</strong></td><td>High (index can be 1-2x raw data size)</td><td>Low (compressed chunks, no content index)</td></tr>
+                <tr><td><strong>Query speed (known fields)</strong></td><td>Fast (already indexed)</td><td>Fast (label-based selection)</td></tr>
+                <tr><td><strong>Query speed (grep/search)</strong></td><td>Fast (full-text search is native)</td><td>Slower (must scan chunks with matching labels)</td></tr>
+                <tr><td><strong>Resource usage</strong></td><td>High (JVM heap, CPU for indexing)</td><td>Low (2-10x less memory/CPU)</td></tr>
+                <tr><td><strong>Scalability</strong></td><td>Complex (shard management, split-brain)</td><td>Simpler (microservices, object storage)</td></tr>
+                <tr><td><strong>Operational complexity</strong></td><td>High (cluster management, JVM tuning)</td><td>Low-Medium (especially with object storage)</td></tr>
+                <tr><td><strong>Multi-tenancy</strong></td><td>Index/alias based</td><td>Native tenant ID support</td></tr>
+                <tr><td><strong>Alerting on logs</strong></td><td>Elasticsearch Watcher / Kibana Alerts</td><td>Loki Ruler (PromQL-style alerting on log metrics)</td></tr>
+                <tr><td><strong>Integration</strong></td><td>Elastic ecosystem (APM, SIEM)</td><td>Grafana ecosystem (Prometheus, Tempo, Mimir)</td></tr>
+                <tr><td><strong>Best for</strong></td><td>Full-text search, security/SIEM, complex analytics</td><td>K8s-native, cost-sensitive, Prometheus users</td></tr>
+                <tr><td><strong>Cost at scale (100TB/month)</strong></td><td>$$$$ (many data nodes + large disks)</td><td>$$ (object storage is cheap)</td></tr>
+            </tbody>
+        </table>
+
+        <div class="card card-info">
+            <h4>When to Choose Which</h4>
+            <ul>
+                <li><strong>Choose Loki when:</strong> Already using Grafana/Prometheus, cost-sensitive, K8s-native, logs are well-labeled, grep-style search is acceptable</li>
+                <li><strong>Choose ELK when:</strong> Need full-text search (security/SIEM), complex log analytics, existing Elastic expertise, need to search unknown patterns across all logs</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 7. Log Collection in K8s -->
+        <!-- ============================================ -->
+        <h2>7. Log Collection in Kubernetes</h2>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>DaemonSet Pattern</h4>
+                <ul>
+                    <li><strong>How:</strong> One collector pod per node, reads all container logs from host filesystem</li>
+                    <li><strong>Pros:</strong> Low resource overhead, single config for all pods, no app changes needed</li>
+                    <li><strong>Cons:</strong> Only captures stdout/stderr, shared config limits per-app customization</li>
+                    <li><strong>Use when:</strong> Standard logging setup, most applications write to stdout</li>
+                    <li><strong>Tools:</strong> Fluent Bit (lightweight), Fluentd, Promtail, Filebeat</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h4>Sidecar Pattern</h4>
+                <ul>
+                    <li><strong>How:</strong> Dedicated logging container in each pod, shares volume with app container</li>
+                    <li><strong>Pros:</strong> Per-app config, can read file-based logs (not just stdout), isolation</li>
+                    <li><strong>Cons:</strong> More resource usage (collector per pod), more config to manage</li>
+                    <li><strong>Use when:</strong> App writes to files (not stdout), needs custom parsing, multi-tenant isolation</li>
+                    <li><strong>Tools:</strong> Fluentd sidecar, custom collectors</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <h4>Fluent Bit vs Fluentd</h4>
+            <table>
+                <thead>
+                    <tr><th>Feature</th><th>Fluent Bit</th><th>Fluentd</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Language</td><td>C</td><td>Ruby + C</td></tr>
+                    <tr><td>Memory</td><td>~5-15MB</td><td>~40-100MB</td></tr>
+                    <tr><td>Plugins</td><td>~80 built-in</td><td>700+ (gem-based)</td></tr>
+                    <tr><td>Role</td><td>Lightweight forwarder (DaemonSet)</td><td>Aggregator (Deployment)</td></tr>
+                    <tr><td>Processing</td><td>Basic parsing, filtering</td><td>Complex transformations, routing</td></tr>
+                    <tr><td>Buffering</td><td>Memory + limited file</td><td>Memory + file (robust)</td></tr>
+                </tbody>
+            </table>
+            <p><strong>Common pattern:</strong> Fluent Bit as DaemonSet (lightweight collector) -> Fluentd as Deployment (aggregation/transformation) -> Elasticsearch/Loki</p>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 8. Log Levels -->
+        <!-- ============================================ -->
+        <h2>8. Log Levels</h2>
+
+        <table>
+            <thead>
+                <tr><th>Level</th><th>When to Use</th><th>Production Behavior</th><th>Example</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="tag tag-purple">DEBUG</span></td>
+                    <td>Detailed diagnostic info for developers</td>
+                    <td>OFF in production (too verbose, fills storage)</td>
+                    <td>Variable values, function entry/exit, SQL queries</td>
+                </tr>
+                <tr>
+                    <td><span class="tag tag-blue">INFO</span></td>
+                    <td>Normal operation milestones</td>
+                    <td>ON - primary production log level</td>
+                    <td>Server started, request processed, job completed</td>
+                </tr>
+                <tr>
+                    <td><span class="tag tag-yellow">WARN</span></td>
+                    <td>Unexpected but recoverable situations</td>
+                    <td>ON - monitor for patterns</td>
+                    <td>Retry succeeded, deprecated API used, slow query</td>
+                </tr>
+                <tr>
+                    <td><span class="tag tag-red">ERROR</span></td>
+                    <td>Operation failed but service continues</td>
+                    <td>ON - alert on rate increase</td>
+                    <td>Payment failed, DB connection lost, API timeout</td>
+                </tr>
+                <tr>
+                    <td><span class="tag tag-red">FATAL</span></td>
+                    <td>Unrecoverable error, service will stop</td>
+                    <td>ON - immediate alert</td>
+                    <td>Cannot bind port, config file missing, OOM</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="card card-warning">
+            <h4>Production Log Level Best Practices</h4>
+            <ul>
+                <li><strong>Default to INFO:</strong> Production services should log at INFO level minimum</li>
+                <li><strong>Dynamic log levels:</strong> Implement ability to change log level at runtime (for debugging without redeploy)</li>
+                <li><strong>Rate-limit ERROR logs:</strong> If an error happens 1000x/sec, log it once with count, not 1000 times</li>
+                <li><strong>Never log sensitive data:</strong> Passwords, tokens, PII regardless of level</li>
+                <li><strong>Avoid logging in hot paths:</strong> Per-request logging should be INFO; avoid DEBUG in loops</li>
+                <li><strong>Context over volume:</strong> One rich structured log entry beats 10 sparse ones</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 9. Correlation -->
+        <!-- ============================================ -->
+        <h2>9. Correlation: Logs + Traces + Metrics</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">Three Pillars of Observability - Correlation</div>
+            <pre>
+              METRICS                  LOGS                    TRACES
+          (Prometheus)             (Loki/ELK)             (Tempo/Jaeger)
+              |                       |                        |
+  "Error rate spiked       "What errors are       "Which specific request
+   at 10:23"                happening?"            path is slow?"
+              |                       |                        |
+              +----------+------------+------------+-----------+
+                         |                         |
+                    [trace_id]                 [trace_id]
+                         |                         |
+                         v                         v
+              +-----------------------------------------+
+              |  CORRELATION via trace_id / request_id   |
+              |                                          |
+              |  Metric alert -> find logs with same     |
+              |  timestamp + service -> find trace_id    |
+              |  in logs -> view full distributed trace  |
+              +-----------------------------------------+
+
+  OpenTelemetry Approach:
+  +-------------+     +-----------+     +------------------+
+  |   App Code  | --> | OTel SDK  | --> | OTel Collector   |
+  | (auto-instr)|     | (unified) |     | (fan-out)        |
+  +-------------+     +-----------+     +----+-----+-------+
+                                             |     |     |
+                                             v     v     v
+                                         Prometheus Loki  Tempo
+            </pre>
+        </div>
+
+        <div class="card">
+            <h4>Trace ID Propagation</h4>
+            <ul>
+                <li><strong>W3C TraceContext:</strong> Standard header <code>traceparent: 00-{trace_id}-{span_id}-{flags}</code></li>
+                <li><strong>B3 (Zipkin):</strong> Headers <code>X-B3-TraceId</code>, <code>X-B3-SpanId</code>, <code>X-B3-ParentSpanId</code></li>
+                <li><strong>In logs:</strong> Include <code>trace_id</code> in every log line for correlation</li>
+                <li><strong>In metrics:</strong> Use exemplars to link metric data points to specific trace IDs</li>
+                <li><strong>Grafana:</strong> Derived fields in Loki can link <code>trace_id</code> directly to Tempo traces</li>
+            </ul>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">OpenTelemetry Collector Config (otel-collector.yaml)</span>
+                <span class="tag tag-orange">OTel</span>
+            </div>
+            <pre>
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 1000
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+  resource:
+    attributes:
+      - key: environment
+        value: production
+        action: upsert
+
+exporters:
+  prometheusremotewrite:
+    endpoint: "http://prometheus:9090/api/v1/write"
+  loki:
+    endpoint: "http://loki:3100/loki/api/v1/push"
+  otlp/tempo:
+    endpoint: "http://tempo:4317"
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [prometheusremotewrite]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [loki]
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp/tempo]
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 10. Retention & Cost -->
+        <!-- ============================================ -->
+        <h2>10. Retention & Cost Optimization</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">Hot/Warm/Cold Architecture (Elasticsearch)</div>
+            <pre>
+  Time:  Today    -7 days     -30 days      -90 days     -1 year
+         |         |            |              |             |
+         v         v            v              v             v
+  +------+---------+            |              |             |
+  |     HOT TIER   |            |              |             |
+  | (SSD, high CPU)|            |              |             |
+  | Recent data    |            |              |             |
+  | Fast queries   |            |              |             |
+  +--------+-------+            |              |             |
+           |                    |              |             |
+           | (ILM rollover     |              |             |
+           |  after 7 days)    |              |             |
+           v                    |              |             |
+  +--------+-------------------+|              |             |
+  |       WARM TIER             |              |              |
+  | (HDD, less CPU)            |              |             |
+  | Read-only, force-merged    |              |             |
+  | Fewer replicas (1 -> 0)    |              |             |
+  +--------+--------------------+              |             |
+           |                                   |             |
+           | (After 30 days)                   |             |
+           v                                   |             |
+  +--------+-----------------------------------+             |
+  |       COLD TIER (or Frozen)                |             |
+  | (Cheapest storage)                         |             |
+  | Searchable snapshots from S3               |             |
+  | Very slow queries (acceptable)             |             |
+  +--------+-------------------------------------+-----------+
+           |                                                 |
+           | (After 1 year)                                  |
+           v                                                 v
+  +--------+-------------------------------------------------+
+  |       DELETE or ARCHIVE to S3 Glacier                     |
+  +----------------------------------------------------------+
+            </pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Elasticsearch ILM Policy</span>
+                <span class="tag tag-blue">JSON</span>
+            </div>
+            <pre>
+PUT _ilm/policy/logs-lifecycle
+{
+  "policy": {
+    "phases": {
+      "hot": {
+        "min_age": "0ms",
+        "actions": {
+          "rollover": {
+            "max_age": "1d",
+            "max_primary_shard_size": "50gb"
+          },
+          "set_priority": { "priority": 100 }
+        }
+      },
+      "warm": {
+        "min_age": "7d",
+        "actions": {
+          "shrink": { "number_of_shards": 1 },
+          "forcemerge": { "max_num_segments": 1 },
+          "allocate": {
+            "require": { "data": "warm" },
+            "number_of_replicas": 0
+          },
+          "set_priority": { "priority": 50 }
+        }
+      },
+      "cold": {
+        "min_age": "30d",
+        "actions": {
+          "allocate": {
+            "require": { "data": "cold" }
+          },
+          "set_priority": { "priority": 0 }
+        }
+      },
+      "delete": {
+        "min_age": "90d",
+        "actions": {
+          "delete": {}
+        }
+      }
+    }
+  }
+}
+            </pre>
+        </div>
+
+        <div class="card">
+            <h4>Cost Optimization Strategies</h4>
+            <ul>
+                <li><strong>Drop debug logs in prod:</strong> Filter at collector level (save 50-80% volume)</li>
+                <li><strong>Sample verbose logs:</strong> Keep 1/10 of health check logs, all error logs</li>
+                <li><strong>Compress aggressively:</strong> Both Loki and ES support compression (zstd, deflate)</li>
+                <li><strong>Reduce replicas for old data:</strong> Warm/cold tiers need 0 replicas if using snapshots for backup</li>
+                <li><strong>Use object storage:</strong> S3 is 10-50x cheaper than SSD for archival</li>
+                <li><strong>Index only needed fields:</strong> Disable indexing for message body in ES (use keyword for structured fields)</li>
+                <li><strong>Monitor log volume:</strong> Alert on <code>sum(bytes_rate({namespace="production"}[1h])) by (app)</code> spikes</li>
+                <li><strong>Set per-namespace retention:</strong> Dev logs: 3 days, staging: 7 days, production: 30-90 days</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 11. Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>11. Interview Q&A</h2>
+
+        <div class="qa">
+            <div class="q">Q: When would you choose ELK over Loki (or vice versa)?</div>
+            <div class="a"><strong>A:</strong> Choose <strong>ELK when:</strong> (1) Need powerful full-text search across unknown patterns (security/SIEM use cases), (2) Complex log analytics with aggregations and visualizations, (3) Team already has Elastic expertise, (4) Regulatory requirements mandate searchable audit logs. Choose <strong>Loki when:</strong> (1) Already invested in Grafana/Prometheus ecosystem, (2) Cost is a primary concern (Loki is 5-10x cheaper at scale), (3) Logs are well-structured with good labels, (4) K8s-native deployment preferred, (5) Acceptable to query by known labels rather than arbitrary text search. Key insight: Loki trades query flexibility for dramatic cost reduction by not indexing log content.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: What are the benefits of structured logging?</div>
+            <div class="a"><strong>A:</strong> (1) <strong>Machine-parseable:</strong> No regex/grok needed - JSON fields are immediately queryable, (2) <strong>Consistent schema:</strong> Every log has same fields enabling aggregation (count errors by service), (3) <strong>Correlation:</strong> trace_id field enables linking logs to traces to metrics, (4) <strong>Reduced storage:</strong> Parsers don't need to run on every query (Loki can filter on parsed fields), (5) <strong>Better alerting:</strong> Can alert on specific field values (<code>| json | latency_ms > 1000</code>), (6) <strong>Developer experience:</strong> No need to write grok patterns - just access fields. Trade-off: slightly more work at application level (use a structured logging library).</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: DaemonSet vs Sidecar for log collection - when would you use each?</div>
+            <div class="a"><strong>A:</strong> <strong>DaemonSet (default choice):</strong> One collector per node tails <code>/var/log/containers/</code>. Pros: minimal resource overhead (one pod per node vs per application pod), simpler management, no app changes needed. Works when apps write to stdout/stderr. <strong>Sidecar:</strong> Collector container in each pod sharing a volume. Use when: (1) App writes logs to files not stdout (legacy apps), (2) Need per-app custom parsing that varies significantly between apps, (3) Multi-tenant environment where teams need isolated log configs, (4) Need to process logs before they leave the pod (sensitive data scrubbing). Rule: start with DaemonSet, add sidecars only for specific apps that need it.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: What log level strategy do you recommend for production?</div>
+            <div class="a"><strong>A:</strong> Production default should be <strong>INFO</strong>. Strategy: (1) INFO for request lifecycle (started, completed), service events (connected, disconnected), business events (order placed), (2) WARN for recoverable issues (retry succeeded, circuit breaker opened, slow dependency), (3) ERROR for failed operations that need investigation (payment failed, data inconsistency), (4) Never DEBUG in production by default. Critical additions: implement <strong>dynamic log levels</strong> (change at runtime via config map or API for debugging), <strong>rate-limit repetitive errors</strong>, and <strong>always include context</strong> (request_id, user_id, trace_id) so a single log line is enough to begin investigation.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: How do you implement correlation IDs across microservices?</div>
+            <div class="a"><strong>A:</strong> (1) <strong>Generate at ingress:</strong> API gateway/load balancer generates a unique trace_id (or use W3C TraceContext from client), (2) <strong>Propagate via headers:</strong> Every service extracts trace_id from incoming request headers and passes it to downstream calls, (3) <strong>Include in all logs:</strong> Structured logging middleware adds trace_id to every log statement automatically, (4) <strong>Include in metrics:</strong> Use Prometheus exemplars to link metric samples to trace_ids, (5) <strong>Implementation:</strong> Use OpenTelemetry SDK for automatic propagation, or middleware that extracts/injects <code>traceparent</code> header. This enables: searching all logs for one request across all services, linking a metric spike to the specific requests that caused it, viewing end-to-end trace timeline.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: How do you determine log retention strategy?</div>
+            <div class="a"><strong>A:</strong> Consider: (1) <strong>Compliance:</strong> Regulatory requirements (PCI: 1 year, SOX: 7 years, GDPR: minimize). These override all other factors. (2) <strong>Cost vs value:</strong> Most debugging happens within 7 days. After 30 days, logs rarely accessed. Use tiered storage. (3) <strong>Environment-based:</strong> Dev: 3 days, Staging: 7 days, Production: 30-90 days hot, 1 year cold/archived. (4) <strong>Log level based:</strong> ERROR logs retained longer (90 days), INFO shorter (14 days), DEBUG never in prod. (5) <strong>Implementation:</strong> Elasticsearch ILM with hot/warm/cold tiers, Loki retention policies per tenant, S3 lifecycle rules for archived data. Always monitor storage costs and log volume growth.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: How would you scale Elasticsearch for a high-volume logging cluster?</div>
+            <div class="a"><strong>A:</strong> (1) <strong>Separate node roles:</strong> Dedicated master (3, small), hot data (SSD, high CPU), warm data (HDD, large), coordinating (query routing). (2) <strong>Shard sizing:</strong> Target 30-50GB per shard, avoid too many shards (1000s per node causes overhead). Use ILM rollover by size. (3) <strong>Index per day + rollover:</strong> Don't keep growing one index. (4) <strong>Reduce replicas in warm/cold:</strong> 1 replica in hot, 0 in warm (use snapshots for durability). (5) <strong>Tune indexing:</strong> Increase refresh_interval (30s vs 1s), bulk indexing, reduce field mappings. (6) <strong>Memory:</strong> 50% of RAM to JVM heap (max 31GB), rest for filesystem cache. (7) <strong>Horizontal scaling:</strong> Add data nodes for throughput, use cross-cluster search for multi-cluster.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q: A team reports they cannot find logs for their pods in Kibana. How do you troubleshoot?</div>
+            <div class="a"><strong>A:</strong> Systematic approach: (1) <strong>Verify pod is logging:</strong> <code>kubectl logs &lt;pod&gt;</code> - confirm stdout has output. (2) <strong>Check log collector:</strong> Is Fluentd/Fluent Bit DaemonSet running on that node? Check its logs for errors. (3) <strong>Check node log files:</strong> <code>/var/log/containers/</code> - are log files being written? (4) <strong>Check collector config:</strong> Is the namespace/label excluded by a filter? Check <code>exclude</code> directives. (5) <strong>Check pipeline:</strong> Are logs reaching Elasticsearch? Check Logstash/Fluentd output metrics for rejected/errored events. (6) <strong>Check ES index:</strong> Is the index pattern in Kibana matching the actual index name? (7) <strong>Check time range:</strong> Is Kibana query time range correct? Timezone mismatch? (8) <strong>Check mapping conflicts:</strong> A field type conflict can cause documents to be rejected.</div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 12. Scenarios -->
+        <!-- ============================================ -->
+        <h2>12. Troubleshooting Scenarios</h2>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!!</span>
+                <span class="title">Scenario: Elasticsearch Cluster Red (Unassigned Shards)</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptoms:</strong> Cluster health is RED, some indices unavailable, Kibana shows "shard allocation failed", new logs not being indexed.</p>
+
+                <div class="scenario-step"><span class="step-num">1.</span> <span>Check cluster health: <code>GET _cluster/health</code> - shows number of unassigned shards</span></div>
+                <div class="scenario-step"><span class="step-num">2.</span> <span>Identify unassigned shards: <code>GET _cat/shards?v&h=index,shard,prirep,state,unassigned.reason&s=state</code></span></div>
+                <div class="scenario-step"><span class="step-num">3.</span> <span>Check allocation explanation: <code>GET _cluster/allocation/explain</code> - tells WHY shard cannot be allocated</span></div>
+                <div class="scenario-step"><span class="step-num">4.</span> <span><strong>Common causes:</strong> (a) Disk full (>85% watermark blocks allocation), (b) Node left cluster, (c) Allocation filtering rules, (d) Too many shards per node</span></div>
+                <div class="scenario-step"><span class="step-num">5.</span> <span><strong>Disk full fix:</strong> Delete old indices, increase disk, or lower watermark: <code>PUT _cluster/settings {"transient":{"cluster.routing.allocation.disk.watermark.high":"90%"}}</code></span></div>
+                <div class="scenario-step"><span class="step-num">6.</span> <span><strong>Node down fix:</strong> If node returns, shards auto-recover. If node permanently gone, reduce replica count or wait for timeout</span></div>
+                <div class="scenario-step"><span class="step-num">7.</span> <span><strong>Force allocate (last resort):</strong> <code>POST _cluster/reroute {"commands":[{"allocate_stale_primary":{"index":"...","shard":0,"node":"...","accept_data_loss":true}}]}</code></span></div>
+                <div class="scenario-step"><span class="step-num">8.</span> <span><strong>Prevention:</strong> Monitor disk usage, set ILM policies, alert on <code>elasticsearch_cluster_health_status{color="red"}</code></span></div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!!</span>
+                <span class="title">Scenario: Fluentd Losing Logs (Backpressure)</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptoms:</strong> Gaps in logs, Fluentd logs show "buffer overflow" or "chunk bytes limit exceeded", memory usage growing.</p>
+
+                <div class="scenario-step"><span class="step-num">1.</span> <span>Check Fluentd logs: <code>kubectl logs -n logging daemonset/fluentd | grep -i "overflow\|error\|retry"</code></span></div>
+                <div class="scenario-step"><span class="step-num">2.</span> <span>Identify bottleneck: Is the output (ES/Loki) slow to ingest? Check output latency metrics</span></div>
+                <div class="scenario-step"><span class="step-num">3.</span> <span>Check buffer status: Fluentd exposes <code>/api/plugins.json</code> - check buffer queue length and retry count</span></div>
+                <div class="scenario-step"><span class="step-num">4.</span> <span><strong>Immediate fix:</strong> Increase buffer limits: <code>chunk_limit_size 16MB</code>, <code>queue_limit_length 64</code></span></div>
+                <div class="scenario-step"><span class="step-num">5.</span> <span><strong>Use file buffer:</strong> Switch from memory buffer to file buffer: <code>@type file</code> with <code>path /var/log/fluentd-buffers/</code></span></div>
+                <div class="scenario-step"><span class="step-num">6.</span> <span><strong>Set overflow_action:</strong> <code>overflow_action block</code> (blocks input, preserves logs) vs <code>drop_oldest_chunk</code> (loses old data)</span></div>
+                <div class="scenario-step"><span class="step-num">7.</span> <span><strong>Scale output:</strong> Increase <code>flush_thread_count</code>, add more ES data nodes, or reduce log volume at source</span></div>
+                <div class="scenario-step"><span class="step-num">8.</span> <span><strong>Long-term:</strong> Add aggregation layer (Fluent Bit -> Fluentd aggregator -> ES), filter unnecessary logs earlier</span></div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!!</span>
+                <span class="title">Scenario: Loki Query Timeout</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptoms:</strong> Grafana shows "query timeout" or "context deadline exceeded" when searching logs in Loki.</p>
+
+                <div class="scenario-step"><span class="step-num">1.</span> <span>Check query: Broad queries without label selectors scan too much data. <code>{job=~".+"} |= "error"</code> scans EVERYTHING</span></div>
+                <div class="scenario-step"><span class="step-num">2.</span> <span><strong>Fix query:</strong> Always start with specific labels: <code>{namespace="production", app="my-service"} |= "error"</code></span></div>
+                <div class="scenario-step"><span class="step-num">3.</span> <span>Reduce time range: Query last 1 hour instead of 7 days. Loki scans linearly through chunks</span></div>
+                <div class="scenario-step"><span class="step-num">4.</span> <span>Check cardinality: Too many label values (like pod names) creates too many streams. Check <code>/loki/api/v1/series</code></span></div>
+                <div class="scenario-step"><span class="step-num">5.</span> <span>Increase limits: <code>query_timeout: 5m</code> in Loki config, <code>max_query_length: 720h</code></span></div>
+                <div class="scenario-step"><span class="step-num">6.</span> <span>Check querier resources: Loki queriers need CPU/memory to decompress and scan chunks. Scale horizontally</span></div>
+                <div class="scenario-step"><span class="step-num">7.</span> <span><strong>Long-term:</strong> Add better labels at ingestion, use recording rules for frequently-needed log metrics, consider bloom filters (Loki 3.0+)</span></div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!!</span>
+                <span class="title">Scenario: Disk Full From Logs</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptoms:</strong> Node disk at 100%, pods evicted with "DiskPressure", kubelet taint applied, new pods cannot schedule.</p>
+
+                <div class="scenario-step"><span class="step-num">1.</span> <span>Identify largest log files: <code>du -sh /var/log/containers/* | sort -rh | head -20</code></span></div>
+                <div class="scenario-step"><span class="step-num">2.</span> <span>Find the culprit pod: File name format is <code>&lt;pod&gt;_&lt;namespace&gt;_&lt;container&gt;-&lt;id&gt;.log</code></span></div>
+                <div class="scenario-step"><span class="step-num">3.</span> <span><strong>Immediate fix:</strong> Truncate the log file (not delete - container runtime still has handle): <code>truncate -s 0 /var/log/containers/culprit-pod*.log</code></span></div>
+                <div class="scenario-step"><span class="step-num">4.</span> <span>Check kubelet config: <code>containerLogMaxSize</code> (default 10Mi) and <code>containerLogMaxFiles</code> (default 5). If not set, logs grow unbounded</span></div>
+                <div class="scenario-step"><span class="step-num">5.</span> <span><strong>Fix the application:</strong> Investigate why it is logging so much. Stack trace in a loop? Debug logging enabled? Infinite retry with logging?</span></div>
+                <div class="scenario-step"><span class="step-num">6.</span> <span><strong>Prevention:</strong> Set kubelet log rotation, use resource quotas with ephemeral storage limits, alert on disk usage > 70%</span></div>
+                <div class="scenario-step"><span class="step-num">7.</span> <span>Add ephemeral storage limit to pod spec: <code>resources.limits.ephemeral-storage: 1Gi</code> (evicts pod if exceeded)</span></div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        <p>Logging Stacks Reference - DevOps/SRE Interview Preparation</p>
+    </footer>
+
+</body>
+</html>

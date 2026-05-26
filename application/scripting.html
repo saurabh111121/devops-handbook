@@ -1,0 +1,2306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scripting - K8s/DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html" class="active">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; <a href="../application/index.html" class="active">Application</a> &gt; <span>Scripting</span>
+        </nav>
+
+        <h1>Scripting</h1>
+        <p class="subtitle">Bash scripting, Python automation, text processing tools, system administration scripts, jq for JSON, and operational tooling patterns for DevOps and SRE.</p>
+
+        <!-- ============================================ -->
+        <!-- Section 1: Bash Fundamentals -->
+        <!-- ============================================ -->
+        <h2>1. Bash Fundamentals</h2>
+
+        <h3>Shebang and Script Setup</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">script-template.sh</span><span class="tag tag-green">Bash</span></div>
+<pre>
+#!/usr/bin/env bash
+# Use env for portability (finds bash in PATH)
+# Alternative: #!/bin/bash (hardcoded path)
+
+set -euo pipefail
+# -e: Exit immediately on any command failure
+# -u: Treat unset variables as errors
+# -o pipefail: Pipeline fails if ANY command fails (not just last)
+
+# Optional: enable debug mode
+# set -x  # Print each command before execution (noisy but useful)
+
+IFS=$'\n\t'
+# Set Internal Field Separator to newline and tab only
+# Prevents word-splitting issues with spaces in filenames
+</pre>
+        </div>
+
+        <h3>Variables and Quoting</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">variables.sh</span><span class="tag tag-green">Bash</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Variable assignment (NO spaces around =)
+NAME="John Doe"
+COUNT=42
+READONLY_VAR="immutable"
+readonly READONLY_VAR
+
+# Double quotes: variable expansion + glob protection
+echo "Hello, ${NAME}"          # Hello, John Doe
+echo "Files: $(ls | wc -l)"   # Command substitution
+echo "Home: $HOME"            # Variable expansion
+
+# Single quotes: literal string, NO expansion
+echo 'Hello, ${NAME}'         # Hello, ${NAME} (literal)
+echo 'No $expansion here'    # No $expansion here
+
+# When to use which:
+# Double quotes: ALMOST ALWAYS (protects against word splitting)
+# Single quotes: When you need literal $, `, or !
+# No quotes: NEVER (unless you know exactly why)
+
+# Default values
+ENVIRONMENT="${ENVIRONMENT:-production}"  # Use 'production' if unset
+DB_HOST="${DB_HOST:?Error: DB_HOST must be set}"  # Exit with error if unset
+
+# Arrays
+SERVERS=("web-01" "web-02" "web-03")
+echo "${SERVERS[0]}"           # First element: web-01
+echo "${SERVERS[@]}"           # All elements
+echo "${#SERVERS[@]}"          # Length: 3
+
+# Associative arrays (bash 4+)
+declare -A CONFIG
+CONFIG[host]="localhost"
+CONFIG[port]="5432"
+echo "${CONFIG[host]}:${CONFIG[port]}"
+</pre>
+        </div>
+
+        <h3>Exit Codes</h3>
+        <div class="card">
+            <table>
+                <tr><th>Code</th><th>Meaning</th></tr>
+                <tr><td>0</td><td>Success</td></tr>
+                <tr><td>1</td><td>General error</td></tr>
+                <tr><td>2</td><td>Misuse of shell command</td></tr>
+                <tr><td>126</td><td>Command found but not executable</td></tr>
+                <tr><td>127</td><td>Command not found</td></tr>
+                <tr><td>128+N</td><td>Fatal signal N (e.g., 130 = Ctrl+C / SIGINT)</td></tr>
+                <tr><td>255</td><td>Exit status out of range</td></tr>
+            </table>
+            <p><code>$?</code> holds the exit code of the last command. Use <code>exit 1</code> to exit with an error code.</p>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- Section 2: Bash Constructs -->
+        <!-- ============================================ -->
+        <h2>2. Bash Constructs</h2>
+
+        <h3>Conditionals</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">conditionals.sh</span><span class="tag tag-green">Bash</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+# if/elif/else
+if [[ -f "/etc/nginx/nginx.conf" ]]; then
+    echo "Nginx config exists"
+elif [[ -f "/etc/apache2/apache2.conf" ]]; then
+    echo "Apache config exists"
+else
+    echo "No web server config found"
+fi
+
+# Common test operators:
+# -f FILE    : file exists and is regular file
+# -d DIR     : directory exists
+# -z STRING  : string is empty
+# -n STRING  : string is not empty
+# -e PATH    : path exists (file or dir)
+# -r FILE    : file is readable
+# -w FILE    : file is writable
+# -x FILE    : file is executable
+# -s FILE    : file exists and is not empty
+
+# String comparison (use [[ ]] for safety)
+if [[ "$STATUS" == "running" ]]; then
+    echo "Service is running"
+fi
+
+# Numeric comparison
+if [[ "$DISK_USAGE" -gt 90 ]]; then
+    echo "WARNING: Disk usage above 90%"
+fi
+# -eq (equal), -ne (not equal), -lt (less than)
+# -le (less or equal), -gt (greater), -ge (greater or equal)
+
+# Regex matching
+if [[ "$EMAIL" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+    echo "Valid email format"
+fi
+
+# Logical operators
+if [[ -f "$FILE" && -r "$FILE" ]]; then
+    echo "File exists and is readable"
+fi
+</pre>
+        </div>
+
+        <h3>Loops</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">loops.sh</span><span class="tag tag-green">Bash</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+# For loop over list
+for server in web-01 web-02 web-03; do
+    echo "Checking $server..."
+    ssh "$server" "uptime"
+done
+
+# For loop over array
+SERVICES=("nginx" "postgres" "redis")
+for svc in "${SERVICES[@]}"; do
+    systemctl status "$svc" || echo "$svc is DOWN"
+done
+
+# C-style for loop
+for ((i=1; i<=5; i++)); do
+    echo "Attempt $i of 5"
+done
+
+# While loop (read lines from file)
+while IFS= read -r line; do
+    echo "Processing: $line"
+done < /etc/hosts
+
+# While loop (read command output)
+kubectl get pods -o name | while IFS= read -r pod; do
+    echo "Pod: $pod"
+done
+
+# Until loop (wait for condition)
+until curl -sf http://localhost:8080/health > /dev/null 2>&1; do
+    echo "Waiting for service to start..."
+    sleep 2
+done
+echo "Service is up!"
+
+# Loop with break/continue
+for file in /var/log/*.log; do
+    [[ ! -f "$file" ]] && continue   # Skip if not a file
+    size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null)
+    if [[ "$size" -gt 1073741824 ]]; then
+        echo "LARGE FILE: $file ($(( size / 1024 / 1024 ))MB)"
+    fi
+done
+</pre>
+        </div>
+
+        <h3>Case Statement</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">case-example.sh</span><span class="tag tag-green">Bash</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+ACTION="${1:-help}"
+
+case "$ACTION" in
+    start)
+        echo "Starting service..."
+        systemctl start myapp
+        ;;
+    stop)
+        echo "Stopping service..."
+        systemctl stop myapp
+        ;;
+    restart)
+        echo "Restarting service..."
+        systemctl restart myapp
+        ;;
+    status)
+        systemctl status myapp
+        ;;
+    deploy)
+        echo "Deploying..."
+        ./deploy.sh
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|status|deploy}"
+        exit 1
+        ;;
+esac
+</pre>
+        </div>
+
+        <h3>Functions</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">functions.sh</span><span class="tag tag-green">Bash</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Function definition
+log() {
+    local level="${1:-INFO}"
+    local message="${2:-}"
+    local timestamp
+    timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
+    echo "[$timestamp] [$level] $message" >&2
+}
+
+# Function with return value (via stdout)
+get_disk_usage() {
+    local mount_point="${1:-/}"
+    df -h "$mount_point" | awk 'NR==2 {print $5}' | tr -d '%'
+}
+
+# Function with error handling
+check_service() {
+    local service_name="$1"
+    local url="$2"
+    local timeout="${3:-5}"
+
+    if curl -sf --max-time "$timeout" "$url" > /dev/null 2>&1; then
+        log "INFO" "$service_name is healthy"
+        return 0
+    else
+        log "ERROR" "$service_name is DOWN at $url"
+        return 1
+    fi
+}
+
+# Usage
+log "INFO" "Starting health checks"
+usage=$(get_disk_usage "/")
+log "INFO" "Disk usage: ${usage}%"
+
+if check_service "API" "http://localhost:8080/health"; then
+    log "INFO" "All systems operational"
+else
+    log "ERROR" "Service degraded - triggering alert"
+    exit 1
+fi
+</pre>
+        </div>
+
+        <h3>String Manipulation</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">strings.sh</span><span class="tag tag-green">Bash</span></div>
+<pre>
+#!/usr/bin/env bash
+
+STR="Hello, World! Welcome to DevOps"
+
+# Length
+echo "${#STR}"                    # 31
+
+# Substring
+echo "${STR:7:5}"                 # World
+
+# Replace first occurrence
+echo "${STR/World/Earth}"         # Hello, Earth! Welcome to DevOps
+
+# Replace all occurrences
+echo "${STR//o/0}"                # Hell0, W0rld! Welc0me t0 Dev0ps
+
+# Remove prefix (shortest match)
+FILE="/var/log/nginx/access.log"
+echo "${FILE#*/}"                 # var/log/nginx/access.log
+
+# Remove prefix (longest match)
+echo "${FILE##*/}"                # access.log (basename)
+
+# Remove suffix (shortest match)
+echo "${FILE%/*}"                 # /var/log/nginx (dirname)
+
+# Remove suffix (longest match)
+echo "${FILE%%/*}"                # (empty - removes everything after first /)
+
+# Uppercase / Lowercase (bash 4+)
+echo "${STR^^}"                   # HELLO, WORLD! WELCOME TO DEVOPS
+echo "${STR,,}"                   # hello, world! welcome to devops
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- Section 3: Common DevOps Scripts -->
+        <!-- ============================================ -->
+        <h2>3. Common DevOps Scripts</h2>
+
+        <h3>Log Parser</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">log-parser.sh</span><span class="tag tag-orange">DevOps</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Parse Nginx access logs for top IPs, status codes, and slow requests
+
+LOG_FILE="${1:-/var/log/nginx/access.log}"
+TOP_N="${2:-10}"
+
+if [[ ! -f "$LOG_FILE" ]]; then
+    echo "Error: Log file not found: $LOG_FILE" >&2
+    exit 1
+fi
+
+echo "=== Top $TOP_N IP Addresses ==="
+awk '{print $1}' "$LOG_FILE" | sort | uniq -c | sort -rn | head -"$TOP_N"
+
+echo ""
+echo "=== HTTP Status Code Distribution ==="
+awk '{print $9}' "$LOG_FILE" | sort | uniq -c | sort -rn
+
+echo ""
+echo "=== Top $TOP_N Slowest Requests (by response time) ==="
+# Assumes log format includes $request_time as last field
+awk '{print $NF, $7}' "$LOG_FILE" | sort -rn | head -"$TOP_N"
+
+echo ""
+echo "=== 5xx Errors (last 50) ==="
+awk '$9 ~ /^5/ {print $1, $4, $7, $9}' "$LOG_FILE" | tail -50
+
+echo ""
+echo "=== Requests Per Minute (last 10 minutes) ==="
+awk '{print $4}' "$LOG_FILE" | cut -d: -f1-3 | uniq -c | tail -10
+</pre>
+        </div>
+
+        <h3>Health Checker</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">health-check.sh</span><span class="tag tag-orange">DevOps</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Health check multiple services and alert on failure
+
+SLACK_WEBHOOK="${SLACK_WEBHOOK:-}"
+TIMEOUT=5
+FAILURES=()
+
+declare -A SERVICES
+SERVICES=(
+    ["API Gateway"]="http://api.example.com/health"
+    ["User Service"]="http://user-svc:8080/health"
+    ["Order Service"]="http://order-svc:8080/health"
+    ["Payment Service"]="http://payment-svc:8080/health"
+    ["Database"]="http://localhost:5432"
+)
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+}
+
+check_service() {
+    local name="$1"
+    local url="$2"
+    local http_code
+
+    http_code=$(curl -sf -o /dev/null -w "%{http_code}" \
+        --max-time "$TIMEOUT" "$url" 2>/dev/null) || http_code="000"
+
+    if [[ "$http_code" == "200" ]]; then
+        log "OK: $name ($url) - HTTP $http_code"
+        return 0
+    else
+        log "FAIL: $name ($url) - HTTP $http_code"
+        FAILURES+=("$name ($http_code)")
+        return 1
+    fi
+}
+
+send_alert() {
+    local message="$1"
+    if [[ -n "$SLACK_WEBHOOK" ]]; then
+        curl -sf -X POST "$SLACK_WEBHOOK" \
+            -H 'Content-type: application/json' \
+            -d "{\"text\": \"$message\"}" > /dev/null 2>&1
+    fi
+    log "ALERT: $message"
+}
+
+# Run health checks
+log "Starting health checks..."
+for name in "${!SERVICES[@]}"; do
+    check_service "$name" "${SERVICES[$name]}" || true
+done
+
+# Report results
+if [[ ${#FAILURES[@]} -gt 0 ]]; then
+    alert_msg="HEALTH CHECK FAILURE: ${#FAILURES[@]} service(s) down: ${FAILURES[*]}"
+    send_alert "$alert_msg"
+    exit 1
+else
+    log "All ${#SERVICES[@]} services healthy"
+    exit 0
+fi
+</pre>
+        </div>
+
+        <h3>Backup Script</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">backup.sh</span><span class="tag tag-orange">DevOps</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Database backup with rotation, compression, and S3 upload
+
+DB_HOST="${DB_HOST:-localhost}"
+DB_PORT="${DB_PORT:-5432}"
+DB_NAME="${DB_NAME:-myapp_production}"
+DB_USER="${DB_USER:-backup_user}"
+BACKUP_DIR="/var/backups/postgres"
+S3_BUCKET="${S3_BUCKET:-my-backups-bucket}"
+RETENTION_DAYS=30
+TIMESTAMP="$(date '+%Y%m%d_%H%M%S')"
+BACKUP_FILE="${BACKUP_DIR}/${DB_NAME}_${TIMESTAMP}.sql.gz"
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+}
+
+cleanup() {
+    local exit_code=$?
+    if [[ $exit_code -ne 0 ]]; then
+        log "ERROR: Backup failed with exit code $exit_code"
+        rm -f "$BACKUP_FILE"  # Remove partial backup
+    fi
+}
+trap cleanup EXIT
+
+# Ensure backup directory exists
+mkdir -p "$BACKUP_DIR"
+
+# Create backup
+log "Starting backup of $DB_NAME..."
+pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -Fc "$DB_NAME" | \
+    gzip -9 > "$BACKUP_FILE"
+
+BACKUP_SIZE=$(du -sh "$BACKUP_FILE" | cut -f1)
+log "Backup complete: $BACKUP_FILE ($BACKUP_SIZE)"
+
+# Upload to S3
+log "Uploading to s3://$S3_BUCKET/postgres/..."
+aws s3 cp "$BACKUP_FILE" "s3://${S3_BUCKET}/postgres/" --storage-class STANDARD_IA
+log "Upload complete"
+
+# Rotate old local backups
+log "Removing local backups older than $RETENTION_DAYS days..."
+find "$BACKUP_DIR" -name "*.sql.gz" -mtime +"$RETENTION_DAYS" -delete
+
+# Verify backup integrity
+log "Verifying backup..."
+gunzip -t "$BACKUP_FILE"
+log "Backup verified successfully"
+
+log "=== Backup Summary ==="
+log "Database: $DB_NAME"
+log "File: $BACKUP_FILE"
+log "Size: $BACKUP_SIZE"
+log "S3: s3://$S3_BUCKET/postgres/$(basename "$BACKUP_FILE")"
+</pre>
+        </div>
+
+        <h3>Deployment Script</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">deploy.sh</span><span class="tag tag-orange">DevOps</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Blue-green deployment script for Kubernetes
+
+APP_NAME="${1:?Usage: $0 APP_NAME IMAGE_TAG}"
+IMAGE_TAG="${2:?Usage: $0 APP_NAME IMAGE_TAG}"
+NAMESPACE="${NAMESPACE:-production}"
+TIMEOUT="300s"
+HEALTH_URL="${HEALTH_URL:-http://localhost:8080/health}"
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$1] $2"
+}
+
+rollback() {
+    log "ERROR" "Deployment failed! Rolling back..."
+    kubectl rollout undo deployment/"$APP_NAME" -n "$NAMESPACE"
+    kubectl rollout status deployment/"$APP_NAME" -n "$NAMESPACE" --timeout=120s
+    log "INFO" "Rollback complete"
+    exit 1
+}
+trap rollback ERR
+
+# Pre-deployment checks
+log "INFO" "Starting deployment: $APP_NAME:$IMAGE_TAG"
+log "INFO" "Namespace: $NAMESPACE"
+
+# Verify image exists
+log "INFO" "Verifying image exists..."
+docker manifest inspect "registry.example.com/${APP_NAME}:${IMAGE_TAG}" > /dev/null 2>&1 || {
+    log "ERROR" "Image not found: ${APP_NAME}:${IMAGE_TAG}"
+    exit 1
+}
+
+# Record current state for rollback info
+CURRENT_IMAGE=$(kubectl get deployment "$APP_NAME" -n "$NAMESPACE" \
+    -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || echo "none")
+log "INFO" "Current image: $CURRENT_IMAGE"
+
+# Update deployment
+log "INFO" "Updating deployment..."
+kubectl set image deployment/"$APP_NAME" \
+    "$APP_NAME=registry.example.com/${APP_NAME}:${IMAGE_TAG}" \
+    -n "$NAMESPACE"
+
+# Wait for rollout
+log "INFO" "Waiting for rollout to complete (timeout: $TIMEOUT)..."
+kubectl rollout status deployment/"$APP_NAME" -n "$NAMESPACE" --timeout="$TIMEOUT"
+
+# Post-deployment health check
+log "INFO" "Running post-deployment health checks..."
+sleep 10  # Allow service to stabilize
+
+RETRIES=5
+for ((i=1; i<=RETRIES; i++)); do
+    if kubectl exec -n "$NAMESPACE" \
+        "$(kubectl get pod -n "$NAMESPACE" -l app="$APP_NAME" -o name | head -1)" \
+        -- curl -sf "$HEALTH_URL" > /dev/null 2>&1; then
+        log "INFO" "Health check passed (attempt $i/$RETRIES)"
+        break
+    fi
+    if [[ $i -eq $RETRIES ]]; then
+        log "ERROR" "Health check failed after $RETRIES attempts"
+        rollback
+    fi
+    sleep 5
+done
+
+log "INFO" "Deployment successful!"
+log "INFO" "  App: $APP_NAME"
+log "INFO" "  Image: ${APP_NAME}:${IMAGE_TAG}"
+log "INFO" "  Namespace: $NAMESPACE"
+</pre>
+        </div>
+
+        <h3>Cleanup Script</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">cleanup.sh</span><span class="tag tag-orange">DevOps</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Clean up old Docker images, unused volumes, and stale K8s resources
+
+DRY_RUN="${DRY_RUN:-true}"
+DOCKER_IMAGE_AGE="7 days"
+LOG_RETENTION_DAYS=30
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+}
+
+run_cmd() {
+    if [[ "$DRY_RUN" == "true" ]]; then
+        log "[DRY RUN] Would execute: $*"
+    else
+        "$@"
+    fi
+}
+
+log "=== Cleanup Starting (DRY_RUN=$DRY_RUN) ==="
+
+# 1. Docker cleanup
+log "--- Docker Cleanup ---"
+log "Dangling images:"
+docker images -f "dangling=true" -q | wc -l | xargs -I{} log "  {} dangling images found"
+run_cmd docker image prune -f
+
+log "Unused volumes:"
+docker volume ls -f "dangling=true" -q | wc -l | xargs -I{} log "  {} unused volumes found"
+run_cmd docker volume prune -f
+
+log "Stopped containers:"
+docker ps -a -f "status=exited" -q | wc -l | xargs -I{} log "  {} stopped containers found"
+run_cmd docker container prune -f
+
+# 2. Old log files
+log "--- Log Cleanup ---"
+OLD_LOGS=$(find /var/log -name "*.log.*" -mtime +"$LOG_RETENTION_DAYS" 2>/dev/null | wc -l)
+log "  $OLD_LOGS log files older than $LOG_RETENTION_DAYS days"
+if [[ "$DRY_RUN" != "true" ]]; then
+    find /var/log -name "*.log.*" -mtime +"$LOG_RETENTION_DAYS" -delete 2>/dev/null || true
+fi
+
+# 3. /tmp cleanup
+log "--- Temp File Cleanup ---"
+OLD_TMP=$(find /tmp -type f -atime +7 2>/dev/null | wc -l)
+log "  $OLD_TMP temp files not accessed in 7 days"
+if [[ "$DRY_RUN" != "true" ]]; then
+    find /tmp -type f -atime +7 -delete 2>/dev/null || true
+fi
+
+# 4. Kubernetes completed jobs
+log "--- Kubernetes Cleanup ---"
+COMPLETED_JOBS=$(kubectl get jobs --all-namespaces \
+    --field-selector status.successful=1 -o name 2>/dev/null | wc -l)
+log "  $COMPLETED_JOBS completed jobs found"
+if [[ "$DRY_RUN" != "true" ]]; then
+    kubectl delete jobs --all-namespaces \
+        --field-selector status.successful=1 2>/dev/null || true
+fi
+
+# 5. Evicted pods
+EVICTED_PODS=$(kubectl get pods --all-namespaces \
+    --field-selector status.phase=Failed -o name 2>/dev/null | wc -l)
+log "  $EVICTED_PODS failed/evicted pods found"
+if [[ "$DRY_RUN" != "true" ]]; then
+    kubectl delete pods --all-namespaces \
+        --field-selector status.phase=Failed 2>/dev/null || true
+fi
+
+log "=== Cleanup Complete ==="
+log "Set DRY_RUN=false to execute (currently: $DRY_RUN)"
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- Section 4: Text Processing -->
+        <!-- ============================================ -->
+        <h2>4. Text Processing</h2>
+
+        <h3>grep (Pattern Matching)</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">grep examples</span><span class="tag tag-blue">Text</span></div>
+<pre>
+# Basic search
+grep "ERROR" /var/log/app.log
+
+# Case-insensitive
+grep -i "error" /var/log/app.log
+
+# Recursive search in directory
+grep -r "TODO" ./src/
+
+# Show line numbers
+grep -n "connection refused" /var/log/app.log
+
+# Count matches
+grep -c "404" /var/log/nginx/access.log
+
+# Extended regex (ERE)
+grep -E "ERROR|FATAL|CRITICAL" /var/log/app.log
+
+# Invert match (lines NOT matching)
+grep -v "^#" /etc/nginx/nginx.conf | grep -v "^$"  # Remove comments and blank lines
+
+# Show context (3 lines before and after)
+grep -B3 -A3 "OutOfMemory" /var/log/app.log
+
+# Only filenames containing match
+grep -rl "password" /etc/
+
+# Fixed string (not regex)
+grep -F "192.168.1.1" /var/log/auth.log
+
+# Perl-compatible regex (PCRE)
+grep -P "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" access.log  # Match IPs
+</pre>
+        </div>
+
+        <h3>sed (Stream Editor)</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">sed examples</span><span class="tag tag-blue">Text</span></div>
+<pre>
+# Basic substitution (first occurrence per line)
+sed 's/old/new/' file.txt
+
+# Global substitution (all occurrences)
+sed 's/http/https/g' urls.txt
+
+# In-place edit (modifies file)
+sed -i 's/DEBUG/INFO/g' config.yaml
+
+# In-place with backup
+sed -i.bak 's/localhost/db.example.com/g' config.yaml
+
+# Delete lines matching pattern
+sed '/^#/d' config.conf          # Remove comment lines
+sed '/^$/d' file.txt             # Remove empty lines
+
+# Print only matching lines (like grep)
+sed -n '/ERROR/p' app.log
+
+# Replace on specific line number
+sed '3s/foo/bar/' file.txt       # Only line 3
+
+# Insert line before/after match
+sed '/\[server\]/a\    port = 8080' config.ini    # After
+sed '/\[server\]/i\# Server config' config.ini   # Before
+
+# Multiple operations
+sed -e 's/foo/bar/g' -e 's/baz/qux/g' file.txt
+
+# Extract between patterns
+sed -n '/START/,/END/p' file.txt
+</pre>
+        </div>
+
+        <h3>awk (Field Processing)</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">awk examples</span><span class="tag tag-blue">Text</span></div>
+<pre>
+# Print specific columns
+awk '{print $1, $4}' access.log          # IP and timestamp
+
+# Custom field separator
+awk -F: '{print $1, $3}' /etc/passwd     # Username and UID
+
+# Filter by condition
+awk '$9 >= 500' access.log               # 5xx status codes
+awk '$NF > 1.0' access.log              # Slow requests (last field > 1s)
+
+# Sum a column
+awk '{sum += $5} END {print "Total:", sum}' data.txt
+
+# Count occurrences
+awk '{count[$1]++} END {for (ip in count) print count[ip], ip}' access.log | sort -rn
+
+# Format output
+awk '{printf "%-20s %10s %s\n", $1, $5, $7}' access.log
+
+# Multiple conditions
+awk '$9 == 404 && $7 ~ /api/ {print $1, $7}' access.log
+
+# Calculate average
+awk '{sum += $NF; n++} END {print "Average:", sum/n}' response_times.log
+
+# Process CSV
+awk -F',' '{print $2, $4}' data.csv
+
+# BEGIN/END blocks
+awk 'BEGIN {print "IP\t\tCount"} {c[$1]++} END {for(i in c) print i"\t"c[i]}' access.log
+</pre>
+        </div>
+
+        <h3>Other Essential Tools</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">text-tools.sh</span><span class="tag tag-blue">Text</span></div>
+<pre>
+# cut - extract fields by delimiter or position
+cut -d: -f1,3 /etc/passwd           # Fields 1 and 3, colon-delimited
+cut -c1-10 file.txt                  # First 10 characters of each line
+
+# sort - sort lines
+sort -t: -k3 -n /etc/passwd          # Sort by 3rd field, numeric
+sort -u file.txt                     # Sort and deduplicate
+sort -rn                             # Reverse numeric sort
+
+# uniq - filter duplicates (requires sorted input)
+sort access.log | uniq -c | sort -rn  # Count duplicates
+uniq -d sorted.txt                    # Show only duplicates
+
+# tr - translate/delete characters
+echo "Hello World" | tr 'a-z' 'A-Z'  # Uppercase
+echo "  extra  spaces  " | tr -s ' '  # Squeeze repeated spaces
+cat file.txt | tr -d '\r'            # Remove Windows line endings
+
+# xargs - build commands from stdin
+find . -name "*.log" | xargs rm      # Delete found files
+find . -name "*.py" | xargs grep "import os"  # Search in files
+echo "a b c" | xargs -n1             # One item per line
+find . -name "*.txt" -print0 | xargs -0 wc -l  # Handle spaces in names
+
+# tee - write to file AND stdout
+./deploy.sh 2>&1 | tee deploy.log    # Log output while watching it
+
+# wc - count lines/words/chars
+wc -l access.log                     # Count lines
+find . -name "*.go" | wc -l          # Count Go files
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- Section 5: System Administration Scripts -->
+        <!-- ============================================ -->
+        <h2>5. System Administration Scripts</h2>
+
+        <h3>Disk Usage Monitor</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">disk-monitor.sh</span><span class="tag tag-purple">SysAdmin</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+THRESHOLD="${THRESHOLD:-85}"
+ALERT_EMAIL="${ALERT_EMAIL:-ops@example.com}"
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+}
+
+alerts=()
+
+while IFS= read -r line; do
+    usage=$(echo "$line" | awk '{print $5}' | tr -d '%')
+    mount=$(echo "$line" | awk '{print $6}')
+    filesystem=$(echo "$line" | awk '{print $1}')
+
+    if [[ "$usage" -ge "$THRESHOLD" ]]; then
+        msg="WARNING: ${mount} is ${usage}% full (${filesystem})"
+        log "$msg"
+        alerts+=("$msg")
+
+        # Find largest files in the mount point
+        log "  Top 5 largest files:"
+        find "$mount" -xdev -type f -exec du -sh {} + 2>/dev/null | \
+            sort -rh | head -5 | while IFS= read -r f; do
+            log "    $f"
+        done
+    fi
+done < <(df -h --output=source,size,used,avail,pcent,target | tail -n+2 | grep -v tmpfs)
+
+if [[ ${#alerts[@]} -gt 0 ]]; then
+    log "Sending alert for ${#alerts[@]} filesystem(s)..."
+    printf '%s\n' "${alerts[@]}" | mail -s "DISK ALERT: $(hostname)" "$ALERT_EMAIL" 2>/dev/null || true
+    exit 1
+fi
+
+log "All filesystems below ${THRESHOLD}% threshold"
+</pre>
+        </div>
+
+        <h3>Process Management</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">process-manager.sh</span><span class="tag tag-purple">SysAdmin</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Kill processes consuming more than N% CPU or memory
+
+CPU_THRESHOLD="${CPU_THRESHOLD:-90}"
+MEM_THRESHOLD="${MEM_THRESHOLD:-85}"
+PROTECTED_PROCS="sshd|systemd|init|dockerd|kubelet"
+DRY_RUN="${DRY_RUN:-true}"
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+}
+
+log "Checking for resource-heavy processes..."
+log "Thresholds: CPU > ${CPU_THRESHOLD}%, MEM > ${MEM_THRESHOLD}%"
+log "DRY_RUN: $DRY_RUN"
+
+# High CPU processes
+ps aux --sort=-%cpu | awk -v threshold="$CPU_THRESHOLD" \
+    'NR>1 && $3 > threshold {print $2, $3, $11}' | \
+while read -r pid cpu cmd; do
+    if echo "$cmd" | grep -qE "$PROTECTED_PROCS"; then
+        log "SKIP (protected): PID=$pid CPU=${cpu}% CMD=$cmd"
+        continue
+    fi
+    log "HIGH CPU: PID=$pid CPU=${cpu}% CMD=$cmd"
+    if [[ "$DRY_RUN" != "true" ]]; then
+        kill -15 "$pid" 2>/dev/null || true  # SIGTERM (graceful)
+        sleep 5
+        kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null || true  # SIGKILL if still alive
+        log "  Killed PID $pid"
+    fi
+done
+
+# High memory processes
+ps aux --sort=-%mem | awk -v threshold="$MEM_THRESHOLD" \
+    'NR>1 && $4 > threshold {print $2, $4, $11}' | \
+while read -r pid mem cmd; do
+    if echo "$cmd" | grep -qE "$PROTECTED_PROCS"; then
+        log "SKIP (protected): PID=$pid MEM=${mem}% CMD=$cmd"
+        continue
+    fi
+    log "HIGH MEM: PID=$pid MEM=${mem}% CMD=$cmd"
+    if [[ "$DRY_RUN" != "true" ]]; then
+        kill -15 "$pid" 2>/dev/null || true
+        log "  Sent SIGTERM to PID $pid"
+    fi
+done
+</pre>
+        </div>
+
+        <h3>Cron Job Examples</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">crontab -e</span><span class="tag tag-purple">SysAdmin</span></div>
+<pre>
+# Backup database every day at 2 AM
+0 2 * * * /opt/scripts/backup.sh >> /var/log/backup.log 2>&1
+
+# Health check every 5 minutes
+*/5 * * * * /opt/scripts/health-check.sh >> /var/log/health.log 2>&1
+
+# Cleanup old files every Sunday at 3 AM
+0 3 * * 0 /opt/scripts/cleanup.sh DRY_RUN=false >> /var/log/cleanup.log 2>&1
+
+# Rotate logs at midnight
+0 0 * * * /usr/sbin/logrotate /etc/logrotate.conf
+
+# SSL cert check every Monday at 9 AM
+0 9 * * 1 /opt/scripts/check-certs.sh >> /var/log/cert-check.log 2>&1
+
+# Disk usage alert every hour
+0 * * * * /opt/scripts/disk-monitor.sh >> /var/log/disk-monitor.log 2>&1
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- Section 6: Python for DevOps -->
+        <!-- ============================================ -->
+        <h2>6. Python for DevOps</h2>
+
+        <h3>AWS EC2 Inventory with boto3</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">ec2_inventory.py</span><span class="tag tag-yellow">Python</span></div>
+<pre>
+#!/usr/bin/env python3
+"""Generate EC2 instance inventory across all regions."""
+
+import boto3
+import json
+from datetime import datetime
+
+
+def get_all_regions():
+    """Get all available AWS regions."""
+    ec2 = boto3.client('ec2', region_name='us-east-1')
+    regions = ec2.describe_regions()['Regions']
+    return [r['RegionName'] for r in regions]
+
+
+def get_instances(region):
+    """Get all EC2 instances in a region."""
+    ec2 = boto3.client('ec2', region_name=region)
+    instances = []
+
+    paginator = ec2.get_paginator('describe_instances')
+    for page in paginator.paginate():
+        for reservation in page['Reservations']:
+            for instance in reservation['Instances']:
+                name = ''
+                for tag in instance.get('Tags', []):
+                    if tag['Key'] == 'Name':
+                        name = tag['Value']
+                        break
+
+                instances.append({
+                    'id': instance['InstanceId'],
+                    'name': name,
+                    'type': instance['InstanceType'],
+                    'state': instance['State']['Name'],
+                    'az': instance['Placement']['AvailabilityZone'],
+                    'private_ip': instance.get('PrivateIpAddress', 'N/A'),
+                    'public_ip': instance.get('PublicIpAddress', 'N/A'),
+                    'launch_time': instance['LaunchTime'].isoformat(),
+                })
+
+    return instances
+
+
+def main():
+    inventory = {}
+    total = 0
+
+    for region in get_all_regions():
+        instances = get_instances(region)
+        if instances:
+            inventory[region] = instances
+            total += len(instances)
+            print(f"  {region}: {len(instances)} instances")
+
+    print(f"\nTotal: {total} instances across {len(inventory)} regions")
+
+    # Save to JSON
+    output_file = f"ec2_inventory_{datetime.now():%Y%m%d_%H%M%S}.json"
+    with open(output_file, 'w') as f:
+        json.dump(inventory, f, indent=2, default=str)
+    print(f"Saved to {output_file}")
+
+
+if __name__ == '__main__':
+    main()
+</pre>
+        </div>
+
+        <h3>Kubernetes Pod Health Checker</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">k8s_health.py</span><span class="tag tag-yellow">Python</span></div>
+<pre>
+#!/usr/bin/env python3
+"""Check health of Kubernetes pods and report issues."""
+
+from kubernetes import client, config
+from datetime import datetime, timezone
+import sys
+
+
+def load_config():
+    """Load kubeconfig (in-cluster or local)."""
+    try:
+        config.load_incluster_config()
+    except config.ConfigException:
+        config.load_kube_config()
+
+
+def check_pod_health(namespace='default'):
+    """Check all pods in namespace for issues."""
+    v1 = client.CoreV1Api()
+    issues = []
+
+    pods = v1.list_namespaced_pod(namespace)
+
+    for pod in pods.items:
+        pod_name = pod.metadata.name
+        status = pod.status.phase
+
+        # Check for non-running pods
+        if status not in ('Running', 'Succeeded'):
+            issues.append({
+                'pod': pod_name,
+                'issue': f'Pod in {status} phase',
+                'severity': 'critical' if status == 'Failed' else 'warning',
+            })
+
+        # Check container restarts
+        if pod.status.container_statuses:
+            for container in pod.status.container_statuses:
+                if container.restart_count > 5:
+                    issues.append({
+                        'pod': pod_name,
+                        'container': container.name,
+                        'issue': f'{container.restart_count} restarts',
+                        'severity': 'warning',
+                    })
+
+                # Check for CrashLoopBackOff
+                if container.state.waiting:
+                    reason = container.state.waiting.reason
+                    if reason in ('CrashLoopBackOff', 'ImagePullBackOff', 'ErrImagePull'):
+                        issues.append({
+                            'pod': pod_name,
+                            'container': container.name,
+                            'issue': reason,
+                            'severity': 'critical',
+                        })
+
+        # Check pod age (stuck in Pending)
+        if status == 'Pending' and pod.metadata.creation_timestamp:
+            age = datetime.now(timezone.utc) - pod.metadata.creation_timestamp
+            if age.total_seconds() > 300:  # 5 minutes
+                issues.append({
+                    'pod': pod_name,
+                    'issue': f'Pending for {age.total_seconds()//60:.0f} minutes',
+                    'severity': 'warning',
+                })
+
+    return issues
+
+
+def main():
+    load_config()
+    namespace = sys.argv[1] if len(sys.argv) > 1 else 'default'
+
+    print(f"Checking pod health in namespace: {namespace}")
+    print("-" * 60)
+
+    issues = check_pod_health(namespace)
+
+    if not issues:
+        print("All pods healthy!")
+        sys.exit(0)
+
+    critical = [i for i in issues if i['severity'] == 'critical']
+    warnings = [i for i in issues if i['severity'] == 'warning']
+
+    if critical:
+        print(f"\nCRITICAL ({len(critical)}):")
+        for issue in critical:
+            print(f"  {issue['pod']}: {issue['issue']}")
+
+    if warnings:
+        print(f"\nWARNINGS ({len(warnings)}):")
+        for issue in warnings:
+            print(f"  {issue['pod']}: {issue['issue']}")
+
+    sys.exit(2 if critical else 1)
+
+
+if __name__ == '__main__':
+    main()
+</pre>
+        </div>
+
+        <h3>API Poller with Alerting</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">api_poller.py</span><span class="tag tag-yellow">Python</span></div>
+<pre>
+#!/usr/bin/env python3
+"""Poll API endpoints and alert on failure via Slack webhook."""
+
+import requests
+import time
+import json
+import argparse
+from datetime import datetime
+
+
+class APIPoller:
+    def __init__(self, endpoints, slack_webhook=None, interval=30, timeout=10):
+        self.endpoints = endpoints
+        self.slack_webhook = slack_webhook
+        self.interval = interval
+        self.timeout = timeout
+        self.failure_counts = {ep['name']: 0 for ep in endpoints}
+        self.alert_threshold = 3  # Alert after N consecutive failures
+
+    def check_endpoint(self, endpoint):
+        """Check a single endpoint and return result."""
+        name = endpoint['name']
+        url = endpoint['url']
+        expected_status = endpoint.get('expected_status', 200)
+        method = endpoint.get('method', 'GET')
+        headers = endpoint.get('headers', {})
+
+        try:
+            start = time.time()
+            response = requests.request(
+                method, url,
+                headers=headers,
+                timeout=self.timeout,
+            )
+            elapsed = time.time() - start
+
+            if response.status_code == expected_status:
+                self.failure_counts[name] = 0
+                return {
+                    'name': name,
+                    'status': 'OK',
+                    'code': response.status_code,
+                    'latency_ms': round(elapsed * 1000),
+                }
+            else:
+                self.failure_counts[name] += 1
+                return {
+                    'name': name,
+                    'status': 'FAIL',
+                    'code': response.status_code,
+                    'expected': expected_status,
+                    'latency_ms': round(elapsed * 1000),
+                }
+        except requests.exceptions.Timeout:
+            self.failure_counts[name] += 1
+            return {'name': name, 'status': 'TIMEOUT', 'code': 0}
+        except requests.exceptions.ConnectionError:
+            self.failure_counts[name] += 1
+            return {'name': name, 'status': 'CONNECTION_ERROR', 'code': 0}
+
+    def send_alert(self, message):
+        """Send alert to Slack."""
+        if not self.slack_webhook:
+            return
+        try:
+            requests.post(self.slack_webhook, json={'text': message}, timeout=5)
+        except Exception as e:
+            print(f"  Failed to send alert: {e}")
+
+    def run_once(self):
+        """Run one check cycle."""
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        print(f"\n[{timestamp}] Checking {len(self.endpoints)} endpoints...")
+
+        for endpoint in self.endpoints:
+            result = self.check_endpoint(endpoint)
+            name = result['name']
+            status_icon = "OK" if result['status'] == 'OK' else "FAIL"
+
+            print(f"  [{status_icon}] {name}: {result['status']} "
+                  f"(HTTP {result.get('code', 'N/A')}, "
+                  f"{result.get('latency_ms', 'N/A')}ms)")
+
+            # Alert on threshold breach
+            if self.failure_counts[name] == self.alert_threshold:
+                alert_msg = (
+                    f"ALERT: {name} has failed {self.alert_threshold} "
+                    f"consecutive times. Last status: {result['status']}"
+                )
+                print(f"  ALERTING: {alert_msg}")
+                self.send_alert(alert_msg)
+
+    def run(self):
+        """Run polling loop."""
+        print(f"Starting API poller (interval: {self.interval}s)")
+        while True:
+            self.run_once()
+            time.sleep(self.interval)
+
+
+def main():
+    parser = argparse.ArgumentParser(description='API Endpoint Poller')
+    parser.add_argument('-c', '--config', default='endpoints.json',
+                        help='Endpoints config file')
+    parser.add_argument('-i', '--interval', type=int, default=30,
+                        help='Polling interval in seconds')
+    parser.add_argument('--webhook', help='Slack webhook URL')
+    args = parser.parse_args()
+
+    # Example endpoints config
+    endpoints = [
+        {'name': 'API Health', 'url': 'http://api.example.com/health'},
+        {'name': 'Auth Service', 'url': 'http://auth.example.com/status'},
+        {'name': 'Database', 'url': 'http://localhost:5432',
+         'expected_status': 200},
+    ]
+
+    # Load from file if exists
+    try:
+        with open(args.config) as f:
+            endpoints = json.load(f)
+    except FileNotFoundError:
+        print(f"Config not found ({args.config}), using defaults")
+
+    poller = APIPoller(
+        endpoints=endpoints,
+        slack_webhook=args.webhook,
+        interval=args.interval,
+    )
+    poller.run()
+
+
+if __name__ == '__main__':
+    main()
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- Section 7: Jq for JSON -->
+        <!-- ============================================ -->
+        <h2>7. Jq for JSON</h2>
+
+        <div class="card card-info">
+            <p><code>jq</code> is a lightweight command-line JSON processor. Essential for parsing API responses, Kubernetes output, and configuration files in shell scripts.</p>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="filename">jq examples</span><span class="tag tag-blue">jq</span></div>
+<pre>
+# Pretty-print JSON
+curl -s https://api.example.com/users | jq '.'
+
+# Extract a field
+echo '{"name": "John", "age": 30}' | jq '.name'
+# "John"
+
+# Extract without quotes (raw output)
+echo '{"name": "John"}' | jq -r '.name'
+# John
+
+# Array operations
+echo '[1, 2, 3, 4, 5]' | jq '.[2]'        # 3 (index)
+echo '[1, 2, 3, 4, 5]' | jq '.[1:3]'      # [2, 3] (slice)
+echo '[1, 2, 3, 4, 5]' | jq '.[-1]'       # 5 (last element)
+echo '[1, 2, 3, 4, 5]' | jq 'length'      # 5
+
+# Filter array of objects
+cat data.json | jq '.users[] | select(.age > 25)'
+
+# Select specific fields
+cat data.json | jq '.users[] | {name: .name, email: .email}'
+
+# Map over array
+cat data.json | jq '[.users[] | .name]'
+
+# Filter with conditions
+kubectl get pods -o json | jq '.items[] | select(.status.phase != "Running") | .metadata.name'
+
+# Nested access
+kubectl get pods -o json | jq '.items[].spec.containers[].image'
+
+# Count items
+kubectl get pods -o json | jq '.items | length'
+
+# Sort by field
+cat data.json | jq '.users | sort_by(.age) | reverse'
+
+# Group by
+cat data.json | jq '.users | group_by(.department) | map({dept: .[0].department, count: length})'
+
+# String interpolation
+echo '{"first": "John", "last": "Doe"}' | jq -r '"\(.first) \(.last)"'
+# John Doe
+
+# Conditional logic
+cat data.json | jq '.users[] | if .active then .name else empty end'
+
+# Parse kubectl output
+kubectl get nodes -o json | jq -r '
+  .items[] |
+  [.metadata.name,
+   .status.conditions[] | select(.type=="Ready") | .status,
+   .status.capacity.cpu,
+   .status.capacity.memory
+  ] | @tsv'
+
+# Combine with other tools
+aws ec2 describe-instances | jq -r '
+  .Reservations[].Instances[] |
+  [.InstanceId, .InstanceType, .State.Name,
+   (.Tags // [] | map(select(.Key=="Name")) | .[0].Value // "unnamed")
+  ] | @csv'
+
+# Modify JSON (add/update fields)
+echo '{"name": "app", "version": "1.0"}' | jq '. + {env: "production", replicas: 3}'
+
+# Delete a field
+echo '{"name": "app", "secret": "xxx"}' | jq 'del(.secret)'
+</pre>
+        </div>
+
+        <h3>Common jq Patterns for DevOps</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">jq-devops-patterns.sh</span><span class="tag tag-blue">jq</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Parse Terraform state
+terraform show -json | jq '.values.root_module.resources[] |
+  select(.type == "aws_instance") |
+  {name: .name, id: .values.id, type: .values.instance_type}'
+
+# Docker inspect - get container IP
+docker inspect mycontainer | jq -r '.[0].NetworkSettings.IPAddress'
+
+# Parse GitHub API response
+curl -s "https://api.github.com/repos/owner/repo/releases/latest" | \
+  jq -r '.tag_name, .published_at, (.assets[] | "\(.name) (\(.size / 1048576 | floor)MB)")'
+
+# Helm values override
+helm get values myrelease -o json | jq '.replicas = 5 | .resources.limits.memory = "512Mi"'
+
+# AWS - Find untagged resources
+aws ec2 describe-instances | jq '
+  .Reservations[].Instances[] |
+  select(.Tags == null or (.Tags | map(.Key) | contains(["Name"]) | not)) |
+  {id: .InstanceId, type: .InstanceType}'
+
+# Kubernetes - Pods with high restart counts
+kubectl get pods -A -o json | jq -r '
+  .items[] |
+  .status.containerStatuses[]? |
+  select(.restartCount > 5) |
+  [.name, (.restartCount | tostring)] | @tsv'
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- Section 8: Shell Script Best Practices -->
+        <!-- ============================================ -->
+        <h2>8. Shell Script Best Practices</h2>
+
+        <h3>Error Handling</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">error-handling.sh</span><span class="tag tag-green">Best Practice</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Trap for cleanup on exit (success or failure)
+TEMP_DIR=""
+cleanup() {
+    local exit_code=$?
+    if [[ -n "$TEMP_DIR" && -d "$TEMP_DIR" ]]; then
+        rm -rf "$TEMP_DIR"
+    fi
+    if [[ $exit_code -ne 0 ]]; then
+        echo "ERROR: Script failed with exit code $exit_code" >&2
+        echo "  Failed at line $BASH_LINENO in function ${FUNCNAME[1]:-main}" >&2
+    fi
+    exit "$exit_code"
+}
+trap cleanup EXIT
+
+# Trap for handling Ctrl+C gracefully
+interrupt_handler() {
+    echo ""
+    echo "Interrupted by user. Cleaning up..." >&2
+    exit 130
+}
+trap interrupt_handler INT TERM
+
+# Safe temporary directory
+TEMP_DIR="$(mktemp -d)"
+
+# Error function
+die() {
+    echo "FATAL: $1" >&2
+    exit "${2:-1}"
+}
+
+# Retry with exponential backoff
+retry() {
+    local max_attempts="${1:-3}"
+    local delay="${2:-1}"
+    local cmd="${*:3}"
+    local attempt=1
+
+    while [[ $attempt -le $max_attempts ]]; do
+        if eval "$cmd"; then
+            return 0
+        fi
+        echo "  Attempt $attempt/$max_attempts failed. Retrying in ${delay}s..." >&2
+        sleep "$delay"
+        delay=$((delay * 2))
+        attempt=$((attempt + 1))
+    done
+
+    echo "  All $max_attempts attempts failed" >&2
+    return 1
+}
+
+# Usage
+retry 3 2 curl -sf http://api.example.com/health || die "API unreachable after retries"
+</pre>
+        </div>
+
+        <h3>Logging</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">logging.sh</span><span class="tag tag-green">Best Practice</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Color codes (only if terminal supports it)
+if [[ -t 2 ]]; then
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    BLUE='\033[0;34m'
+    NC='\033[0m'  # No Color
+else
+    RED='' GREEN='' YELLOW='' BLUE='' NC=''
+fi
+
+# Log levels
+LOG_LEVEL="${LOG_LEVEL:-INFO}"
+
+log_debug() { [[ "$LOG_LEVEL" == "DEBUG" ]] && echo -e "${BLUE}[DEBUG]${NC} $(date '+%H:%M:%S') $*" >&2 || true; }
+log_info()  { echo -e "${GREEN}[INFO]${NC}  $(date '+%H:%M:%S') $*" >&2; }
+log_warn()  { echo -e "${YELLOW}[WARN]${NC}  $(date '+%H:%M:%S') $*" >&2; }
+log_error() { echo -e "${RED}[ERROR]${NC} $(date '+%H:%M:%S') $*" >&2; }
+
+# Usage
+log_info "Starting deployment to production"
+log_warn "Disk usage above 80%"
+log_error "Connection to database failed"
+log_debug "Variable value: $SOME_VAR"  # Only shown when LOG_LEVEL=DEBUG
+</pre>
+        </div>
+
+        <h3>Argument Parsing</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">arg-parser.sh</span><span class="tag tag-green">Best Practice</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Default values
+ENVIRONMENT="staging"
+VERBOSE=false
+DRY_RUN=false
+APP_NAME=""
+
+usage() {
+    cat &lt;&lt;EOF
+Usage: $(basename "$0") [OPTIONS] APP_NAME
+
+Deploy an application to the specified environment.
+
+Arguments:
+  APP_NAME              Name of the application to deploy (required)
+
+Options:
+  -e, --environment ENV Target environment (default: staging)
+  -v, --verbose         Enable verbose output
+  -n, --dry-run         Show what would be done without executing
+  -h, --help            Show this help message
+
+Examples:
+  $(basename "$0") -e production myapp
+  $(basename "$0") --dry-run -v myapp
+EOF
+    exit 0
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -e|--environment)
+            ENVIRONMENT="${2:?Error: --environment requires a value}"
+            shift 2
+            ;;
+        -v|--verbose)
+            VERBOSE=true
+            shift
+            ;;
+        -n|--dry-run)
+            DRY_RUN=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            ;;
+        -*)
+            echo "Error: Unknown option: $1" >&2
+            usage
+            ;;
+        *)
+            APP_NAME="$1"
+            shift
+            ;;
+    esac
+done
+
+# Validate required args
+if [[ -z "$APP_NAME" ]]; then
+    echo "Error: APP_NAME is required" >&2
+    usage
+fi
+
+# Validate environment
+case "$ENVIRONMENT" in
+    staging|production|development) ;;
+    *) echo "Error: Invalid environment: $ENVIRONMENT" >&2; exit 1 ;;
+esac
+
+echo "Deploying $APP_NAME to $ENVIRONMENT (dry_run=$DRY_RUN, verbose=$VERBOSE)"
+</pre>
+        </div>
+
+        <h3>Idempotency and Testing</h3>
+        <div class="card">
+            <h4>Writing Idempotent Scripts</h4>
+            <ul>
+                <li>Check if action is needed before performing it (e.g., user already exists? skip creation)</li>
+                <li>Use <code>mkdir -p</code> instead of <code>mkdir</code> (no error if exists)</li>
+                <li>Use <code>CREATE TABLE IF NOT EXISTS</code> for SQL</li>
+                <li>Use <code>kubectl apply</code> instead of <code>kubectl create</code></li>
+                <li>Check process before starting: <code>pgrep -x nginx || nginx</code></li>
+                <li>Use lock files to prevent concurrent execution: <code>flock</code></li>
+            </ul>
+            <h4>Testing Shell Scripts</h4>
+            <ul>
+                <li><strong>BATS (Bash Automated Testing System):</strong> TAP-compliant testing framework for Bash</li>
+                <li><strong>ShellCheck:</strong> Static analysis tool (catches common bugs)</li>
+                <li><strong>shfmt:</strong> Shell script formatter</li>
+            </ul>
+        </div>
+
+        <div class="cmd">shellcheck myscript.sh</div>
+        <div class="cmd">shfmt -i 4 -w myscript.sh</div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="filename">test_backup.bats</span><span class="tag tag-green">BATS</span></div>
+<pre>
+#!/usr/bin/env bats
+
+setup() {
+    export BACKUP_DIR="$(mktemp -d)"
+    export DB_NAME="test_db"
+}
+
+teardown() {
+    rm -rf "$BACKUP_DIR"
+}
+
+@test "backup script creates compressed file" {
+    run ./backup.sh
+    [ "$status" -eq 0 ]
+    [ "$(find "$BACKUP_DIR" -name "*.sql.gz" | wc -l)" -eq 1 ]
+}
+
+@test "backup script fails gracefully on invalid DB" {
+    export DB_NAME="nonexistent_db"
+    run ./backup.sh
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"Error"* ]]
+}
+
+@test "old backups are cleaned up" {
+    # Create old file
+    touch -d "40 days ago" "$BACKUP_DIR/old_backup.sql.gz"
+    run ./backup.sh
+    [ ! -f "$BACKUP_DIR/old_backup.sql.gz" ]
+}
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- Section 9: Cron -->
+        <!-- ============================================ -->
+        <h2>9. Cron</h2>
+
+        <h3>Cron Syntax</h3>
+        <div class="diagram">
+            <div class="diagram-label">Cron Expression Format</div>
+<pre>
+ +---------------- minute (0-59)
+ |  +------------- hour (0-23)
+ |  |  +---------- day of month (1-31)
+ |  |  |  +------- month (1-12)
+ |  |  |  |  +---- day of week (0-7, 0 and 7 = Sunday)
+ |  |  |  |  |
+ *  *  *  *  *  command to execute
+
+ Special characters:
+ *     any value
+ ,     list separator (1,3,5)
+ -     range (1-5)
+ /     step (*/5 = every 5)
+</pre>
+        </div>
+
+        <h3>Common Schedules</h3>
+        <table>
+            <tr><th>Expression</th><th>Description</th></tr>
+            <tr><td><code>* * * * *</code></td><td>Every minute</td></tr>
+            <tr><td><code>*/5 * * * *</code></td><td>Every 5 minutes</td></tr>
+            <tr><td><code>0 * * * *</code></td><td>Every hour (at minute 0)</td></tr>
+            <tr><td><code>0 0 * * *</code></td><td>Every day at midnight</td></tr>
+            <tr><td><code>0 2 * * *</code></td><td>Every day at 2 AM</td></tr>
+            <tr><td><code>0 0 * * 0</code></td><td>Every Sunday at midnight</td></tr>
+            <tr><td><code>0 0 1 * *</code></td><td>First day of every month</td></tr>
+            <tr><td><code>0 9-17 * * 1-5</code></td><td>Every hour 9 AM - 5 PM, weekdays</td></tr>
+            <tr><td><code>0 0 1 1 *</code></td><td>January 1st at midnight (yearly)</td></tr>
+            <tr><td><code>30 4 1,15 * *</code></td><td>4:30 AM on 1st and 15th of month</td></tr>
+        </table>
+
+        <h3>Crontab Commands</h3>
+        <div class="cmd">crontab -e    # Edit current user's crontab</div>
+        <div class="cmd">crontab -l    # List current user's crontab</div>
+        <div class="cmd">crontab -r    # Remove current user's crontab (careful!)</div>
+        <div class="cmd">crontab -u www-data -e    # Edit another user's crontab (as root)</div>
+
+        <h3>Cron Gotchas</h3>
+        <div class="card card-warning">
+            <ul>
+                <li><strong>PATH:</strong> Cron has a minimal PATH (<code>/usr/bin:/bin</code>). Always use full paths or set PATH in crontab.</li>
+                <li><strong>Environment:</strong> Cron does not load shell profiles (.bashrc, .profile). Set variables in crontab or source them in script.</li>
+                <li><strong>Output:</strong> Cron emails output (stdout + stderr) to the user. Redirect to a log file or <code>/dev/null</code>.</li>
+                <li><strong>Working directory:</strong> Default is user home. Use <code>cd /path</code> or absolute paths.</li>
+                <li><strong>Overlapping runs:</strong> If a job takes longer than the interval, use <code>flock</code> to prevent overlap.</li>
+                <li><strong>Timezone:</strong> Cron uses system timezone. Be explicit in comments.</li>
+                <li><strong>Day of month + Day of week:</strong> If both are set, cron runs on EITHER (OR logic, not AND).</li>
+            </ul>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="filename">crontab with best practices</span><span class="tag tag-purple">Cron</span></div>
+<pre>
+# Set environment
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+MAILTO=ops@example.com
+
+# Prevent overlapping runs with flock
+*/5 * * * * /usr/bin/flock -n /tmp/health.lock /opt/scripts/health-check.sh >> /var/log/health.log 2>&1
+
+# Log both stdout and stderr, suppress mail
+0 2 * * * /opt/scripts/backup.sh >> /var/log/backup.log 2>&1
+
+# Only run on weekdays
+0 9 * * 1-5 /opt/scripts/morning-report.sh 2>&1 | mail -s "Morning Report" team@example.com
+
+# Use timeout to kill hung jobs
+0 * * * * timeout 300 /opt/scripts/sync.sh >> /var/log/sync.log 2>&1
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- Section 10: Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>10. Interview Q&A</h2>
+
+        <div class="qa">
+            <div class="q">Q1: Explain what set -euo pipefail does and why you should use it.</div>
+            <div class="a">
+                <ul>
+                    <li><strong>set -e (errexit):</strong> Exit immediately if any command returns a non-zero exit status. Without this, scripts continue past errors silently, potentially causing cascading damage.</li>
+                    <li><strong>set -u (nounset):</strong> Treat unset variables as errors. Without this, <code>rm -rf $UNSET_VAR/</code> could expand to <code>rm -rf /</code> (catastrophic).</li>
+                    <li><strong>set -o pipefail:</strong> A pipeline returns the exit status of the LAST command that failed (not just the last command). Without this, <code>bad_cmd | grep foo</code> would return grep's exit code, hiding the failure of bad_cmd.</li>
+                </ul>
+                <p><strong>Combined:</strong> These three flags make scripts fail loudly and early, which is critical for automation. In production scripts, you should ALWAYS use <code>set -euo pipefail</code> at the top.</p>
+                <p><strong>Caveat:</strong> Some commands return non-zero intentionally (grep returns 1 for no match). Handle with <code>|| true</code> or conditional syntax: <code>if grep -q pattern file; then ... fi</code></p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q2: Explain find with -exec and how it differs from xargs.</div>
+            <div class="a">
+                <p><strong>find -exec:</strong> Executes a command for each found file. The <code>{}</code> is replaced with the filename.</p>
+                <ul>
+                    <li><code>find . -name "*.log" -exec rm {} \;</code> -- runs <code>rm</code> once per file (slow for many files)</li>
+                    <li><code>find . -name "*.log" -exec rm {} +</code> -- batches files into fewer <code>rm</code> calls (faster)</li>
+                </ul>
+                <p><strong>find | xargs:</strong> Pipes find output to xargs which batches arguments efficiently.</p>
+                <ul>
+                    <li><code>find . -name "*.log" | xargs rm</code> -- BROKEN if filenames have spaces</li>
+                    <li><code>find . -name "*.log" -print0 | xargs -0 rm</code> -- NULL-delimited (handles spaces)</li>
+                </ul>
+                <p><strong>Key differences:</strong></p>
+                <ul>
+                    <li><code>-exec {} +</code> is simpler and handles special characters safely</li>
+                    <li><code>xargs</code> offers more control: <code>-P4</code> for parallel execution, <code>-n1</code> for one-at-a-time</li>
+                    <li>xargs can read from any stdin, not just find</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q3: What is process substitution and when would you use it?</div>
+            <div class="a">
+                <p><strong>Process substitution</strong> (<code>&lt;(command)</code> or <code>&gt;(command)</code>) creates a temporary file descriptor that contains the output of a command. It lets you use command output where a filename is expected.</p>
+                <p><strong>Examples:</strong></p>
+                <ul>
+                    <li><code>diff &lt;(sort file1.txt) &lt;(sort file2.txt)</code> -- compare sorted versions without temp files</li>
+                    <li><code>paste &lt;(cut -f1 data.tsv) &lt;(cut -f3 data.tsv)</code> -- combine specific columns</li>
+                    <li><code>while read -r line; do ...; done &lt; &lt;(kubectl get pods -o name)</code> -- read from command in current shell (avoids subshell that pipe creates)</li>
+                </ul>
+                <p><strong>Why not just pipe?</strong> A pipe creates a subshell, so variables set inside the loop are lost. Process substitution with <code>&lt; &lt;(cmd)</code> keeps the loop in the current shell, preserving variable changes.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q4: How do you use trap for cleanup in shell scripts?</div>
+            <div class="a">
+                <p><strong>trap</strong> registers a command to execute when the script receives a signal or exits.</p>
+                <div class="code-block">
+                    <div class="code-header"><span class="filename">trap example</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+TMPFILE=""
+
+cleanup() {
+    local exit_code=$?
+    echo "Cleaning up..." >&2
+    [[ -f "$TMPFILE" ]] && rm -f "$TMPFILE"
+    exit "$exit_code"  # Preserve original exit code
+}
+
+trap cleanup EXIT        # Always runs on exit (success or failure)
+trap cleanup INT TERM    # Runs on Ctrl+C (SIGINT) or kill (SIGTERM)
+
+TMPFILE=$(mktemp)
+# ... do work with $TMPFILE ...
+# Cleanup happens automatically on exit
+</pre>
+                </div>
+                <p><strong>Common signals:</strong> EXIT (any exit), INT (Ctrl+C), TERM (kill), HUP (terminal closed), ERR (any error when set -e).</p>
+                <p><strong>Use cases:</strong> Remove temp files, release locks, stop background processes, send failure notifications, restore original state.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q5: When should you use Python vs Bash for automation?</div>
+            <div class="a">
+                <p><strong>Use Bash when:</strong></p>
+                <ul>
+                    <li>Gluing together CLI tools (kubectl, aws, docker, curl)</li>
+                    <li>Simple file operations, text processing, log parsing</li>
+                    <li>Script is under ~100 lines</li>
+                    <li>No complex data structures needed</li>
+                    <li>Running as part of CI/CD pipeline (no dependency install)</li>
+                </ul>
+                <p><strong>Use Python when:</strong></p>
+                <ul>
+                    <li>Complex logic, error handling, or data manipulation</li>
+                    <li>Working with APIs (requests library, JSON parsing)</li>
+                    <li>Need proper data structures (dicts, classes)</li>
+                    <li>Script exceeds ~100 lines or has multiple functions</li>
+                    <li>Need libraries (boto3, kubernetes, yaml)</li>
+                    <li>Cross-platform compatibility matters</li>
+                    <li>Unit testing is required</li>
+                </ul>
+                <p><strong>Rule of thumb:</strong> Start with Bash. If you need an array of objects, nested conditionals, or error retry logic, switch to Python.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q6: How do you parse JSON in a shell script?</div>
+            <div class="a">
+                <p>Use <code>jq</code> -- the standard tool for JSON processing in shell:</p>
+                <ul>
+                    <li><code>curl -s url | jq '.field'</code> -- extract a field</li>
+                    <li><code>jq -r '.name'</code> -- raw output (no quotes)</li>
+                    <li><code>jq '.items[] | select(.status == "active")'</code> -- filter arrays</li>
+                    <li><code>jq -e '.field'</code> -- exit code 1 if null (useful with set -e)</li>
+                </ul>
+                <p><strong>Alternatives when jq is not available:</strong></p>
+                <ul>
+                    <li><code>python3 -c "import json,sys; print(json.load(sys.stdin)['key'])"</code></li>
+                    <li><code>grep -o '"name":"[^"]*"' | cut -d'"' -f4</code> -- fragile, avoid</li>
+                </ul>
+                <p><strong>For YAML:</strong> Use <code>yq</code> (same syntax as jq but for YAML files).</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q7: How do you write idempotent scripts?</div>
+            <div class="a">
+                <p>An <strong>idempotent script</strong> produces the same result whether run once or multiple times. Critical for automation that may be retried.</p>
+                <p><strong>Techniques:</strong></p>
+                <ul>
+                    <li><strong>Check before act:</strong> <code>id user123 &>/dev/null || useradd user123</code></li>
+                    <li><strong>Use idempotent commands:</strong> <code>mkdir -p</code>, <code>kubectl apply</code>, <code>ln -sf</code></li>
+                    <li><strong>Use conditional creation:</strong> <code>CREATE TABLE IF NOT EXISTS</code></li>
+                    <li><strong>Lock files:</strong> <code>flock -n /tmp/script.lock ./script.sh</code></li>
+                    <li><strong>State files:</strong> Write a marker file after completion; check it at start</li>
+                    <li><strong>Atomic operations:</strong> Write to temp file, then <code>mv</code> (atomic rename)</li>
+                </ul>
+                <p><strong>Anti-patterns (NOT idempotent):</strong></p>
+                <ul>
+                    <li><code>echo "line" >> file</code> -- appends on every run (use grep + conditional append)</li>
+                    <li><code>useradd user</code> -- fails if user exists (use <code>id || useradd</code>)</li>
+                    <li><code>kubectl create</code> -- fails if resource exists (use <code>kubectl apply</code>)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q8: How do you debug cron jobs that are not running?</div>
+            <div class="a">
+                <p><strong>Debugging checklist:</strong></p>
+                <ol>
+                    <li><strong>Check cron daemon:</strong> <code>systemctl status cron</code> (or crond on RHEL)</li>
+                    <li><strong>Check syntax:</strong> <code>crontab -l</code> -- verify expression is correct</li>
+                    <li><strong>Check logs:</strong> <code>grep CRON /var/log/syslog</code> (Ubuntu) or <code>/var/log/cron</code> (RHEL)</li>
+                    <li><strong>PATH issues:</strong> Cron has minimal PATH. Use full paths: <code>/usr/local/bin/python3</code></li>
+                    <li><strong>Environment:</strong> Cron does not source .bashrc. Set env vars in crontab or script.</li>
+                    <li><strong>Permissions:</strong> Script must be executable: <code>chmod +x script.sh</code></li>
+                    <li><strong>User context:</strong> Check which user owns the crontab (<code>crontab -u user -l</code>)</li>
+                    <li><strong>Test manually:</strong> Run the exact command as the cron user: <code>sudo -u www-data /opt/scripts/job.sh</code></li>
+                    <li><strong>Redirect output:</strong> Add <code>>> /tmp/cron-debug.log 2>&1</code> to capture errors</li>
+                    <li><strong>Special characters:</strong> Use <code>\%</code> instead of <code>%</code> in crontab (% is newline in cron)</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- Section 11: Scenarios -->
+        <!-- ============================================ -->
+        <h2>11. Scenarios</h2>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#9888;</span>
+                <span class="title">Scenario 1: Find Large Log Files</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Task:</strong> Write a script to find all log files larger than 100MB, display their sizes, and optionally compress them.</p>
+                <div class="code-block">
+                    <div class="code-header"><span class="filename">find-large-logs.sh</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+SEARCH_DIR="${1:-/var/log}"
+SIZE_THRESHOLD="${2:-100M}"
+COMPRESS="${COMPRESS:-false}"
+
+echo "Searching for files > $SIZE_THRESHOLD in $SEARCH_DIR..."
+echo "============================================"
+
+total_size=0
+count=0
+
+while IFS= read -r -d '' file; do
+    size_bytes=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null)
+    size_mb=$((size_bytes / 1024 / 1024))
+    total_size=$((total_size + size_mb))
+    count=$((count + 1))
+
+    printf "  %6dMB  %s\n" "$size_mb" "$file"
+
+    if [[ "$COMPRESS" == "true" ]]; then
+        echo "    Compressing..."
+        gzip "$file"
+        compressed_size=$(stat -f%z "${file}.gz" 2>/dev/null || stat -c%s "${file}.gz" 2>/dev/null)
+        saved=$(( (size_bytes - compressed_size) * 100 / size_bytes ))
+        echo "    Saved ${saved}% ($(( (size_bytes - compressed_size) / 1024 / 1024 ))MB)"
+    fi
+done < <(find "$SEARCH_DIR" -type f \( -name "*.log" -o -name "*.log.*" \) \
+    -size +"$SIZE_THRESHOLD" -print0 2>/dev/null)
+
+echo "============================================"
+echo "Found: $count files, Total: ${total_size}MB"
+echo ""
+echo "To compress: COMPRESS=true $0 $SEARCH_DIR $SIZE_THRESHOLD"
+</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#9888;</span>
+                <span class="title">Scenario 2: Log Rotation and Compression</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Task:</strong> Rotate application logs daily, compress old logs, and remove logs older than 30 days.</p>
+                <div class="code-block">
+                    <div class="code-header"><span class="filename">rotate-logs.sh</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_NAME="${1:?Usage: $0 APP_NAME}"
+LOG_DIR="/var/log/${APP_NAME}"
+RETENTION_DAYS=30
+DATE_SUFFIX="$(date '+%Y%m%d')"
+
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"; }
+
+if [[ ! -d "$LOG_DIR" ]]; then
+    log "ERROR: Log directory not found: $LOG_DIR"
+    exit 1
+fi
+
+log "Rotating logs for $APP_NAME in $LOG_DIR"
+
+# 1. Rotate current log files
+for logfile in "$LOG_DIR"/*.log; do
+    [[ ! -f "$logfile" ]] && continue
+    rotated="${logfile}.${DATE_SUFFIX}"
+
+    if [[ -f "$rotated" ]]; then
+        log "  SKIP: $rotated already exists"
+        continue
+    fi
+
+    # Copy and truncate (keeps file descriptor open for running app)
+    cp "$logfile" "$rotated"
+    : > "$logfile"  # Truncate original
+    log "  Rotated: $(basename "$logfile") -> $(basename "$rotated")"
+done
+
+# 2. Compress rotated logs older than 1 day (not today's)
+find "$LOG_DIR" -name "*.log.*" -not -name "*.gz" -mtime +0 -print0 | \
+while IFS= read -r -d '' file; do
+    gzip "$file"
+    log "  Compressed: $(basename "$file")"
+done
+
+# 3. Remove old compressed logs
+deleted=$(find "$LOG_DIR" -name "*.log.*.gz" -mtime +"$RETENTION_DAYS" -delete -print | wc -l)
+if [[ "$deleted" -gt 0 ]]; then
+    log "  Deleted $deleted files older than $RETENTION_DAYS days"
+fi
+
+# 4. Report
+total_size=$(du -sh "$LOG_DIR" | cut -f1)
+file_count=$(find "$LOG_DIR" -type f | wc -l)
+log "Done. $LOG_DIR: $file_count files, $total_size total"
+</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#9888;</span>
+                <span class="title">Scenario 3: Poll API and Alert on Failure</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Task:</strong> Write a script that polls a health endpoint every 30 seconds and sends a Slack alert after 3 consecutive failures.</p>
+                <div class="code-block">
+                    <div class="code-header"><span class="filename">poll-and-alert.sh</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+HEALTH_URL="${1:?Usage: $0 HEALTH_URL [SLACK_WEBHOOK]}"
+SLACK_WEBHOOK="${2:-}"
+INTERVAL=30
+FAILURE_THRESHOLD=3
+MAX_RUNS="${MAX_RUNS:-0}"  # 0 = infinite
+
+failure_count=0
+run_count=0
+
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"; }
+
+send_slack() {
+    local message="$1"
+    local color="${2:-danger}"
+    if [[ -n "$SLACK_WEBHOOK" ]]; then
+        curl -sf -X POST "$SLACK_WEBHOOK" \
+            -H 'Content-type: application/json' \
+            -d "{
+                \"attachments\": [{
+                    \"color\": \"$color\",
+                    \"text\": \"$message\",
+                    \"footer\": \"$(hostname) | $(date '+%Y-%m-%d %H:%M:%S')\"
+                }]
+            }" > /dev/null 2>&1 || log "WARNING: Failed to send Slack alert"
+    fi
+}
+
+check_health() {
+    local http_code
+    local response_time
+
+    response_time=$( { time curl -sf -o /dev/null -w "%{http_code}" \
+        --max-time 10 "$HEALTH_URL" > /tmp/health_code 2>&1; } 2>&1 | \
+        grep real | awk '{print $2}' ) || true
+    http_code=$(cat /tmp/health_code 2>/dev/null || echo "000")
+
+    if [[ "$http_code" == "200" ]]; then
+        if [[ $failure_count -ge $FAILURE_THRESHOLD ]]; then
+            log "RECOVERED after $failure_count failures"
+            send_slack "RECOVERED: $HEALTH_URL is healthy again" "good"
+        fi
+        failure_count=0
+        log "OK: HTTP $http_code ($response_time)"
+    else
+        failure_count=$((failure_count + 1))
+        log "FAIL ($failure_count/$FAILURE_THRESHOLD): HTTP $http_code"
+
+        if [[ $failure_count -eq $FAILURE_THRESHOLD ]]; then
+            local alert="ALERT: $HEALTH_URL has failed $FAILURE_THRESHOLD consecutive checks (HTTP $http_code)"
+            log "$alert"
+            send_slack "$alert"
+        fi
+    fi
+}
+
+log "Starting health poller: $HEALTH_URL (interval: ${INTERVAL}s, threshold: $FAILURE_THRESHOLD)"
+
+while true; do
+    check_health
+    run_count=$((run_count + 1))
+
+    if [[ $MAX_RUNS -gt 0 && $run_count -ge $MAX_RUNS ]]; then
+        log "Reached max runs ($MAX_RUNS). Exiting."
+        break
+    fi
+
+    sleep "$INTERVAL"
+done
+</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">&#9888;</span>
+                <span class="title">Scenario 4: SSL Certificate Renewal Check</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Task:</strong> Check SSL certificates for a list of domains and alert if any expire within 30 days.</p>
+                <div class="code-block">
+                    <div class="code-header"><span class="filename">check-certs.sh</span></div>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+WARN_DAYS="${WARN_DAYS:-30}"
+CRITICAL_DAYS="${CRITICAL_DAYS:-7}"
+DOMAINS_FILE="${1:-/etc/ssl-check/domains.txt}"
+
+# Default domains if file does not exist
+if [[ ! -f "$DOMAINS_FILE" ]]; then
+    DOMAINS=("example.com" "api.example.com" "app.example.com")
+else
+    mapfile -t DOMAINS < "$DOMAINS_FILE"
+fi
+
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"; }
+
+check_cert() {
+    local domain="$1"
+    local port="${2:-443}"
+
+    # Get certificate expiry date
+    local expiry_date
+    expiry_date=$(echo | openssl s_client -servername "$domain" \
+        -connect "${domain}:${port}" 2>/dev/null | \
+        openssl x509 -noout -enddate 2>/dev/null | \
+        cut -d= -f2) || {
+        log "ERROR: Cannot connect to $domain:$port"
+        return 1
+    }
+
+    # Calculate days until expiry
+    local expiry_epoch
+    expiry_epoch=$(date -d "$expiry_date" +%s 2>/dev/null || \
+                   date -j -f "%b %d %T %Y %Z" "$expiry_date" +%s 2>/dev/null)
+    local now_epoch
+    now_epoch=$(date +%s)
+    local days_left=$(( (expiry_epoch - now_epoch) / 86400 ))
+
+    # Determine status
+    local status="OK"
+    if [[ $days_left -le $CRITICAL_DAYS ]]; then
+        status="CRITICAL"
+    elif [[ $days_left -le $WARN_DAYS ]]; then
+        status="WARNING"
+    fi
+
+    printf "  %-8s %-30s %3d days  (expires: %s)\n" \
+        "[$status]" "$domain" "$days_left" "$expiry_date"
+
+    if [[ "$status" != "OK" ]]; then
+        return 1
+    fi
+    return 0
+}
+
+log "SSL Certificate Check (warn: ${WARN_DAYS}d, critical: ${CRITICAL_DAYS}d)"
+echo "================================================================"
+
+failures=0
+for domain in "${DOMAINS[@]}"; do
+    # Skip comments and empty lines
+    [[ "$domain" =~ ^#.*$ || -z "$domain" ]] && continue
+    check_cert "$domain" || failures=$((failures + 1))
+done
+
+echo "================================================================"
+if [[ $failures -gt 0 ]]; then
+    log "RESULT: $failures certificate(s) need attention!"
+    exit 1
+else
+    log "RESULT: All certificates valid for > $WARN_DAYS days"
+    exit 0
+fi
+</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            Complete Kubernetes, DevOps & SRE Reference | Built for study & interview preparation | 2026
+        </footer>
+
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes Security | K8s/DevOps/SRE</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html" class="active">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+<div class="container">
+
+    <div class="breadcrumb">
+        <a href="../index.html">Home</a> &gt; Security
+    </div>
+
+    <h1>Kubernetes Security</h1>
+    <p class="subtitle">RBAC, Service Accounts, Pod Security Standards, SecurityContext, and advanced policy engines -- everything you need to secure a Kubernetes cluster from namespace to node level.</p>
+
+    <!-- ============================================================ -->
+    <!-- RBAC -->
+    <!-- ============================================================ -->
+
+    <h2>1. RBAC (Role-Based Access Control)</h2>
+
+    <p>RBAC controls who can do what in a Kubernetes cluster. It uses four objects that work together to grant permissions:</p>
+
+    <h3>The Four RBAC Objects</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Object</th>
+                <th>Scope</th>
+                <th>Purpose</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>Role</code></td>
+                <td>Namespace</td>
+                <td>Defines permissions (verbs on resources) within a single namespace</td>
+            </tr>
+            <tr>
+                <td><code>ClusterRole</code></td>
+                <td>Cluster-wide</td>
+                <td>Defines permissions across the entire cluster or for non-namespaced resources</td>
+            </tr>
+            <tr>
+                <td><code>RoleBinding</code></td>
+                <td>Namespace</td>
+                <td>Binds a Role or ClusterRole to users/groups/SAs in a namespace</td>
+            </tr>
+            <tr>
+                <td><code>ClusterRoleBinding</code></td>
+                <td>Cluster-wide</td>
+                <td>Binds a ClusterRole to users/groups/SAs across the entire cluster</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>RBAC Relationship Diagram</h3>
+
+    <div class="diagram">
+        <div class="diagram-label">How RBAC Objects Relate</div>
+        <pre>
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        RBAC RELATIONSHIP MODEL                           │
+│                                                                         │
+│   WHO                      BINDING                    WHAT              │
+│   (Subject)                (Glue)                     (Permissions)     │
+│                                                                         │
+│   ┌──────────┐        ┌──────────────┐          ┌──────────────┐      │
+│   │  User    │───────▶│ RoleBinding  │─────────▶│    Role      │      │
+│   │  Group   │        │              │          │ (namespace)  │      │
+│   │  SA      │        │ (namespace)  │          └──────────────┘      │
+│   └──────────┘        └──────────────┘                                 │
+│                               │                                         │
+│                               │ can also reference                       │
+│                               ▼                                         │
+│                        ┌──────────────┐                                 │
+│                        │ ClusterRole  │                                 │
+│                        │ (cluster)    │                                 │
+│                        └──────────────┘                                 │
+│                               ▲                                         │
+│   ┌──────────┐        ┌──────────────────┐                             │
+│   │  User    │───────▶│ClusterRoleBinding│──────────────────────┘      │
+│   │  Group   │        │                  │                              │
+│   │  SA      │        │ (cluster-wide)   │                              │
+│   └──────────┘        └──────────────────┘                              │
+│                                                                         │
+│  KEY INSIGHT: A RoleBinding can reference a ClusterRole but still       │
+│  only grants access within the RoleBinding's namespace.                 │
+└─────────────────────────────────────────────────────────────────────────┘
+        </pre>
+    </div>
+
+    <h3>Role YAML -- Read Pods in a Namespace</h3>
+
+    <div class="card card-info">
+        <p>A <strong>Role</strong> grants permissions within a specific namespace only.</p>
+    </div>
+
+    <pre><code>apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: development
+  name: pod-reader
+rules:
+- apiGroups: [""]          # "" = core API group
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get"]</code></pre>
+
+    <h3>ClusterRole YAML -- Read Nodes Cluster-Wide</h3>
+
+    <div class="card card-info">
+        <p>A <strong>ClusterRole</strong> can grant access to cluster-scoped resources (nodes, PVs, namespaces) or be reused across namespaces via RoleBindings.</p>
+    </div>
+
+    <pre><code>apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: node-reader
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: [""]
+  resources: ["nodes/status"]
+  verbs: ["get"]</code></pre>
+
+    <h3>RoleBinding YAML</h3>
+
+    <pre><code>apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-pods-binding
+  namespace: development
+subjects:
+- kind: User
+  name: jane@example.com
+  apiGroup: rbac.authorization.k8s.io
+- kind: ServiceAccount
+  name: ci-bot
+  namespace: development
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+
+    <h3>ClusterRoleBinding YAML</h3>
+
+    <pre><code>apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: read-nodes-global
+subjects:
+- kind: Group
+  name: sre-team
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: node-reader
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+
+    <h3>RBAC Verbs Reference</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Verb</th>
+                <th>HTTP Method</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td><code>get</code></td><td>GET (single)</td><td>Read a specific resource</td></tr>
+            <tr><td><code>list</code></td><td>GET (collection)</td><td>List resources</td></tr>
+            <tr><td><code>watch</code></td><td>GET (streaming)</td><td>Watch for changes</td></tr>
+            <tr><td><code>create</code></td><td>POST</td><td>Create a resource</td></tr>
+            <tr><td><code>update</code></td><td>PUT</td><td>Replace entire resource</td></tr>
+            <tr><td><code>patch</code></td><td>PATCH</td><td>Partially modify resource</td></tr>
+            <tr><td><code>delete</code></td><td>DELETE (single)</td><td>Delete a resource</td></tr>
+            <tr><td><code>deletecollection</code></td><td>DELETE (collection)</td><td>Delete multiple resources</td></tr>
+            <tr><td><code>impersonate</code></td><td>--</td><td>Act as another user/group/SA</td></tr>
+        </tbody>
+    </table>
+
+    <h3>kubectl auth can-i Commands</h3>
+
+    <pre><code># Check if YOU can do something
+kubectl auth can-i create deployments --namespace production
+
+# Check if a specific user can do something
+kubectl auth can-i get pods --namespace development --as jane@example.com
+
+# Check if a service account can do something
+kubectl auth can-i list secrets --namespace default \
+  --as system:serviceaccount:default:my-sa
+
+# List ALL permissions for current user
+kubectl auth can-i --list
+
+# List permissions in a specific namespace
+kubectl auth can-i --list --namespace production
+
+# Check cluster-scoped permissions
+kubectl auth can-i get nodes
+
+# Check subresource access
+kubectl auth can-i get pods --subresource=log</code></pre>
+
+    <!-- ============================================================ -->
+    <!-- SERVICE ACCOUNTS -->
+    <!-- ============================================================ -->
+
+    <h2>2. Service Accounts</h2>
+
+    <p>Service Accounts provide identities for processes running in pods. Every namespace has a <code>default</code> Service Account that is automatically mounted into pods unless configured otherwise.</p>
+
+    <h3>Key Principles</h3>
+
+    <div class="card card-warning">
+        <ul>
+            <li><strong>Never use the default SA for applications</strong> -- it may accumulate permissions over time</li>
+            <li><strong>Create a dedicated SA per application</strong> -- principle of least privilege</li>
+            <li><strong>Set <code>automountServiceAccountToken: false</code></strong> when the pod does not need API access</li>
+            <li><strong>Use short-lived tokens</strong> (projected volumes) instead of long-lived Secret-based tokens</li>
+        </ul>
+    </div>
+
+    <h3>Complete Example: Create SA, Bind Role, Use in Pod</h3>
+
+    <pre><code># 1. Create a dedicated Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: app-service-account
+  namespace: production
+  labels:
+    app: my-app
+automountServiceAccountToken: false   # Don't auto-mount; we'll be explicit
+---
+# 2. Create a Role with minimal permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: app-role
+  namespace: production
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "watch"]
+  resourceNames: ["app-config"]       # Restrict to specific resource
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+  resourceNames: ["app-credentials"]
+---
+# 3. Bind the Role to the Service Account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: app-role-binding
+  namespace: production
+subjects:
+- kind: ServiceAccount
+  name: app-service-account
+  namespace: production
+roleRef:
+  kind: Role
+  name: app-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# 4. Use the Service Account in a Pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-app
+  namespace: production
+spec:
+  serviceAccountName: app-service-account
+  automountServiceAccountToken: true    # Explicitly mount for this pod
+  containers:
+  - name: app
+    image: my-app:1.0
+    volumeMounts:
+    - name: token
+      mountPath: /var/run/secrets/tokens
+      readOnly: true
+  volumes:
+  - name: token
+    projected:
+      sources:
+      - serviceAccountToken:
+          path: api-token
+          expirationSeconds: 3600       # Short-lived (1 hour)
+          audience: api</code></pre>
+
+    <!-- ============================================================ -->
+    <!-- POD SECURITY STANDARDS -->
+    <!-- ============================================================ -->
+
+    <h2>3. Pod Security Standards (PSS)</h2>
+
+    <p>Pod Security Standards define three progressive levels of security restriction. They replace the deprecated PodSecurityPolicy (PSP) and are enforced via the built-in Pod Security Admission controller.</p>
+
+    <h3>Security Levels</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Level</th>
+                <th>Description</th>
+                <th>Use Case</th>
+                <th>Key Restrictions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Privileged</strong></td>
+                <td>Unrestricted -- no policy applied</td>
+                <td>System/infrastructure workloads (CNI, storage drivers)</td>
+                <td>None -- allows everything</td>
+            </tr>
+            <tr>
+                <td><strong>Baseline</strong></td>
+                <td>Minimally restrictive -- prevents known privilege escalations</td>
+                <td>General application workloads</td>
+                <td>No hostNetwork, hostPID, hostIPC; no privileged containers; limited volume types; no adding capabilities beyond defaults</td>
+            </tr>
+            <tr>
+                <td><strong>Restricted</strong></td>
+                <td>Heavily restricted -- follows hardening best practices</td>
+                <td>Security-sensitive workloads, multi-tenant clusters</td>
+                <td>Must run as non-root; must drop ALL capabilities; read-only root FS recommended; seccomp profile required; no privilege escalation</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Enforcement Modes</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Mode</th>
+                <th>Behavior</th>
+                <th>Recommendation</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>enforce</code></td>
+                <td>Rejects pods that violate the policy</td>
+                <td>Use for production namespaces</td>
+            </tr>
+            <tr>
+                <td><code>warn</code></td>
+                <td>Allows pod but shows warning to user</td>
+                <td>Use during migration to stricter policies</td>
+            </tr>
+            <tr>
+                <td><code>audit</code></td>
+                <td>Allows pod but logs violation in audit log</td>
+                <td>Use for monitoring compliance</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Namespace Labels YAML</h3>
+
+    <pre><code># Apply Pod Security Standards via namespace labels
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  labels:
+    # Enforce restricted level -- reject non-compliant pods
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+
+    # Warn on restricted violations (shows in kubectl output)
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
+
+    # Audit restricted violations (logged to audit log)
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+---
+# Example: Development namespace with baseline enforcement + restricted warnings
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: development
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest</code></pre>
+
+    <!-- ============================================================ -->
+    <!-- SECURITY CONTEXT -->
+    <!-- ============================================================ -->
+
+    <h2>4. SecurityContext</h2>
+
+    <p>SecurityContext defines privilege and access control settings for a pod or container. Settings can be applied at two levels:</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Level</th>
+                <th>Field</th>
+                <th>Scope</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Pod-level</td>
+                <td><code>spec.securityContext</code></td>
+                <td>Applies to all containers in the pod (runAsUser, fsGroup, supplementalGroups, seccompProfile)</td>
+            </tr>
+            <tr>
+                <td>Container-level</td>
+                <td><code>spec.containers[].securityContext</code></td>
+                <td>Applies to a specific container; overrides pod-level where overlapping (capabilities, readOnlyRootFilesystem, allowPrivilegeEscalation)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Complete Hardened Pod YAML</h3>
+
+    <div class="card card-success">
+        <p>This pod meets the <strong>Restricted</strong> Pod Security Standard and follows all hardening best practices.</p>
+    </div>
+
+    <pre><code>apiVersion: v1
+kind: Pod
+metadata:
+  name: hardened-app
+  namespace: production
+  labels:
+    app: hardened-app
+spec:
+  # Pod-level security context
+  securityContext:
+    runAsNonRoot: true            # Refuse to start if image runs as root
+    runAsUser: 1000               # Run as non-root UID
+    runAsGroup: 3000              # Primary GID
+    fsGroup: 2000                 # Volume ownership GID
+    seccompProfile:
+      type: RuntimeDefault        # Apply default seccomp profile
+
+  serviceAccountName: app-sa
+  automountServiceAccountToken: false
+
+  containers:
+  - name: app
+    image: my-app:1.0
+    ports:
+    - containerPort: 8080
+      protocol: TCP
+
+    # Container-level security context
+    securityContext:
+      allowPrivilegeEscalation: false   # Block setuid/setgid binaries
+      readOnlyRootFilesystem: true      # Immutable container filesystem
+      capabilities:
+        drop:
+          - ALL                          # Drop ALL Linux capabilities
+        # add: ["NET_BIND_SERVICE"]     # Only add if truly needed
+
+    # Resource limits (also a security measure -- prevent resource abuse)
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "100m"
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+
+    # Writable directories via emptyDir (since rootFS is read-only)
+    volumeMounts:
+    - name: tmp
+      mountPath: /tmp
+    - name: cache
+      mountPath: /app/cache
+
+  volumes:
+  - name: tmp
+    emptyDir:
+      sizeLimit: 100Mi
+  - name: cache
+    emptyDir:
+      sizeLimit: 200Mi</code></pre>
+
+    <!-- ============================================================ -->
+    <!-- ADVANCED SECURITY -->
+    <!-- ============================================================ -->
+
+    <h2>5. Advanced Security</h2>
+
+    <h3>OPA/Gatekeeper Overview</h3>
+
+    <div class="card card-info">
+        <p><strong>Open Policy Agent (OPA) Gatekeeper</strong> is a policy engine for Kubernetes that enforces custom policies via Admission Webhooks. Policies are written in Rego (a declarative language) and evaluated before resources are persisted.</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Concept</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>ConstraintTemplate</code></td>
+                <td>Defines reusable policy logic (Rego code)</td>
+            </tr>
+            <tr>
+                <td><code>Constraint</code></td>
+                <td>Instantiates a template with specific parameters</td>
+            </tr>
+            <tr>
+                <td>Audit</td>
+                <td>Periodically checks existing resources for compliance</td>
+            </tr>
+            <tr>
+                <td>Dry Run</td>
+                <td>Evaluates policies without blocking requests</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Kyverno Policy YAML -- Require Labels</h3>
+
+    <div class="card card-info">
+        <p><strong>Kyverno</strong> is a Kubernetes-native policy engine. Policies are written as Kubernetes resources (YAML) -- no new language to learn. It can validate, mutate, and generate resources.</p>
+    </div>
+
+    <pre><code>apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-labels
+  annotations:
+    policies.kyverno.io/title: Require Labels
+    policies.kyverno.io/description: >-
+      All pods must have 'app' and 'team' labels for identification
+      and cost attribution.
+spec:
+  validationFailureAction: Enforce   # Block non-compliant resources
+  background: true                    # Also scan existing resources
+  rules:
+  - name: check-required-labels
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+    validate:
+      message: "Labels 'app' and 'team' are required on all pods."
+      pattern:
+        metadata:
+          labels:
+            app: "?*"      # Must exist and be non-empty
+            team: "?*"
+  - name: check-deployment-labels
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+          - StatefulSet
+          - DaemonSet
+    validate:
+      message: "Labels 'app', 'team', and 'env' are required on workloads."
+      pattern:
+        metadata:
+          labels:
+            app: "?*"
+            team: "?*"
+            env: "?*"</code></pre>
+
+    <h3>Admission Controllers Diagram</h3>
+
+    <div class="diagram">
+        <div class="diagram-label">Kubernetes Admission Controller Flow</div>
+        <pre>
+┌──────────┐      ┌────────────────────────────────────────────────────────────┐
+│  kubectl │      │                  kube-apiserver                             │
+│  or API  │─────▶│                                                            │
+│  client  │      │   ┌──────────────────┐    ┌──────────────────────────────┐ │
+└──────────┘      │   │  Authentication  │───▶│       Authorization          │ │
+                  │   │  (who are you?)   │    │  (are you allowed? -- RBAC)  │ │
+                  │   └──────────────────┘    └──────────────┬───────────────┘ │
+                  │                                          │                  │
+                  │                                          ▼                  │
+                  │   ┌──────────────────────────────────────────────────────┐  │
+                  │   │              ADMISSION CONTROLLERS                   │  │
+                  │   │                                                      │  │
+                  │   │  ┌─────────────────┐     ┌────────────────────┐     │  │
+                  │   │  │   Mutating       │────▶│    Validating      │     │  │
+                  │   │  │   Webhooks       │     │    Webhooks        │     │  │
+                  │   │  │                 │     │                    │     │  │
+                  │   │  │  - Inject sidecars│     │  - OPA/Gatekeeper │     │  │
+                  │   │  │  - Set defaults  │     │  - Kyverno        │     │  │
+                  │   │  │  - Add labels    │     │  - Pod Security   │     │  │
+                  │   │  └─────────────────┘     └────────────────────┘     │  │
+                  │   └──────────────────────────────────────┬───────────────┘  │
+                  │                                          │                  │
+                  │                                          ▼                  │
+                  │   ┌──────────────────────────────────────────────────────┐  │
+                  │   │                  etcd (persist)                      │  │
+                  │   └──────────────────────────────────────────────────────┘  │
+                  └────────────────────────────────────────────────────────────┘
+
+  ORDER: Authentication → Authorization → Mutating Admission → Validating Admission → Persist
+        </pre>
+    </div>
+
+    <h3>Secrets Encryption at Rest</h3>
+
+    <div class="card card-warning">
+        <p>By default, Kubernetes Secrets are stored <strong>unencrypted</strong> in etcd. Anyone with etcd access can read all secrets. You MUST configure encryption at rest for production clusters.</p>
+    </div>
+
+    <pre><code># /etc/kubernetes/enc/encryption-config.yaml
+# This file configures encryption of Secrets in etcd
+apiVersion: apiserver.config.k8s.io/v1
+kind: EncryptionConfiguration
+resources:
+  - resources:
+    - secrets
+    - configmaps    # Optionally encrypt ConfigMaps too
+    providers:
+    # Providers are tried in order; first one is used for WRITING
+    # All listed providers are tried for READING (supports key rotation)
+
+    - aescbc:
+        keys:
+        - name: key1
+          secret: c2VjcmV0LWtleS1oZXJlLTMyLWJ5dGVz    # base64-encoded 32-byte key
+    - identity: {}    # Fallback: read unencrypted data (for migration)
+
+# To enable, add to kube-apiserver manifest:
+# --encryption-provider-config=/etc/kubernetes/enc/encryption-config.yaml
+
+# Verify encryption is working:
+# kubectl create secret generic test-secret --from-literal=key=value
+# ETCDCTL_API=3 etcdctl get /registry/secrets/default/test-secret | hexdump -C
+# (Should show encrypted data, not plaintext)</code></pre>
+
+    <!-- ============================================================ -->
+    <!-- INTERVIEW Q&A -->
+    <!-- ============================================================ -->
+
+    <h2>6. Interview Q&A</h2>
+
+    <div class="card">
+        <p><strong>Q1: Explain RBAC with a concrete example. How would you give a developer read-only access to pods in a specific namespace?</strong></p>
+        <p><strong>A:</strong> Create a Role with verbs [get, list, watch] on resources [pods, pods/log] in the target namespace. Then create a RoleBinding that binds this Role to the developer's User or Group. The developer can now view pods and their logs in that namespace only -- they cannot create, modify, or delete pods, and they have no access in other namespaces.</p>
+    </div>
+
+    <div class="card">
+        <p><strong>Q2: What is the difference between a Role and a ClusterRole?</strong></p>
+        <p><strong>A:</strong> A <strong>Role</strong> is namespace-scoped -- it defines permissions within exactly one namespace. A <strong>ClusterRole</strong> is cluster-scoped -- it can (1) grant access to cluster-scoped resources like nodes and PVs, (2) grant access to non-resource endpoints like /healthz, or (3) be reused across multiple namespaces via individual RoleBindings. A common pattern is to define a ClusterRole once (e.g., "pod-reader") and bind it in multiple namespaces via RoleBindings.</p>
+    </div>
+
+    <div class="card">
+        <p><strong>Q3: How would you grant a developer read-only access to all namespaces?</strong></p>
+        <p><strong>A:</strong> Two options: (1) Create a ClusterRole with read verbs and bind it with a ClusterRoleBinding -- this gives access across ALL namespaces including future ones. (2) Create a ClusterRole with read verbs and create individual RoleBindings in specific namespaces -- this gives access only to selected namespaces. Option 2 is more restrictive and follows least privilege.</p>
+    </div>
+
+    <div class="card">
+        <p><strong>Q4: What are Service Account best practices?</strong></p>
+        <p><strong>A:</strong> (1) Create a dedicated SA per application -- never use the default SA. (2) Set <code>automountServiceAccountToken: false</code> on both the SA and pod unless the pod actually needs API access. (3) Use projected volume tokens with short expiration (1 hour) instead of long-lived Secret-based tokens. (4) Restrict SA permissions with RBAC to the minimum needed. (5) Use <code>resourceNames</code> in Rules to restrict access to specific ConfigMaps/Secrets when possible.</p>
+    </div>
+
+    <div class="card">
+        <p><strong>Q5: Explain the three Pod Security Standard levels.</strong></p>
+        <p><strong>A:</strong> <strong>Privileged</strong> = unrestricted, for system workloads like CNI plugins. <strong>Baseline</strong> = prevents known privilege escalations (no hostNetwork, no privileged containers) while remaining compatible with most applications. <strong>Restricted</strong> = maximum hardening (must run as non-root, drop ALL capabilities, no privilege escalation, seccomp required). Start with Baseline for development, enforce Restricted for production.</p>
+    </div>
+
+    <div class="card">
+        <p><strong>Q6: How do you prevent privilege escalation in pods?</strong></p>
+        <p><strong>A:</strong> Multiple layers: (1) <code>allowPrivilegeEscalation: false</code> in securityContext blocks setuid binaries. (2) <code>runAsNonRoot: true</code> refuses to start if the image uses UID 0. (3) <code>capabilities: drop: [ALL]</code> removes all Linux capabilities. (4) <code>readOnlyRootFilesystem: true</code> prevents writing malicious binaries. (5) Enforce the Restricted Pod Security Standard at the namespace level. (6) Use Seccomp profiles to restrict system calls.</p>
+    </div>
+
+    <div class="card">
+        <p><strong>Q7: When would you use a Mutating vs Validating Admission Webhook?</strong></p>
+        <p><strong>A:</strong> <strong>Mutating</strong> webhooks modify the request before persistence -- use them to inject sidecar containers, set default resource limits, or add labels. <strong>Validating</strong> webhooks accept or reject requests without modification -- use them to enforce policies like "all pods must have resource limits" or "no containers can run as root". Mutating runs first so validators see the final mutated state.</p>
+    </div>
+
+    <div class="card">
+        <p><strong>Q8: How do you handle Secrets securely in Kubernetes?</strong></p>
+        <p><strong>A:</strong> (1) Enable encryption at rest in etcd (EncryptionConfiguration). (2) Use external secret stores (AWS Secrets Manager, HashiCorp Vault) with operators like External Secrets. (3) Restrict Secret access via RBAC -- most developers should not be able to read secrets directly. (4) Use <code>stringData</code> in manifests (auto-encodes to base64). (5) Never commit secrets to Git -- use sealed-secrets or external references. (6) Rotate secrets regularly and use short-lived credentials where possible.</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SCENARIOS -->
+    <!-- ============================================================ -->
+
+    <h2>7. Scenarios</h2>
+
+    <h3>Scenario 1: User Getting "Forbidden" Errors</h3>
+
+    <div class="card card-danger">
+        <p><strong>Problem:</strong> A developer reports <code>Error from server (Forbidden): pods is forbidden: User "dev-jane" cannot list resource "pods" in API group "" in the namespace "production"</code></p>
+    </div>
+
+    <pre><code># Step 1: Verify what permissions the user has
+kubectl auth can-i --list --as dev-jane --namespace production
+
+# Step 2: Check if any RoleBindings exist for this user
+kubectl get rolebindings -n production -o yaml | grep -A 5 "dev-jane"
+
+# Step 3: Check ClusterRoleBindings
+kubectl get clusterrolebindings -o yaml | grep -A 5 "dev-jane"
+
+# Step 4: Check if user is in a group that has access
+kubectl get rolebindings -n production -o yaml | grep -B 5 -A 10 "kind: Group"
+
+# Step 5: Fix -- Create appropriate RoleBinding
+kubectl create rolebinding dev-jane-pods \
+  --clusterrole=view \
+  --user=dev-jane \
+  --namespace=production
+
+# Step 6: Verify fix
+kubectl auth can-i list pods --as dev-jane --namespace production
+# Output: yes</code></pre>
+
+    <h3>Scenario 2: Pod Running as Root -- Risk Assessment</h3>
+
+    <div class="card card-danger">
+        <p><strong>Problem:</strong> Security scan reveals pods running as root (UID 0) in a multi-tenant cluster.</p>
+    </div>
+
+    <pre><code># Step 1: Find all pods running as root
+kubectl get pods -A -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name}: UID={.spec.securityContext.runAsUser}, containers={range .spec.containers[*]}{.name}(UID={.securityContext.runAsUser}) {end}{"\n"}{end}'
+
+# Step 2: Check which pods have no securityContext at all (likely running as root)
+kubectl get pods -A -o json | jq -r '
+  .items[] |
+  select(.spec.securityContext.runAsNonRoot != true) |
+  "\(.metadata.namespace)/\(.metadata.name)"'
+
+# Step 3: Enforce at namespace level
+kubectl label namespace production \
+  pod-security.kubernetes.io/enforce=restricted \
+  pod-security.kubernetes.io/warn=restricted
+
+# Step 4: Test with a dry-run
+kubectl run test --image=nginx --dry-run=server -n production
+# Should be rejected if image defaults to root</code></pre>
+
+    <h3>Scenario 3: Securing a Multi-Tenant Cluster</h3>
+
+    <div class="card card-info">
+        <p><strong>Problem:</strong> Multiple teams share one cluster. You need namespace-level isolation.</p>
+    </div>
+
+    <pre><code># 1. Create namespace with Pod Security Standards
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-alpha
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted
+    team: alpha
+---
+# 2. NetworkPolicy -- deny all, then allow only within namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all
+  namespace: team-alpha
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-same-namespace
+  namespace: team-alpha
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector: {}
+  egress:
+  - to:
+    - podSelector: {}
+  - to:          # Allow DNS
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+---
+# 3. ResourceQuota -- prevent resource hogging
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: team-alpha-quota
+  namespace: team-alpha
+spec:
+  hard:
+    requests.cpu: "10"
+    requests.memory: 20Gi
+    limits.cpu: "20"
+    limits.memory: 40Gi
+    pods: "50"
+    services: "10"
+---
+# 4. LimitRange -- enforce per-pod limits
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-limits
+  namespace: team-alpha
+spec:
+  limits:
+  - default:
+      cpu: "500m"
+      memory: "256Mi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "128Mi"
+    type: Container</code></pre>
+
+</div>
+
+</body>
+</html>

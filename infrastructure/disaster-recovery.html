@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disaster Recovery - DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html" class="active">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; <a href="../index.html">Infrastructure</a> &gt; Disaster Recovery
+        </div>
+
+        <h1>Disaster Recovery</h1>
+        <p class="subtitle">RPO/RTO, DR strategies, backups, Velero, multi-region architecture, chaos engineering, and runbooks</p>
+
+        <!-- ============================================ -->
+        <!-- 1. DR Fundamentals -->
+        <!-- ============================================ -->
+        <h2>1. DR Fundamentals</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">RPO vs RTO</div>
+<pre>
+  Timeline of a disaster event:
+
+  ───────────────────────────────────────────────────────────────────>
+  │                    │                         │                   │
+  Last                 │ DISASTER                │                   │
+  Backup              OCCURS                  Recovery             Full
+  Point                                       Begins              Service
+
+  |<───── RPO ────────>|<──────────── RTO ──────────────────────────>|
+  (Recovery Point       (Recovery Time Objective)
+   Objective)
+
+  RPO = How much data can you afford to LOSE?
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  RPO = 0       : No data loss acceptable (sync replication)      │
+  │  RPO = 5 min   : Lose at most 5 min of transactions             │
+  │  RPO = 1 hour  : Hourly backups, lose up to 1 hour              │
+  │  RPO = 24 hours: Daily backups, lose up to 1 day                │
+  └──────────────────────────────────────────────────────────────────┘
+
+  RTO = How long can you afford to be DOWN?
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  RTO = 0       : No downtime (multi-active)                      │
+  │  RTO = minutes : Warm standby, automated failover                │
+  │  RTO = hours   : Pilot light, some provisioning needed           │
+  │  RTO = days    : Backup/restore from scratch                     │
+  └──────────────────────────────────────────────────────────────────┘
+</pre>
+        </div>
+
+        <div class="card card-info">
+            <h4>Business Impact Analysis (BIA)</h4>
+            <p>Before defining DR strategy, understand the business impact:</p>
+            <div class="point">
+                <span class="point-num">1</span>
+                <div class="point-content">
+                    <span class="point-title">Identify Critical Systems</span> - Revenue-generating services, customer-facing apps, regulatory systems. Rank by business impact.
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num green">2</span>
+                <div class="point-content">
+                    <span class="point-title">Define Acceptable Loss</span> - How much data loss (RPO) and downtime (RTO) each system can tolerate. Different systems have different requirements.
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num purple">3</span>
+                <div class="point-content">
+                    <span class="point-title">Cost-Benefit Analysis</span> - Lower RPO/RTO = higher cost. A payment system may justify multi-active ($$$), but an internal wiki may only need daily backups ($).
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num orange">4</span>
+                <div class="point-content">
+                    <span class="point-title">Dependencies Mapping</span> - Identify all dependencies (databases, queues, external APIs). DR plan must cover the entire chain, not just individual services.
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 2. DR Strategies -->
+        <!-- ============================================ -->
+        <h2>2. DR Strategies</h2>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Strategy</th>
+                        <th>RTO</th>
+                        <th>RPO</th>
+                        <th>Cost</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Backup & Restore</strong></td>
+                        <td>Hours</td>
+                        <td>Hours</td>
+                        <td>$ (lowest)</td>
+                        <td>Restore from backups in new region. Provision infrastructure from scratch.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Pilot Light</strong></td>
+                        <td>10-30 minutes</td>
+                        <td>Minutes</td>
+                        <td>$$</td>
+                        <td>Core infrastructure running (DB replicas), compute scaled to zero. Scale up on failover.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Warm Standby</strong></td>
+                        <td>Seconds-Minutes</td>
+                        <td>Seconds</td>
+                        <td>$$$</td>
+                        <td>Scaled-down copy running in DR region. Scale up to full on failover.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Multi-Active</strong></td>
+                        <td>Near-zero</td>
+                        <td>Near-zero</td>
+                        <td>$$$$ (highest)</td>
+                        <td>Full deployment in multiple regions. Traffic served from all. No failover needed.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">DR Strategies - Cost vs Recovery Speed</div>
+<pre>
+  Recovery Speed (RTO)
+  ^
+  │
+  │  Multi-Active     ****
+  │  (near-zero)          *
+  │                        *
+  │  Warm Standby          *****
+  │  (seconds)                  *
+  │                              *
+  │  Pilot Light                  *****
+  │  (minutes)                         *
+  │                                     *
+  │  Backup/Restore                      *********
+  │  (hours)
+  │
+  └──────────────────────────────────────────────────> Cost
+    $            $$           $$$          $$$$
+
+  Choose based on:
+  ┌─────────────────────────────────────────────────────────────┐
+  │ Business criticality  x  Downtime cost per hour  =  Budget │
+  │                                                             │
+  │ If downtime costs $100K/hour -> Multi-Active justified      │
+  │ If downtime costs $1K/hour   -> Pilot Light sufficient      │
+  │ If downtime costs $0/hour    -> Backup/Restore is fine      │
+  └─────────────────────────────────────────────────────────────┘
+</pre>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Pilot Light Details</h4>
+                <ul>
+                    <li>Database replicas continuously syncing to DR region</li>
+                    <li>AMIs/container images pre-built and available</li>
+                    <li>Infrastructure as Code ready to provision (Terraform)</li>
+                    <li>Compute instances stopped or at minimal scale</li>
+                    <li>DNS records pre-configured with low TTL</li>
+                    <li><strong>Failover:</strong> Start compute, promote DB replica, update DNS</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Warm Standby Details</h4>
+                <ul>
+                    <li>Full application stack running at reduced capacity</li>
+                    <li>Handles a fraction of production traffic (canary)</li>
+                    <li>Database in sync (multi-AZ or cross-region replica)</li>
+                    <li>Auto-scaling configured to scale up rapidly</li>
+                    <li>Health checks and monitoring active</li>
+                    <li><strong>Failover:</strong> Scale up compute, promote DB, shift DNS/LB</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 3. Backup Best Practices -->
+        <!-- ============================================ -->
+        <h2>3. Backup Best Practices</h2>
+
+        <div class="card card-info">
+            <h4>The 3-2-1 Rule</h4>
+            <div class="diagram">
+<pre>
+  ┌─────────────────────────────────────────────────────────────┐
+  │                                                             │
+  │   3  copies of your data                                    │
+  │   2  different storage media/types                          │
+  │   1  copy offsite (different region/cloud)                  │
+  │                                                             │
+  │   Example:                                                  │
+  │   - Copy 1: Production database (EBS volume)               │
+  │   - Copy 2: Automated snapshots (same region S3)           │
+  │   - Copy 3: Cross-region replication (different region S3)  │
+  │                                                             │
+  └─────────────────────────────────────────────────────────────┘
+</pre>
+            </div>
+        </div>
+
+        <div class="card">
+            <h4>Backup Principles</h4>
+            <div class="point">
+                <span class="point-num">1</span>
+                <div class="point-content">
+                    <span class="point-title">Immutable Backups</span> - Use S3 Object Lock (WORM) or Veeam immutability. Prevents ransomware from encrypting/deleting backups. Configure retention lock (governance or compliance mode).
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num green">2</span>
+                <div class="point-content">
+                    <span class="point-title">Encryption</span> - Encrypt at rest (AES-256, KMS) and in transit (TLS). Use separate encryption keys from production. Store keys in different account/region than backups.
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num purple">3</span>
+                <div class="point-content">
+                    <span class="point-title">Test Restores Regularly</span> - A backup that cannot be restored is worthless. Schedule monthly restore tests. Automate restore validation. Measure actual RTO during tests.
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num orange">4</span>
+                <div class="point-content">
+                    <span class="point-title">Retention Policies</span> - Define retention based on compliance and business needs. Example: daily for 30 days, weekly for 90 days, monthly for 1 year, yearly for 7 years. Automate lifecycle rules.
+                </div>
+            </div>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">s3-backup-lifecycle.tf</span>
+                <span class="tag tag-purple">Terraform</span>
+            </div>
+<pre>
+resource "aws_s3_bucket" "backups" {
+  bucket = "company-db-backups-${var.environment}"
+
+  # Enable versioning for additional protection
+  versioning {
+    enabled = true
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "backup_lifecycle" {
+  bucket = aws_s3_bucket.backups.id
+
+  rule {
+    id     = "backup-retention"
+    status = "Enabled"
+
+    transition {
+      days          = 30
+      storage_class = "STANDARD_IA"    # Cheaper after 30 days
+    }
+
+    transition {
+      days          = 90
+      storage_class = "GLACIER"        # Archive after 90 days
+    }
+
+    expiration {
+      days = 365                       # Delete after 1 year
+    }
+  }
+}
+
+resource "aws_s3_bucket_object_lock_configuration" "immutable" {
+  bucket = aws_s3_bucket.backups.id
+
+  rule {
+    default_retention {
+      mode = "GOVERNANCE"
+      days = 30                        # Cannot delete for 30 days
+    }
+  }
+}
+
+# Cross-region replication
+resource "aws_s3_bucket_replication_configuration" "dr_replication" {
+  bucket = aws_s3_bucket.backups.id
+  role   = aws_iam_role.replication.arn
+
+  rule {
+    id     = "replicate-to-dr"
+    status = "Enabled"
+
+    destination {
+      bucket        = aws_s3_bucket.backups_dr.arn
+      storage_class = "STANDARD_IA"
+    }
+  }
+}
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 4. Kubernetes DR -->
+        <!-- ============================================ -->
+        <h2>4. Kubernetes DR</h2>
+
+        <h3>Velero (Backup & Restore)</h3>
+
+        <div class="card card-info">
+            <h4>What Velero Backs Up</h4>
+            <ul>
+                <li>Kubernetes resources (Deployments, Services, ConfigMaps, Secrets, etc.)</li>
+                <li>Persistent Volume data (via snapshots or Restic/Kopia file-level backup)</li>
+                <li>Cluster-scoped resources (Namespaces, CRDs, ClusterRoles)</li>
+                <li>Supports include/exclude by namespace, resource type, or label</li>
+            </ul>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Velero Installation</span>
+                <span class="tag tag-green">Commands</span>
+            </div>
+<pre>
+# Install Velero with AWS provider
+velero install \
+  --provider aws \
+  --plugins velero/velero-plugin-for-aws:v1.8.0 \
+  --bucket my-velero-backups \
+  --backup-location-config region=us-east-1 \
+  --snapshot-location-config region=us-east-1 \
+  --secret-file ./credentials-velero \
+  --use-node-agent \
+  --default-volumes-to-fs-backup
+
+# Verify installation
+kubectl get pods -n velero
+velero backup-location get
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Velero Backup & Restore Commands</span>
+                <span class="tag tag-blue">Operations</span>
+            </div>
+<pre>
+# Create a backup of entire cluster
+velero backup create full-cluster-backup --wait
+
+# Backup specific namespace
+velero backup create prod-backup \
+  --include-namespaces production \
+  --include-resources deployments,services,configmaps,secrets,pvc \
+  --wait
+
+# Backup with label selector
+velero backup create app-backup \
+  --selector app=my-service \
+  --wait
+
+# Check backup status
+velero backup describe full-cluster-backup --details
+velero backup logs full-cluster-backup
+
+# Restore entire backup
+velero restore create --from-backup full-cluster-backup --wait
+
+# Restore specific namespace to different name
+velero restore create --from-backup prod-backup \
+  --namespace-mappings production:production-restored \
+  --wait
+
+# Restore only specific resources
+velero restore create --from-backup prod-backup \
+  --include-resources deployments,services \
+  --wait
+
+# Check restore status
+velero restore describe <restore-name> --details
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">velero-schedule.yaml</span>
+                <span class="tag tag-purple">Velero Schedule</span>
+            </div>
+<pre>
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: daily-production-backup
+  namespace: velero
+spec:
+  schedule: "0 2 * * *"              # Daily at 2 AM UTC
+  template:
+    includedNamespaces:
+    - production
+    - monitoring
+    - ingress-nginx
+    includedResources:
+    - '*'
+    excludedResources:
+    - events
+    - events.events.k8s.io
+    storageLocation: default
+    volumeSnapshotLocations:
+    - default
+    defaultVolumesToFsBackup: true
+    ttl: 720h0m0s                    # Retain for 30 days
+    metadata:
+      labels:
+        backup-type: scheduled
+  useOwnerReferencesInBackup: false
+</pre>
+        </div>
+
+        <h3>etcd Backup & Restore</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">etcd-backup-restore.sh</span>
+                <span class="tag tag-red">Critical</span>
+            </div>
+<pre>
+#!/bin/bash
+# etcd backup (run on control plane node)
+
+# Backup etcd
+ETCDCTL_API=3 etcdctl snapshot save /backup/etcd-$(date +%Y%m%d-%H%M%S).db \
+  --endpoints=https://127.0.0.1:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key
+
+# Verify backup
+ETCDCTL_API=3 etcdctl snapshot status /backup/etcd-latest.db --write-out=table
+
+# Restore etcd (DESTRUCTIVE - stops cluster)
+# 1. Stop kube-apiserver and etcd
+sudo mv /etc/kubernetes/manifests/kube-apiserver.yaml /tmp/
+sudo mv /etc/kubernetes/manifests/etcd.yaml /tmp/
+
+# 2. Restore snapshot to new data directory
+ETCDCTL_API=3 etcdctl snapshot restore /backup/etcd-latest.db \
+  --data-dir=/var/lib/etcd-restored \
+  --name=master-1 \
+  --initial-cluster=master-1=https://10.0.1.10:2380 \
+  --initial-advertise-peer-urls=https://10.0.1.10:2380
+
+# 3. Update etcd manifest to use new data-dir
+# 4. Move manifests back
+sudo mv /tmp/etcd.yaml /etc/kubernetes/manifests/
+sudo mv /tmp/kube-apiserver.yaml /etc/kubernetes/manifests/
+
+# 5. Verify cluster health
+kubectl get nodes
+kubectl get pods --all-namespaces
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 5. Database DR -->
+        <!-- ============================================ -->
+        <h2>5. Database DR</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">RDS Multi-AZ and Cross-Region DR</div>
+<pre>
+  ┌──────────────── Region: us-east-1 (Primary) ─────────────────┐
+  │                                                               │
+  │   ┌── AZ-1a ──────────┐      ┌── AZ-1b ──────────┐          │
+  │   │  ┌──────────────┐ │ sync │  ┌──────────────┐ │          │
+  │   │  │   Primary    │ │<────>│  │   Standby    │ │          │
+  │   │  │   RDS        │ │      │  │   (Multi-AZ) │ │          │
+  │   │  └──────┬───────┘ │      │  └──────────────┘ │          │
+  │   └─────────┼──────────┘      └────────────────────┘          │
+  │             │                                                  │
+  │             │ async replication                                 │
+  └─────────────┼──────────────────────────────────────────────────┘
+                │
+                ▼
+  ┌──────────────── Region: us-west-2 (DR) ───────────────────────┐
+  │                                                                │
+  │   ┌── AZ-2a ──────────┐                                       │
+  │   │  ┌──────────────┐ │                                       │
+  │   │  │ Cross-Region │ │  Read replica (async)                  │
+  │   │  │ Read Replica │ │  Can be promoted to standalone         │
+  │   │  └──────────────┘ │  in DR event                          │
+  │   └────────────────────┘                                       │
+  │                                                                │
+  └────────────────────────────────────────────────────────────────┘
+
+  Failover options:
+  1. Multi-AZ (auto):  ~60-120s, same region, zero data loss
+  2. Read Replica (manual): Promote cross-region replica, minutes, some data loss
+  3. Aurora Global DB: < 1 min failover, ~1s RPO, managed by Aurora
+</pre>
+        </div>
+
+        <div class="card">
+            <h4>RDS DR Features</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>RPO</th>
+                        <th>RTO</th>
+                        <th>Scope</th>
+                        <th>Automatic?</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Multi-AZ</strong></td>
+                        <td>0 (sync)</td>
+                        <td>60-120s</td>
+                        <td>Same region, diff AZ</td>
+                        <td>Yes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Read Replica (same region)</strong></td>
+                        <td>Seconds (async)</td>
+                        <td>Minutes</td>
+                        <td>Same region</td>
+                        <td>Manual promote</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Cross-Region Read Replica</strong></td>
+                        <td>Seconds-minutes</td>
+                        <td>Minutes</td>
+                        <td>Cross-region</td>
+                        <td>Manual promote</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Aurora Global Database</strong></td>
+                        <td>~1 second</td>
+                        <td>&lt; 1 minute</td>
+                        <td>Cross-region</td>
+                        <td>Managed failover</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Automated Backups</strong></td>
+                        <td>5 min (transaction logs)</td>
+                        <td>Hours</td>
+                        <td>Same region</td>
+                        <td>Requires restore</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Manual Snapshot + Copy</strong></td>
+                        <td>Hours (snapshot interval)</td>
+                        <td>Hours</td>
+                        <td>Any region</td>
+                        <td>Fully manual</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">rds-dr-commands.sh</span>
+                <span class="tag tag-orange">AWS CLI</span>
+            </div>
+<pre>
+# Create cross-region read replica
+aws rds create-db-instance-read-replica \
+  --db-instance-identifier mydb-dr-replica \
+  --source-db-instance-identifier arn:aws:rds:us-east-1:123456789:db:mydb-primary \
+  --region us-west-2 \
+  --db-instance-class db.r6g.xlarge \
+  --storage-encrypted \
+  --kms-key-id alias/rds-dr-key
+
+# Check replication lag
+aws rds describe-db-instances \
+  --db-instance-identifier mydb-dr-replica \
+  --query 'DBInstances[0].StatusInfos'
+
+# Promote replica to standalone (DR failover)
+aws rds promote-read-replica \
+  --db-instance-identifier mydb-dr-replica \
+  --region us-west-2
+
+# Copy snapshot cross-region (for backup/restore strategy)
+aws rds copy-db-snapshot \
+  --source-db-snapshot-identifier arn:aws:rds:us-east-1:123456789:snapshot:mydb-daily \
+  --target-db-snapshot-identifier mydb-daily-dr-copy \
+  --region us-west-2 \
+  --kms-key-id alias/rds-dr-key
+</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 6. Multi-Region Architecture -->
+        <!-- ============================================ -->
+        <h2>6. Multi-Region Architecture</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">Active-Passive Architecture</div>
+<pre>
+                     ┌───────────────────┐
+                     │   Route 53        │
+                     │   (Failover       │
+                     │    Routing)       │
+                     └────────┬──────────┘
+                              │
+                   ┌──────────┴──────────┐
+                   │                     │
+                   ▼                     ▼
+  ┌──── us-east-1 (ACTIVE) ────┐  ┌──── us-west-2 (PASSIVE) ───┐
+  │                             │  │                             │
+  │  ┌─────┐  ┌─────┐  ┌────┐ │  │  ┌─────┐  ┌─────┐  ┌────┐ │
+  │  │ ALB │  │ ECS │  │ RDS│ │  │  │ ALB │  │ ECS │  │ RDS│ │
+  │  │     │  │(run)│  │(RW)│ │  │  │     │  │(min)│  │(RO)│ │
+  │  └─────┘  └─────┘  └────┘ │  │  └─────┘  └─────┘  └────┘ │
+  │                             │  │                             │
+  │  Health Check: HEALTHY      │  │  Health Check: HEALTHY      │
+  │  Priority: PRIMARY          │  │  Priority: SECONDARY        │
+  └─────────────────────────────┘  └─────────────────────────────┘
+                   │                            ▲
+                   │     Async Replication       │
+                   └────────────────────────────┘
+
+  Failover trigger: Route 53 health check fails on primary
+  Failover action: DNS points to secondary, promote DB replica
+  TTL: Set low (60s) for faster DNS propagation
+</pre>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">Active-Active Architecture</div>
+<pre>
+                     ┌───────────────────┐
+                     │   Route 53        │
+                     │   (Latency or     │
+                     │    Geolocation)   │
+                     └────────┬──────────┘
+                              │
+                   ┌──────────┴──────────┐
+                   │                     │
+                   ▼                     ▼
+  ┌──── us-east-1 (ACTIVE) ────┐  ┌──── eu-west-1 (ACTIVE) ────┐
+  │                             │  │                             │
+  │  ┌─────┐  ┌─────┐  ┌────┐ │  │  ┌─────┐  ┌─────┐  ┌────┐ │
+  │  │ ALB │  │ ECS │  │ DB │ │  │  │ ALB │  │ ECS │  │ DB │ │
+  │  │     │  │(full│  │(RW)│ │  │  │     │  │(full│  │(RW)│ │
+  │  └─────┘  └─────┘  └────┘ │  │  └─────┘  └─────┘  └────┘ │
+  │                             │  │                             │
+  └──────────────┬──────────────┘  └──────────────┬─────────────┘
+                 │                                 │
+                 └─── Bidirectional Replication ───┘
+                      (conflict resolution needed)
+
+  Challenges:
+  ┌─────────────────────────────────────────────────────────────┐
+  │ 1. Write conflicts (same record updated in both regions)    │
+  │    - Last-writer-wins (LWW) with vector clocks              │
+  │    - CRDTs (Conflict-free Replicated Data Types)            │
+  │    - Application-level conflict resolution                   │
+  │                                                             │
+  │ 2. Data consistency (eventual consistency between regions)  │
+  │                                                             │
+  │ 3. Increased complexity (2x infrastructure + replication)   │
+  │                                                             │
+  │ 4. Global ID generation (avoid collisions)                  │
+  └─────────────────────────────────────────────────────────────┘
+</pre>
+        </div>
+
+        <div class="card">
+            <h4>DNS Failover with Route 53</h4>
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="filename">route53-failover.tf</span>
+                    <span class="tag tag-purple">Terraform</span>
+                </div>
+<pre>
+resource "aws_route53_health_check" "primary" {
+  fqdn              = "primary-alb.us-east-1.elb.amazonaws.com"
+  port              = 443
+  type              = "HTTPS"
+  resource_path     = "/health"
+  failure_threshold = 3
+  request_interval  = 10
+
+  tags = { Name = "primary-health-check" }
+}
+
+resource "aws_route53_record" "primary" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "api.example.com"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.primary.dns_name
+    zone_id                = aws_lb.primary.zone_id
+    evaluate_target_health = true
+  }
+
+  failover_routing_policy {
+    type = "PRIMARY"
+  }
+
+  set_identifier  = "primary"
+  health_check_id = aws_route53_health_check.primary.id
+}
+
+resource "aws_route53_record" "secondary" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "api.example.com"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.secondary.dns_name
+    zone_id                = aws_lb.secondary.zone_id
+    evaluate_target_health = true
+  }
+
+  failover_routing_policy {
+    type = "SECONDARY"
+  }
+
+  set_identifier = "secondary"
+}
+</pre>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 7. Runbooks -->
+        <!-- ============================================ -->
+        <h2>7. DR Runbooks</h2>
+
+        <div class="card card-warning">
+            <h4>DR Runbook Template</h4>
+            <p>Every DR runbook should include these sections:</p>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">dr-runbook-template.md</span>
+                <span class="tag tag-orange">Template</span>
+            </div>
+<pre>
+# DR Runbook: [Service/System Name]
+
+## Trigger Criteria
+- When to activate this runbook
+- Example: "Primary region health check failing for > 5 minutes"
+- Example: "RDS Multi-AZ failover failed, manual intervention needed"
+
+## Prerequisites
+- [ ] DR region infrastructure verified (last test: YYYY-MM-DD)
+- [ ] Credentials and access verified for DR region
+- [ ] Communication channels established (Slack #incident, PagerDuty)
+
+## Failover Steps
+1. **Confirm the disaster** (not a false alarm)
+   - Check CloudWatch alarms
+   - Verify from multiple vantage points
+   - Check AWS Health Dashboard
+
+2. **Communicate**
+   - Notify incident commander
+   - Post in #incident channel
+   - Update status page: "Investigating"
+
+3. **Execute failover**
+   - Step-by-step commands with exact syntax
+   - Expected output at each step
+   - Verification checks between steps
+
+4. **Validate recovery**
+   - Health check endpoints responding
+   - Synthetic transactions passing
+   - Data integrity checks
+   - Performance within acceptable range
+
+5. **Post-failover**
+   - Update DNS TTLs back to normal
+   - Monitor for 30 minutes
+   - Update status page: "Resolved"
+
+## Rollback (Failback)
+- Steps to return to primary when ready
+- Data synchronization procedure
+- Validation before cutting back
+
+## Contacts
+| Role              | Name          | Phone/Slack       |
+|-------------------|---------------|-------------------|
+| Incident Commander| Jane Smith    | @jsmith           |
+| DBA On-Call       | Bob Johnson   | +1-555-0123       |
+| Platform Engineer | Alice Chen    | @achen            |
+
+## Post-Incident
+- Schedule post-mortem within 48 hours
+- Update this runbook with lessons learned
+- File tickets for automation improvements
+</pre>
+        </div>
+
+        <div class="card">
+            <h4>Regular DR Drills</h4>
+            <div class="point">
+                <span class="point-num">1</span>
+                <div class="point-content">
+                    <span class="point-title">Tabletop Exercise (Monthly)</span> - Walk through runbook verbally. Identify gaps in documentation. No actual failover performed. All stakeholders present.
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num green">2</span>
+                <div class="point-content">
+                    <span class="point-title">Component Test (Quarterly)</span> - Failover individual components (DB, cache, queue). Verify recovery of each subsystem independently. Measure actual RTO.
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num purple">3</span>
+                <div class="point-content">
+                    <span class="point-title">Full DR Test (Semi-annually)</span> - Complete failover to DR region. Run full test suite against DR. Measure end-to-end RTO and RPO. Failback and verify.
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num orange">4</span>
+                <div class="point-content">
+                    <span class="point-title">Game Day (Annually)</span> - Unannounced DR test during business hours. Tests team readiness and runbook accuracy. Closest to real disaster conditions.
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 8. Chaos Engineering -->
+        <!-- ============================================ -->
+        <h2>8. Chaos Engineering for DR</h2>
+
+        <div class="card card-info">
+            <h4>Chaos Engineering Principles</h4>
+            <ul>
+                <li><strong>Hypothesis:</strong> Define expected behavior under failure conditions</li>
+                <li><strong>Steady state:</strong> Measure normal system behavior first</li>
+                <li><strong>Inject failure:</strong> Introduce real-world failure conditions</li>
+                <li><strong>Observe:</strong> Compare actual behavior to hypothesis</li>
+                <li><strong>Minimize blast radius:</strong> Start small, increase gradually</li>
+                <li><strong>Run in production:</strong> Only production reveals production problems (when ready)</li>
+            </ul>
+        </div>
+
+        <h3>Game Day Planning</h3>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Phase</th>
+                        <th>Activity</th>
+                        <th>Duration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Preparation</strong></td>
+                        <td>Define scope, hypothesis, rollback plan. Notify stakeholders. Verify monitoring.</td>
+                        <td>1-2 weeks before</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Pre-game</strong></td>
+                        <td>Verify steady state metrics. Confirm all participants ready. Check rollback works.</td>
+                        <td>1 hour before</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Execution</strong></td>
+                        <td>Inject failure. Observe. Document findings in real-time. Abort if impact exceeds threshold.</td>
+                        <td>1-4 hours</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Recovery</strong></td>
+                        <td>Remove failure injection. Verify full recovery. Confirm steady state restored.</td>
+                        <td>30 min - 1 hour</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Post-game</strong></td>
+                        <td>Review findings. File improvement tickets. Update runbooks. Share learnings.</td>
+                        <td>Next day</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3>Litmus Chaos Experiments</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">pod-delete-experiment.yaml</span>
+                <span class="tag tag-red">LitmusChaos</span>
+            </div>
+<pre>
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: pod-delete-chaos
+  namespace: production
+spec:
+  appinfo:
+    appns: production
+    applabel: "app=order-service"
+    appkind: deployment
+  engineState: active
+  chaosServiceAccount: litmus-admin
+  experiments:
+  - name: pod-delete
+    spec:
+      components:
+        env:
+        - name: TOTAL_CHAOS_DURATION
+          value: "60"                  # 60 seconds of chaos
+        - name: CHAOS_INTERVAL
+          value: "10"                  # Delete pod every 10s
+        - name: FORCE
+          value: "false"               # Graceful termination
+        - name: PODS_AFFECTED_PERC
+          value: "50"                  # Kill 50% of pods
+      probe:
+      - name: "check-endpoint-health"
+        type: httpProbe
+        httpProbe/inputs:
+          url: "http://order-service.production.svc:8080/health"
+          method:
+            get:
+              criteria: "=="
+              responseCode: "200"
+        mode: Continuous
+        runProperties:
+          probeTimeout: 5
+          interval: 5
+          retry: 3
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">node-drain-experiment.yaml</span>
+                <span class="tag tag-red">LitmusChaos</span>
+            </div>
+<pre>
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: node-drain-chaos
+  namespace: litmus
+spec:
+  appinfo:
+    appns: production
+    applabel: "app=web-frontend"
+    appkind: deployment
+  engineState: active
+  chaosServiceAccount: litmus-admin
+  experiments:
+  - name: node-drain
+    spec:
+      components:
+        env:
+        - name: TOTAL_CHAOS_DURATION
+          value: "120"
+        - name: APP_NODE
+          value: ""                    # Auto-detect node
+        nodeSelector:
+          kubernetes.io/os: linux
+      probe:
+      - name: "check-pod-rescheduled"
+        type: cmdProbe
+        cmdProbe/inputs:
+          command: "kubectl get pods -n production -l app=web-frontend --field-selector=status.phase=Running | wc -l"
+          comparator:
+            type: "int"
+            criteria: ">="
+            value: "2"                 # At least 2 pods running
+        mode: Edge
+        runProperties:
+          probeTimeout: 30
+          interval: 10
+</pre>
+        </div>
+
+        <div class="card">
+            <h4>Common Failure Injection Scenarios</h4>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>Infrastructure Failures</h4>
+                    <ul>
+                        <li>Pod deletion (test self-healing)</li>
+                        <li>Node drain/cordon (test rescheduling)</li>
+                        <li>Network partition (test circuit breakers)</li>
+                        <li>DNS failure (test fallback)</li>
+                        <li>Disk fill (test storage alerts)</li>
+                        <li>CPU/memory stress (test autoscaling)</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>Application Failures</h4>
+                    <ul>
+                        <li>Database connection failure (test retry logic)</li>
+                        <li>Downstream service latency (test timeouts)</li>
+                        <li>Cache failure (test cache-aside fallback)</li>
+                        <li>Message queue unavailable (test buffering)</li>
+                        <li>Certificate expiry (test TLS handling)</li>
+                        <li>Config map deletion (test defaults)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 9. Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>9. Interview Q&A</h2>
+
+        <div class="qa">
+            <div class="q">Q1: What is the difference between RPO and RTO?</div>
+            <div class="a"><strong>Answer:</strong> <strong>RPO (Recovery Point Objective)</strong> is the maximum acceptable data loss measured in time - "how much data can we afford to lose?" An RPO of 1 hour means we can lose up to 1 hour of transactions. <strong>RTO (Recovery Time Objective)</strong> is the maximum acceptable downtime - "how long can we be down?" An RTO of 15 minutes means the system must be restored within 15 minutes. They are independent: you might have RPO=0 (no data loss) but RTO=1 hour (can be down for an hour while restoring). The cost increases exponentially as both approach zero. RPO drives backup frequency, RTO drives infrastructure readiness.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q2: Compare the four DR strategies and when to use each.</div>
+            <div class="a"><strong>Answer:</strong> (1) <strong>Backup/Restore</strong> (RTO: hours, cost: $): Store backups off-site, rebuild from scratch. Use for non-critical systems, dev environments. (2) <strong>Pilot Light</strong> (RTO: 10-30 min, cost: $$): Keep data replicated, infrastructure as code ready, minimal compute running. Scale up on failover. Use for important but not mission-critical systems. (3) <strong>Warm Standby</strong> (RTO: seconds-minutes, cost: $$$): Scaled-down replica always running. Scale up on failover. Use for business-critical applications. (4) <strong>Multi-Active</strong> (RTO: near-zero, cost: $$$$): Full deployment in multiple regions, traffic split across all. Use for mission-critical, revenue-generating systems where any downtime is unacceptable. Choice depends on: cost of downtime vs cost of DR infrastructure.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q3: Describe the Velero backup and restore workflow.</div>
+            <div class="a"><strong>Answer:</strong> <strong>Backup workflow:</strong> (1) Velero calls Kubernetes API to get resources matching the backup spec (namespace, labels, resource types); (2) For PVs, it either takes CSI snapshots or uses file-level backup (Kopia/Restic) to copy data; (3) Resources are serialized to JSON and stored in object storage (S3/GCS); (4) Metadata (backup status, contents) tracked as Kubernetes CRDs. <strong>Restore workflow:</strong> (1) Velero reads backup from object storage; (2) Creates resources in target cluster (can remap namespaces); (3) Restores PV data from snapshots or file backups; (4) Handles resource conflicts (skip, patch, or overwrite). <strong>Key features:</strong> Scheduled backups via cron, TTL-based retention, hooks (pre/post backup commands), resource filtering.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q4: What are the trade-offs of multi-region architecture?</div>
+            <div class="a"><strong>Answer:</strong> <strong>Benefits:</strong> Near-zero RTO, improved latency (users hit closest region), isolation from regional failures, compliance (data sovereignty). <strong>Trade-offs:</strong> (1) <strong>Cost:</strong> 2x+ infrastructure, data transfer costs between regions; (2) <strong>Complexity:</strong> Data replication, conflict resolution, global state management; (3) <strong>Consistency:</strong> Cross-region replication is async (eventual consistency) or sync (high latency); (4) <strong>Operations:</strong> Deployments must coordinate across regions, monitoring is more complex; (5) <strong>Data conflicts:</strong> Active-active requires conflict resolution (LWW, CRDTs, or application logic); (6) <strong>Testing:</strong> Must test failover regularly, difficult to simulate real regional failures.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q5: How do you test a DR plan effectively?</div>
+            <div class="a"><strong>Answer:</strong> Progressive testing approach: (1) <strong>Tabletop exercises</strong> (monthly): Walk through runbooks verbally, identify gaps; (2) <strong>Component tests</strong> (quarterly): Failover individual services, measure actual RTO; (3) <strong>Full DR tests</strong> (semi-annually): Complete region failover, run full test suite; (4) <strong>Game days</strong> (annually): Unannounced tests during business hours. Key principles: document everything, measure actual RTO/RPO vs targets, treat test failures as learning opportunities, update runbooks after every test. Common mistakes: only testing during maintenance windows, not testing data integrity after restore, not involving application teams, not testing failback.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q6: What should you backup in a Kubernetes cluster?</div>
+            <div class="a"><strong>Answer:</strong> Critical backups: (1) <strong>etcd</strong> - Contains all cluster state (the most critical); (2) <strong>Kubernetes resources</strong> - Deployments, Services, ConfigMaps, Secrets, RBAC, CRDs (use Velero); (3) <strong>Persistent Volumes</strong> - Application data in PVCs (CSI snapshots or file-level); (4) <strong>Certificates and PKI</strong> - /etc/kubernetes/pki/ (CA certs, service account keys); (5) <strong>Infrastructure as Code</strong> - Terraform/Helm charts (in git, but verify); (6) <strong>External state</strong> - External DNS records, load balancer configs, IAM roles. What NOT to backup: pod logs (use log aggregation), metrics (use time-series DB), node state (immutable, rebuild from image). Strategy: etcd snapshot for cluster recovery, Velero for application-level recovery.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q7: Explain the RDS failover process.</div>
+            <div class="a"><strong>Answer:</strong> <strong>Multi-AZ failover:</strong> (1) AWS detects failure (instance crash, AZ outage, storage failure); (2) Standby in other AZ is promoted to primary (sync replicated, no data loss); (3) DNS endpoint (CNAME) is updated to point to new primary; (4) Process takes 60-120 seconds; (5) Application reconnects automatically via same endpoint. <strong>What triggers failover:</strong> AZ outage, primary instance failure, instance type change, software patching, manual reboot with failover. <strong>Application considerations:</strong> Connection strings use the cluster endpoint (not instance endpoint). Applications should handle brief disconnection (retry logic). Some connections may need to be re-established. Open transactions are lost and must be retried.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q8: How does chaos engineering improve DR readiness?</div>
+            <div class="a"><strong>Answer:</strong> Chaos engineering proactively finds weaknesses before real disasters expose them. <strong>For DR specifically:</strong> (1) Validates that failover mechanisms actually work under realistic conditions; (2) Reveals hidden dependencies not documented in runbooks; (3) Tests monitoring and alerting (do alarms fire correctly?); (4) Validates team response (do people know what to do?); (5) Measures actual RTO/RPO under failure (vs theoretical). <strong>Approach:</strong> Start with hypothesis ("system tolerates one pod failure"), inject failure (kill pod), observe (does service stay available?), learn (fix gaps found). Progress from dev to staging to production. Always have a kill switch to stop the experiment. Key insight: DR plans are theory until tested under realistic failure conditions.</div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 10. Scenarios -->
+        <!-- ============================================ -->
+        <h2>10. Troubleshooting Scenarios</h2>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!</span>
+                <span class="title">Scenario: Complete AZ Failure</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> Multiple services unreachable. CloudWatch showing widespread failures in us-east-1a. Health checks failing for resources in that AZ. AWS Health Dashboard confirms AZ impairment.</p>
+                <div class="scenario-step"><span class="step-num">1.</span> <strong>Assess impact:</strong> Identify all resources in affected AZ: EC2 instances, RDS (check if Multi-AZ), ElastiCache nodes, EBS volumes. Check which services have cross-AZ redundancy.</div>
+                <div class="scenario-step"><span class="step-num">2.</span> <strong>Automatic recovery:</strong> Multi-AZ RDS should auto-failover (60-120s). ECS/EKS should reschedule pods to healthy AZ nodes (if capacity exists). ALB should stop routing to unhealthy targets.</div>
+                <div class="scenario-step"><span class="step-num">3.</span> <strong>Manual actions:</strong> Scale up ASG in healthy AZs. Check if EKS nodes have capacity (may need to add nodes in healthy AZs). Verify ALB health checks are marking affected targets unhealthy. Check for services with AZ affinity that won't auto-recover.</div>
+                <div class="scenario-step"><span class="step-num">4.</span> <strong>Data services:</strong> Verify RDS failover completed. Check ElastiCache cluster mode (does it survive AZ loss?). Verify Kafka replicas in other AZs have caught up. Check EBS volumes - they are AZ-bound and inaccessible until AZ recovers.</div>
+                <div class="scenario-step"><span class="step-num">5.</span> <strong>Communication:</strong> Update status page. Inform customers of potential degradation. If recovery exceeds RTO, activate full DR plan (cross-region failover). Post-incident: review AZ distribution of all resources.</div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!</span>
+                <span class="title">Scenario: etcd Corruption Recovery</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> kube-apiserver returning errors. etcd logs showing "database space exceeded" or corruption errors. kubectl commands failing. New pods not scheduling.</p>
+                <div class="scenario-step"><span class="step-num">1.</span> <strong>Immediate triage:</strong> Check etcd member health: <code>etcdctl endpoint health</code>. Check cluster status: <code>etcdctl endpoint status</code>. If one member corrupt but others healthy, remove and re-add the member.</div>
+                <div class="scenario-step"><span class="step-num">2.</span> <strong>If space exceeded:</strong> Compact etcd history: <code>etcdctl compact $(etcdctl endpoint status -w json | jq '.[] .Status.header.revision')</code>. Then defragment: <code>etcdctl defrag</code>. Increase <code>--quota-backend-bytes</code>.</div>
+                <div class="scenario-step"><span class="step-num">3.</span> <strong>If data corrupted:</strong> Stop kube-apiserver (move manifest). Identify latest valid snapshot. Restore from snapshot to new data directory. Update etcd manifest to use new data directory. Restart.</div>
+                <div class="scenario-step"><span class="step-num">4.</span> <strong>Validate recovery:</strong> Check all nodes rejoin: <code>kubectl get nodes</code>. Verify workloads: <code>kubectl get pods --all-namespaces</code>. Check CRDs and custom resources are intact. Verify RBAC still working.</div>
+                <div class="scenario-step"><span class="step-num">5.</span> <strong>Prevention:</strong> Regular etcd snapshots (every 30 min). Monitor etcd DB size and set alerts at 70% quota. Set appropriate <code>--auto-compaction-retention</code>. Run etcd on fast local SSD (not network-attached storage).</div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!</span>
+                <span class="title">Scenario: Accidental Namespace Deletion (Velero Restore)</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> Someone ran <code>kubectl delete namespace production</code>. All deployments, services, configmaps, secrets, PVCs in the namespace are gone. Application completely down.</p>
+                <div class="scenario-step"><span class="step-num">1.</span> <strong>Confirm the damage:</strong> <code>kubectl get namespace production</code> returns NotFound. Check if any PVs have <code>Retain</code> reclaim policy (data may still exist on disk). Check Velero backups: <code>velero backup get</code>.</div>
+                <div class="scenario-step"><span class="step-num">2.</span> <strong>Find the right backup:</strong> <code>velero backup describe daily-production-backup-YYYYMMDD --details</code>. Verify it contains the production namespace. Check backup timestamp vs deletion time.</div>
+                <div class="scenario-step"><span class="step-num">3.</span> <strong>Restore namespace:</strong> <code>velero restore create emergency-restore --from-backup daily-production-backup-20240615 --include-namespaces production --wait</code>. This recreates the namespace and all resources.</div>
+                <div class="scenario-step"><span class="step-num">4.</span> <strong>Restore PV data:</strong> If PVs had <code>Delete</code> reclaim policy, data is lost. Velero's file-level backup (Kopia) can restore PV contents. Check: <code>velero restore describe emergency-restore --details</code> for PV restore status.</div>
+                <div class="scenario-step"><span class="step-num">5.</span> <strong>Validate and prevent:</strong> Verify all pods running, services accessible, data intact. <strong>Prevention:</strong> RBAC (restrict namespace deletion), ResourceQuota with finalizers, Velero scheduled backups, <code>kubectl-safe</code> plugin that confirms destructive commands, admission webhook that blocks namespace deletion in production.</div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">!</span>
+                <span class="title">Scenario: RDS Failover During Deployment</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> During a deployment that includes RDS instance class change, Multi-AZ failover triggered. Application experiencing connection errors. Some transactions lost. Deployment partially complete.</p>
+                <div class="scenario-step"><span class="step-num">1.</span> <strong>Assess RDS state:</strong> <code>aws rds describe-db-instances</code> - check status (modifying, available, failed). Check Events tab for failover confirmation. Verify new primary is accessible.</div>
+                <div class="scenario-step"><span class="step-num">2.</span> <strong>Application recovery:</strong> Connection pools may be holding stale connections to old primary. Restart application pods or trigger connection pool refresh. Verify application can connect to RDS endpoint (DNS should have updated).</div>
+                <div class="scenario-step"><span class="step-num">3.</span> <strong>Data integrity:</strong> Check for in-flight transactions that were lost during failover. Multi-AZ is synchronous so committed transactions are safe. Any uncommitted transactions on old primary are lost. Check application logs for transaction errors.</div>
+                <div class="scenario-step"><span class="step-num">4.</span> <strong>Deployment state:</strong> Check if the instance modification completed successfully after failover. If instance class change was the trigger, verify the new instance class is active. Determine if deployment pipeline needs to be re-run or if it can continue.</div>
+                <div class="scenario-step"><span class="step-num">5.</span> <strong>Prevention:</strong> Schedule RDS modifications during maintenance windows. Use <code>apply-immediately=false</code> for non-urgent changes. Ensure application has connection retry logic with exponential backoff. Set connection timeout and validation query in connection pool. Test failover behavior before production deployments.</div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        <p>Disaster Recovery Reference - DevOps/SRE Study Notes</p>
+    </footer>
+
+</body>
+</html>

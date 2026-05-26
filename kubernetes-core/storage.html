@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes Storage | K8s/DevOps/SRE</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html" class="active">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+<div class="container">
+
+    <div class="breadcrumb">
+        <a href="../index.html">Home</a> &gt; Storage
+    </div>
+
+    <h1>Kubernetes Storage</h1>
+    <p class="subtitle">Comprehensive guide to Kubernetes storage: volumes, PersistentVolumes, StorageClasses, ConfigMaps, Secrets, and CSI -- from fundamentals to production patterns.</p>
+
+    <!-- ============================================================ -->
+    <!-- VOLUME TYPES -->
+    <!-- ============================================================ -->
+
+    <h2>Volume Types</h2>
+
+    <p>Kubernetes volumes solve the ephemeral nature of container filesystems. When a container crashes and restarts, its filesystem is reset. Volumes provide persistent (or shared) storage that outlives individual container restarts.</p>
+
+    <h3>emptyDir</h3>
+
+    <div class="point">
+        <div class="point-num">1</div>
+        <div class="point-content">
+            <span class="point-title">Temporary Shared Storage:</span> An emptyDir volume is created when a Pod is assigned to a node and exists as long as that Pod runs on that node. It starts empty. All containers in the pod can read and write the same files. Data is lost when the pod is deleted (but survives container restarts).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">2</div>
+        <div class="point-content">
+            <span class="point-title">Storage Medium:</span> By default, backed by the node's filesystem (disk). Setting <code>medium: Memory</code> uses a tmpfs (RAM-backed), which is faster but counts against the container's memory limit and is lost on node restart.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">3</div>
+        <div class="point-content">
+            <span class="point-title">Size Limits:</span> You can set <code>sizeLimit</code> to cap the storage usage. For memory-backed emptyDir, exceeding the limit causes pod eviction. For disk-backed, it triggers the node's eviction manager when disk pressure thresholds are crossed.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">4</div>
+        <div class="point-content">
+            <span class="point-title">Use Cases:</span> Scratch space for computation, sharing files between init containers and app containers, caching layers, temporary data processing, sidecar log collection, or as a shared workspace between multi-container pods.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">5</div>
+        <div class="point-content">
+            <span class="point-title">Lifecycle:</span> Created when pod is scheduled to a node. Persists across container restarts within the same pod. Destroyed permanently when the pod is removed from the node (deletion, eviction, node failure).
+        </div>
+    </div>
+
+    <h3>hostPath</h3>
+
+    <div class="point">
+        <div class="point-num green">1</div>
+        <div class="point-content">
+            <span class="point-title">Direct Node Filesystem Access:</span> A hostPath volume mounts a file or directory from the host node's filesystem into the pod. The data persists beyond pod lifetime (it lives on the node), but the pod is tied to that specific node.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">2</div>
+        <div class="point-content">
+            <span class="point-title">Security Risk:</span> hostPath is inherently dangerous -- it grants pods access to the node filesystem. A compromised container could access sensitive host files, escalate privileges, or interfere with other pods. Restricted by Pod Security Standards (Restricted profile blocks it entirely).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">3</div>
+        <div class="point-content">
+            <span class="point-title">Type Validation:</span> The <code>type</code> field validates the path: <code>DirectoryOrCreate</code> (creates if missing), <code>Directory</code> (must exist), <code>FileOrCreate</code>, <code>File</code>, <code>Socket</code>, <code>CharDevice</code>, <code>BlockDevice</code>. Always specify a type for safety.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">4</div>
+        <div class="point-content">
+            <span class="point-title">Legitimate Use Cases:</span> Running cAdvisor (needs /sys), running a node-level log collector (needs /var/log), DaemonSets that need access to node configuration, or single-node development clusters where PVs are overkill.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">5</div>
+        <div class="point-content">
+            <span class="point-title">Pod Scheduling Implication:</span> Pods using hostPath data are effectively pinned to a specific node (the data is local). Use nodeSelector or nodeAffinity to ensure the pod always schedules to the correct node, or the data will appear empty on other nodes.
+        </div>
+    </div>
+
+    <h3>projected</h3>
+
+    <div class="point">
+        <div class="point-num purple">1</div>
+        <div class="point-content">
+            <span class="point-title">Multiple Sources in One Mount:</span> A projected volume maps several volume sources (Secrets, ConfigMaps, Downward API, ServiceAccountToken) into a single directory. This avoids cluttering the pod spec with many separate volumeMounts to the same path.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">2</div>
+        <div class="point-content">
+            <span class="point-title">ServiceAccountToken Projection:</span> The recommended way to get bound, audience-scoped, time-limited service account tokens. Automatically rotated by kubelet. Replaces the legacy auto-mounted token (which never expired).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">3</div>
+        <div class="point-content">
+            <span class="point-title">Downward API:</span> Exposes pod metadata (labels, annotations, resource limits, pod name, namespace, node name) as files inside the container without requiring API server access.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">4</div>
+        <div class="point-content">
+            <span class="point-title">Use Case:</span> Bundling a TLS cert (from Secret), an app config (from ConfigMap), and the pod's own identity information (from Downward API) into a single /etc/app-config/ mount point for clean application configuration.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num purple">5</div>
+        <div class="point-content">
+            <span class="point-title">File Permissions:</span> Each projected source can specify a <code>mode</code> (file permissions). Useful for secrets that should only be readable by the application user (e.g., mode 0400 for private keys).
+        </div>
+    </div>
+
+    <div class="diagram">
+        <div class="diagram-label">Volume Lifecycle Comparison</div>
+        <pre>
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                           VOLUME LIFECYCLE COMPARISON                                     │
+│                                                                                         │
+│  Timeline ──────────────────────────────────────────────────────────────────────────▶   │
+│                                                                                         │
+│  Container:  │◄── running ──►│ crash │◄── restart ──►│ crash │◄── restart ──►│          │
+│              ┌───────────────────────────────────────────────────────────────┐          │
+│  emptyDir:   │              DATA PERSISTS ACROSS RESTARTS                    │          │
+│              └───────────────────────────────────────────────────────────────┘          │
+│              ▲ created with pod                              deleted with pod ▲          │
+│                                                                                         │
+│  Pod:        │◄───────────── pod lifetime ──────────────────────────────────►│          │
+│              ┌───────────────────────────────────────────────────────────────┐          │
+│  hostPath:   │              DATA PERSISTS BEYOND POD LIFETIME                 │          │
+│              ──────────────────────────────────────────────────────────────────────────  │
+│              (exists on node filesystem regardless of pod state)                         │
+│                                                                                         │
+│  PV/PVC:     │◄─ bound to pod ─►│  pod deleted  │◄─ new pod claims ─►│                 │
+│              ┌──────────────────────────────────────────────────────────────────────┐   │
+│              │     DATA PERSISTS INDEPENDENTLY -- MANAGED BY RECLAIM POLICY          │   │
+│              └──────────────────────────────────────────────────────────────────────┘   │
+│              Retain: data kept       Delete: volume destroyed       Recycle: wiped       │
+│                                                                                         │
+│  ConfigMap/  │◄────── updates propagated automatically (~60-90s) ──────────►│           │
+│  Secret:     │  (kubelet sync period + cache propagation delay)              │           │
+│              │  Env vars: NOT updated (requires pod restart)                 │           │
+│              │  Volume mounts: Updated atomically via symlink swap           │           │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- PV & PVC -->
+    <!-- ============================================================ -->
+
+    <h2>PersistentVolumes and PersistentVolumeClaims</h2>
+
+    <p>PV/PVC decouple storage provisioning from consumption. Administrators create PersistentVolumes (the actual storage), and developers request storage via PersistentVolumeClaims without knowing infrastructure details.</p>
+
+    <div class="point">
+        <div class="point-num">1</div>
+        <div class="point-content">
+            <span class="point-title">PersistentVolume (PV):</span> A cluster-wide resource representing a piece of storage provisioned by an administrator or dynamically by a StorageClass. It has a lifecycle independent of any pod. Think of it as the "physical disk" abstraction.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">2</div>
+        <div class="point-content">
+            <span class="point-title">PersistentVolumeClaim (PVC):</span> A namespaced resource representing a user's request for storage. It specifies size, access mode, and optionally a StorageClass. The control plane binds a PVC to a suitable PV that meets the requirements.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">3</div>
+        <div class="point-content">
+            <span class="point-title">Access Modes:</span> <code>ReadWriteOnce (RWO)</code> -- mounted read-write by one node. <code>ReadOnlyMany (ROX)</code> -- mounted read-only by many nodes. <code>ReadWriteMany (RWX)</code> -- mounted read-write by many nodes. <code>ReadWriteOncePod (RWOP)</code> -- mounted read-write by exactly one pod (K8s 1.27+).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">4</div>
+        <div class="point-content">
+            <span class="point-title">Reclaim Policies:</span> <code>Retain</code> -- PV is kept after PVC deletion (manual cleanup required; data preserved). <code>Delete</code> -- PV and underlying storage are deleted when PVC is deleted (cloud volumes destroyed). <code>Recycle</code> (deprecated) -- basic scrub (rm -rf) before reuse.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">5</div>
+        <div class="point-content">
+            <span class="point-title">Binding Process:</span> The PV controller watches for unbound PVCs and matches them to available PVs based on: requested size (PV must be >= PVC), access mode, StorageClass, label selectors, and volume mode. Once bound, the relationship is one-to-one and exclusive.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">6</div>
+        <div class="point-content">
+            <span class="point-title">Volume Modes:</span> <code>Filesystem</code> (default) -- volume is mounted as a directory with a filesystem. <code>Block</code> -- volume is presented as a raw block device without a filesystem. Block mode is used for databases that manage their own storage layout (e.g., some distributed databases).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">7</div>
+        <div class="point-content">
+            <span class="point-title">Storage Capacity Tracking:</span> Since Kubernetes 1.24 (GA), CSI drivers can report their available capacity. The scheduler uses this information to avoid scheduling pods on nodes where the required storage cannot be provisioned, preventing PVC-Pending situations.
+        </div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">persistentvolume-nfs.yaml</span>
+            <span class="tag tag-blue">PV - NFS</span>
+        </div>
+        <pre>
+# PersistentVolume backed by NFS storage
+# Cluster-wide resource -- no namespace
+# Suitable for ReadWriteMany access (shared file storage)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-pv-data
+  labels:
+    type: nfs
+    environment: production
+    team: platform
+spec:
+  capacity:
+    storage: 100Gi                # Advertised capacity
+  volumeMode: Filesystem          # Mount as directory (default)
+  accessModes:
+    - ReadWriteMany               # NFS supports multi-node read-write
+  persistentVolumeReclaimPolicy: Retain   # Keep data after PVC deletion
+  storageClassName: nfs-slow      # Must match PVC's storageClassName
+  mountOptions:
+    - hard                        # NFS mount options
+    - nfsvers=4.1
+    - rsize=1048576
+    - wsize=1048576
+    - timeo=600
+    - retrans=2
+  nfs:
+    server: 10.0.1.50            # NFS server IP
+    path: /exports/data          # Export path on the server
+        </pre>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">persistentvolume-ebs.yaml</span>
+            <span class="tag tag-orange">PV - AWS EBS</span>
+        </div>
+        <pre>
+# PersistentVolume backed by AWS EBS
+# Note: EBS volumes are zone-specific and only support ReadWriteOnce
+# In practice, you would use dynamic provisioning via StorageClass instead
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ebs-pv-database
+  labels:
+    type: ebs
+    environment: production
+    tier: database
+spec:
+  capacity:
+    storage: 500Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce              # EBS can only attach to one node
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: gp3-encrypted
+  # Node affinity required for zone-specific volumes
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: topology.kubernetes.io/zone
+              operator: In
+              values:
+                - us-east-1a     # EBS volume's availability zone
+  csi:
+    driver: ebs.csi.aws.com
+    volumeHandle: vol-0a1b2c3d4e5f67890   # Existing EBS volume ID
+    fsType: ext4
+        </pre>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">persistentvolumeclaim.yaml</span>
+            <span class="tag tag-green">PVC</span>
+        </div>
+        <pre>
+# PersistentVolumeClaim -- Developer's request for storage
+# Binds to a PV that satisfies the requirements
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: database-storage
+  namespace: production
+  labels:
+    app: postgresql
+    tier: database
+spec:
+  accessModes:
+    - ReadWriteOnce              # Must match PV's access modes
+  storageClassName: gp3-encrypted  # Must match PV or trigger dynamic provisioning
+  resources:
+    requests:
+      storage: 200Gi            # Requested size (PV must be >= this)
+  # Optional: select specific PV by labels
+  selector:
+    matchLabels:
+      type: ebs
+      tier: database
+  # Optional: specify volume mode
+  volumeMode: Filesystem
+        </pre>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">pod-with-pvc.yaml</span>
+            <span class="tag tag-purple">Pod using PVC</span>
+        </div>
+        <pre>
+# Pod mounting a PersistentVolumeClaim
+# The PVC must be in the same namespace as the pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: postgresql
+  namespace: production
+  labels:
+    app: postgresql
+    tier: database
+spec:
+  containers:
+    - name: postgres
+      image: postgres:16-alpine
+      ports:
+        - containerPort: 5432
+          name: postgres
+      env:
+        - name: POSTGRES_DB
+          value: "appdb"
+        - name: PGDATA
+          value: "/var/lib/postgresql/data/pgdata"  # Subdirectory to avoid lost+found
+      volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        - name: postgres-config
+          mountPath: /etc/postgresql/postgresql.conf
+          subPath: postgresql.conf    # Mount single file, not entire directory
+      resources:
+        requests:
+          memory: "1Gi"
+          cpu: "500m"
+        limits:
+          memory: "2Gi"
+          cpu: "2000m"
+  volumes:
+    - name: postgres-data
+      persistentVolumeClaim:
+        claimName: database-storage     # Reference the PVC by name
+    - name: postgres-config
+      configMap:
+        name: postgres-config
+  # Ensure pod schedules to zone where EBS volume exists
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: topology.kubernetes.io/zone
+                operator: In
+                values:
+                  - us-east-1a
+        </pre>
+    </div>
+
+    <div class="diagram">
+        <div class="diagram-label">PV/PVC Binding Lifecycle</div>
+        <pre>
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                           PV / PVC LIFECYCLE STATE MACHINE                                    │
+│                                                                                             │
+│  PersistentVolume States:                                                                   │
+│  ─────────────────────────                                                                  │
+│                                                                                             │
+│  ┌───────────┐    PVC binds    ┌───────────┐    PVC deleted    ┌────────────┐               │
+│  │           │ ──────────────▶ │           │ ────────────────▶ │            │               │
+│  │ Available │                 │   Bound   │                   │  Released  │               │
+│  │           │ ◀────────────── │           │                   │            │               │
+│  └───────────┘  (recycle only) └───────────┘                   └─────┬──────┘               │
+│       │                              │                               │                      │
+│       │                              │ Pod mounts volume             │ Reclaim Policy:      │
+│       │                              ▼                               │                      │
+│       │                        ┌───────────┐                         ├─▶ Retain: stays      │
+│       │                        │  In Use   │                         │   Released (manual)   │
+│       │                        │  by Pod   │                         │                      │
+│       │                        └───────────┘                         ├─▶ Delete: PV and     │
+│       │                                                              │   storage removed    │
+│       │                                                              │                      │
+│       │    Provisioning error                                        └─▶ Recycle: scrubbed  │
+│       └──────────────────────▶ ┌───────────┐                             then Available     │
+│                                │  Failed   │                                                │
+│                                └───────────┘                                                │
+│                                                                                             │
+│  PersistentVolumeClaim States:                                                              │
+│  ────────────────────────────                                                               │
+│                                                                                             │
+│  ┌───────────┐    PV found     ┌───────────┐    Used by pod    ┌────────────┐              │
+│  │           │ ──────────────▶ │           │ ────────────────▶ │            │              │
+│  │  Pending  │                 │   Bound   │                   │   Active   │              │
+│  │           │                 │           │                   │  (in use)  │              │
+│  └───────────┘                 └───────────┘                   └────────────┘              │
+│       │                                                                                     │
+│       │ Common reasons for stuck Pending:                                                   │
+│       │  • No PV with sufficient capacity                                                   │
+│       │  • StorageClass does not exist or has no provisioner                                │
+│       │  • Access mode mismatch                                                             │
+│       │  • Label selector doesn't match any PV                                              │
+│       │  • Volume is zone-restricted and no nodes in that zone                              │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- STORAGE CLASSES -->
+    <!-- ============================================================ -->
+
+    <h2>StorageClasses</h2>
+
+    <p>StorageClasses enable dynamic provisioning -- when a PVC references a StorageClass, Kubernetes automatically creates the PV and underlying storage. No manual PV creation needed.</p>
+
+    <div class="point">
+        <div class="point-num">1</div>
+        <div class="point-content">
+            <span class="point-title">Dynamic Provisioning:</span> Instead of pre-creating PVs, administrators define StorageClasses with a provisioner and parameters. When a PVC references the class, the provisioner automatically creates the storage backend (EBS volume, GCP PD, Azure Disk, etc.) and a corresponding PV.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">2</div>
+        <div class="point-content">
+            <span class="point-title">Provisioner:</span> The component that creates the actual storage. Examples: <code>ebs.csi.aws.com</code> (AWS EBS), <code>pd.csi.storage.gke.io</code> (GCP PD), <code>disk.csi.azure.com</code> (Azure), <code>kubernetes.io/aws-ebs</code> (legacy in-tree). Each provisioner supports different parameters.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">3</div>
+        <div class="point-content">
+            <span class="point-title">Parameters:</span> Provisioner-specific key-value pairs that configure the storage (volume type, IOPS, encryption, filesystem type). These are opaque to Kubernetes -- they are passed directly to the provisioner.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">4</div>
+        <div class="point-content">
+            <span class="point-title">Volume Binding Mode:</span> <code>Immediate</code> (default) -- PV is provisioned as soon as PVC is created. <code>WaitForFirstConsumer</code> -- provisioning is delayed until a pod using the PVC is scheduled, ensuring the volume is created in the correct availability zone.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">5</div>
+        <div class="point-content">
+            <span class="point-title">Default StorageClass:</span> One StorageClass can be marked as default (annotation <code>storageclass.kubernetes.io/is-default-class: "true"</code>). PVCs that do not specify a storageClassName use the default class. If no default exists and no class is specified, the PVC remains Pending.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">6</div>
+        <div class="point-content">
+            <span class="point-title">Allowed Topologies:</span> Restrict where volumes can be provisioned (specific zones or regions). Useful in multi-zone clusters to control data placement for compliance or performance reasons.
+        </div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">storageclass-aws-gp3.yaml</span>
+            <span class="tag tag-orange">StorageClass - AWS gp3</span>
+        </div>
+        <pre>
+# StorageClass for AWS EBS gp3 volumes with encryption
+# Enables dynamic provisioning -- PVCs referencing this class
+# automatically get an EBS volume created
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3-encrypted
+  annotations:
+    # Set as the default StorageClass for the cluster
+    storageclass.kubernetes.io/is-default-class: "true"
+# CSI driver for AWS EBS (replaces legacy kubernetes.io/aws-ebs)
+provisioner: ebs.csi.aws.com
+# Parameters passed directly to the EBS CSI driver
+parameters:
+  type: gp3                          # Volume type: gp3 (general purpose SSD)
+  iops: "3000"                       # Baseline IOPS (gp3 supports up to 16,000)
+  throughput: "125"                  # Throughput in MiB/s (gp3 supports up to 1,000)
+  encrypted: "true"                  # Enable encryption at rest
+  kmsKeyId: "arn:aws:kms:us-east-1:123456789:key/abc-def-123"  # Custom KMS key
+  fsType: ext4                       # Filesystem type (ext4, xfs)
+# Reclaim policy for dynamically provisioned PVs
+reclaimPolicy: Delete                # Delete EBS volume when PVC is deleted
+# Wait for pod scheduling before provisioning (zone-aware)
+volumeBindingMode: WaitForFirstConsumer
+# Allow volume expansion (requires controller support)
+allowVolumeExpansion: true
+# Restrict provisioning to specific availability zones
+allowedTopologies:
+  - matchLabelExpressions:
+      - key: topology.kubernetes.io/zone
+        values:
+          - us-east-1a
+          - us-east-1b
+          - us-east-1c
+# Mount options applied to all PVs created by this class
+mountOptions:
+  - discard                          # Enable TRIM/discard for SSD
+  - noatime                          # Don't update access time (performance)
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- CONFIGMAPS -->
+    <!-- ============================================================ -->
+
+    <h2>ConfigMaps</h2>
+
+    <p>ConfigMaps decouple configuration from container images, allowing you to change application behavior without rebuilding images. They store non-confidential key-value pairs that can be consumed as environment variables, command-line arguments, or configuration files.</p>
+
+    <div class="point">
+        <div class="point-num">1</div>
+        <div class="point-content">
+            <span class="point-title">Non-Confidential Configuration:</span> ConfigMaps are for non-sensitive data (feature flags, database hostnames, log levels, config files). They are stored unencrypted in etcd and visible to anyone with API access to the namespace. Use Secrets for passwords/keys.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">2</div>
+        <div class="point-content">
+            <span class="point-title">Size Limit:</span> Maximum 1 MiB per ConfigMap (enforced by etcd's per-object size limit). For larger configuration, use a volume mount from a PVC or package config into the container image.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">3</div>
+        <div class="point-content">
+            <span class="point-title">Creation Methods:</span> From literal values (<code>--from-literal=key=value</code>), from files (<code>--from-file=config.yaml</code>), from directories (<code>--from-file=./config-dir/</code>), or from env files (<code>--from-env-file=app.env</code>).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">4</div>
+        <div class="point-content">
+            <span class="point-title">Consumption Methods:</span> As environment variables (individual keys or all keys at once via envFrom), as command arguments (referencing env vars), or mounted as files in a volume (each key becomes a filename, value becomes file content).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">5</div>
+        <div class="point-content">
+            <span class="point-title">Hot-Reload Behavior:</span> Volume-mounted ConfigMaps are automatically updated by kubelet (sync period ~60s + cache propagation). The update is atomic via symlink swap. However, env vars injected from ConfigMaps are NOT updated -- they require a pod restart. Applications must watch for file changes to benefit from hot-reload.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">6</div>
+        <div class="point-content">
+            <span class="point-title">Immutable ConfigMaps:</span> Setting <code>immutable: true</code> prevents modifications after creation. Benefits: protects against accidental changes, significantly improves cluster performance (kubelet stops polling the API server for updates on immutable ConfigMaps, reducing API server load in large clusters).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">7</div>
+        <div class="point-content">
+            <span class="point-title">subPath Limitation:</span> When using <code>subPath</code> to mount a single key as a file (without overwriting the entire directory), automatic updates do NOT work. The mounted file is a snapshot at mount time. Use symbolic links or mount the entire volume to get updates.
+        </div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">configmap-creation.sh</span>
+            <span class="tag tag-yellow">kubectl commands</span>
+        </div>
+        <pre>
+# Create ConfigMap from literal key-value pairs
+kubectl create configmap app-config \
+  --from-literal=DATABASE_HOST=postgres.database.svc.cluster.local \
+  --from-literal=DATABASE_PORT=5432 \
+  --from-literal=LOG_LEVEL=info \
+  --from-literal=CACHE_TTL=300 \
+  -n production
+
+# Create ConfigMap from a file (key = filename, value = file contents)
+kubectl create configmap nginx-config \
+  --from-file=nginx.conf=/path/to/nginx.conf \
+  --from-file=mime.types=/path/to/mime.types \
+  -n production
+
+# Create ConfigMap from an entire directory
+kubectl create configmap app-configs \
+  --from-file=/path/to/config-directory/ \
+  -n production
+
+# Create ConfigMap from .env file (each line becomes a key=value pair)
+kubectl create configmap env-config \
+  --from-env-file=app.env \
+  -n production
+        </pre>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">configmap-as-env-vars.yaml</span>
+            <span class="tag tag-blue">Env Vars from ConfigMap</span>
+        </div>
+        <pre>
+# ConfigMap definition
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: production
+  labels:
+    app: backend-api
+data:
+  DATABASE_HOST: "postgres.database.svc.cluster.local"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "appdb"
+  LOG_LEVEL: "info"
+  CACHE_TTL: "300"
+  FEATURE_NEW_UI: "true"
+  MAX_CONNECTIONS: "100"
+---
+# Pod injecting ConfigMap as environment variables
+apiVersion: v1
+kind: Pod
+metadata:
+  name: backend-api
+  namespace: production
+spec:
+  containers:
+    - name: api
+      image: myregistry/backend-api:v2.1.0
+      # Method 1: Import ALL keys from ConfigMap as env vars
+      envFrom:
+        - configMapRef:
+            name: app-config
+          prefix: APP_           # Optional: prefix all vars (APP_DATABASE_HOST, etc.)
+      # Method 2: Import specific keys with custom var names
+      env:
+        - name: DB_HOST          # Custom env var name
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: DATABASE_HOST  # Key from the ConfigMap
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: DATABASE_PORT
+              optional: true      # Pod starts even if key is missing
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "250m"
+        limits:
+          memory: "512Mi"
+          cpu: "1000m"
+        </pre>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">configmap-as-volume.yaml</span>
+            <span class="tag tag-green">Volume Mount from ConfigMap</span>
+        </div>
+        <pre>
+# ConfigMap containing a full configuration file
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: production
+data:
+  nginx.conf: |
+    worker_processes auto;
+    error_log /var/log/nginx/error.log warn;
+    pid /tmp/nginx.pid;
+
+    events {
+        worker_connections 1024;
+    }
+
+    http {
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+        sendfile on;
+        keepalive_timeout 65;
+
+        upstream backend {
+            server backend-api:8080;
+        }
+
+        server {
+            listen 8080;
+            server_name _;
+
+            location / {
+                proxy_pass http://backend;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+            }
+
+            location /health {
+                return 200 'healthy';
+                add_header Content-Type text/plain;
+            }
+        }
+    }
+  mime.types: |
+    types {
+        text/html html htm;
+        text/css css;
+        application/javascript js;
+        application/json json;
+        image/png png;
+        image/jpeg jpeg jpg;
+    }
+---
+# Pod mounting ConfigMap as files in a volume
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  namespace: production
+spec:
+  containers:
+    - name: nginx
+      image: nginx:1.25-alpine
+      ports:
+        - containerPort: 8080
+      volumeMounts:
+        # Mount entire ConfigMap as a directory
+        - name: nginx-config-volume
+          mountPath: /etc/nginx/        # All keys become files here
+          readOnly: true
+        # Mount single key as a file using subPath (no auto-update!)
+        # - name: nginx-config-volume
+        #   mountPath: /etc/nginx/nginx.conf
+        #   subPath: nginx.conf
+      resources:
+        requests:
+          memory: "64Mi"
+          cpu: "100m"
+        limits:
+          memory: "128Mi"
+          cpu: "250m"
+  volumes:
+    - name: nginx-config-volume
+      configMap:
+        name: nginx-config
+        # Optional: set file permissions
+        defaultMode: 0644
+        # Optional: select only specific keys
+        items:
+          - key: nginx.conf
+            path: nginx.conf           # Filename in the mounted directory
+          - key: mime.types
+            path: mime.types
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SECRETS -->
+    <!-- ============================================================ -->
+
+    <h2>Secrets</h2>
+
+    <p>Secrets hold sensitive data (passwords, tokens, keys, certificates). They are similar to ConfigMaps but with additional protections: base64-encoded (NOT encrypted by default), RBAC-restricted, and optionally encrypted at rest in etcd.</p>
+
+    <div class="card card-danger">
+        <h4>Critical Security Note</h4>
+        <p><strong>Base64 is NOT encryption.</strong> By default, Secrets are stored in etcd as base64-encoded plaintext. Anyone with etcd access or API read permissions can decode them trivially. You MUST enable encryption at rest (EncryptionConfiguration) and restrict RBAC access to Secret resources for actual security.</p>
+    </div>
+
+    <h3>Secret Types</h3>
+
+    <div class="point">
+        <div class="point-num">1</div>
+        <div class="point-content">
+            <span class="point-title">Opaque (default):</span> Arbitrary user-defined key-value pairs. Most common type. Values must be base64-encoded in YAML (or use <code>stringData</code> for plain text that gets auto-encoded). Used for database passwords, API keys, application secrets.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">2</div>
+        <div class="point-content">
+            <span class="point-title">kubernetes.io/tls:</span> Stores a TLS certificate (tls.crt) and private key (tls.key). Validated by Kubernetes to ensure both fields are present and the cert is PEM-encoded. Used by Ingress resources for TLS termination.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">3</div>
+        <div class="point-content">
+            <span class="point-title">kubernetes.io/dockerconfigjson:</span> Stores Docker registry credentials for pulling private images. Contains a .dockerconfigjson key with registry auth configuration. Referenced via pod's <code>imagePullSecrets</code>.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">4</div>
+        <div class="point-content">
+            <span class="point-title">kubernetes.io/basic-auth:</span> Stores username and password fields for basic authentication. Used by some tools and controllers that need credentials in a standardized format.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">5</div>
+        <div class="point-content">
+            <span class="point-title">kubernetes.io/ssh-auth:</span> Stores an SSH private key in the <code>ssh-privatekey</code> field. Used for git-based workflows (Flux, ArgoCD) that need to authenticate to private repositories.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">6</div>
+        <div class="point-content">
+            <span class="point-title">kubernetes.io/service-account-token:</span> Legacy auto-generated token for service accounts. Since Kubernetes 1.24, these are no longer auto-created. Use projected volumes with bound tokens instead (time-limited, audience-scoped).
+        </div>
+    </div>
+
+    <h3>Creating and Using Secrets</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">secret-opaque.yaml</span>
+            <span class="tag tag-red">Opaque Secret</span>
+        </div>
+        <pre>
+# Opaque Secret for application credentials
+# stringData accepts plain text (auto-encoded to base64 on creation)
+# data accepts pre-encoded base64 values
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-credentials
+  namespace: production
+  labels:
+    app: backend-api
+type: Opaque
+# stringData: plain text (easier to write, auto-encoded on apply)
+stringData:
+  DATABASE_PASSWORD: "s3cur3-p@ssw0rd-h3re"
+  API_SECRET_KEY: "ak_live_xyzABC123defGHI456"
+  JWT_SIGNING_KEY: "your-256-bit-secret-key-here"
+# data: base64-encoded (required for binary data)
+# echo -n 'value' | base64
+data:
+  REDIS_PASSWORD: "cjNkMXMtcEBzc3cwcmQ="    # base64 of "r3d1s-p@ssw0rd"
+---
+# Pod using the Secret
+apiVersion: v1
+kind: Pod
+metadata:
+  name: backend-api
+  namespace: production
+spec:
+  serviceAccountName: backend-api-sa
+  containers:
+    - name: api
+      image: myregistry/backend-api:v2.1.0
+      env:
+        # Inject specific Secret keys as environment variables
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-credentials
+              key: DATABASE_PASSWORD
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-credentials
+              key: API_SECRET_KEY
+      # Mount Secret as files (preferred for rotation)
+      volumeMounts:
+        - name: secrets-volume
+          mountPath: /etc/secrets
+          readOnly: true
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "250m"
+        limits:
+          memory: "512Mi"
+          cpu: "1000m"
+  volumes:
+    - name: secrets-volume
+      secret:
+        secretName: app-credentials
+        defaultMode: 0400         # Restrictive permissions (owner read-only)
+        items:
+          - key: JWT_SIGNING_KEY
+            path: jwt-key         # Mounted as /etc/secrets/jwt-key
+        </pre>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">secret-docker-registry.yaml</span>
+            <span class="tag tag-purple">Docker Registry Secret</span>
+        </div>
+        <pre>
+# Docker Registry Secret for pulling private images
+# Create with kubectl:
+#   kubectl create secret docker-registry regcred \
+#     --docker-server=myregistry.example.com \
+#     --docker-username=deploy-bot \
+#     --docker-password=token123 \
+#     --docker-email=deploy@example.com \
+#     -n production
+apiVersion: v1
+kind: Secret
+metadata:
+  name: regcred
+  namespace: production
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: eyJhdXRocyI6eyJteXJlZ2lzdHJ5LmV4YW1wbGUuY29tIjp7InVzZXJuYW1lIjoiZGVwbG95LWJvdCIsInBhc3N3b3JkIjoidG9rZW4xMjMiLCJlbWFpbCI6ImRlcGxveUBleGFtcGxlLmNvbSIsImF1dGgiOiJaR1Z3Ykc5NUxXSnZkRHAwYjJ0bGJqRXlNdz09In19fQ==
+---
+# Pod referencing the image pull secret
+apiVersion: v1
+kind: Pod
+metadata:
+  name: private-app
+  namespace: production
+spec:
+  imagePullSecrets:
+    - name: regcred              # Reference the docker-registry secret
+  containers:
+    - name: app
+      image: myregistry.example.com/private-app:v1.0.0
+      resources:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        </pre>
+    </div>
+
+    <h3>Encryption at Rest</h3>
+
+    <div class="point">
+        <div class="point-num">1</div>
+        <div class="point-content">
+            <span class="point-title">EncryptionConfiguration:</span> Enable via kube-apiserver flag <code>--encryption-provider-config</code>. Defines which resources to encrypt and which provider to use (aescbc, aesgcm, secretbox, or a KMS provider). Secrets are encrypted before being written to etcd.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">2</div>
+        <div class="point-content">
+            <span class="point-title">KMS Provider (Recommended):</span> Integrates with external Key Management Services (AWS KMS, GCP KMS, Azure Key Vault, HashiCorp Vault). The encryption key is managed externally, providing better key rotation and audit trails. Supports envelope encryption.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">3</div>
+        <div class="point-content">
+            <span class="point-title">Key Rotation:</span> When rotating encryption keys, add the new key as the first provider (used for writes) and keep the old key as a fallback (for reading existing data). Then run <code>kubectl get secrets --all-namespaces -o json | kubectl replace -f -</code> to re-encrypt all secrets with the new key.
+        </div>
+    </div>
+
+    <h3>External Secrets Operator</h3>
+
+    <div class="point">
+        <div class="point-num orange">1</div>
+        <div class="point-content">
+            <span class="point-title">External Secret Management:</span> The External Secrets Operator (ESO) synchronizes secrets from external secret stores (AWS Secrets Manager, HashiCorp Vault, Azure Key Vault, GCP Secret Manager) into Kubernetes Secrets. This keeps the source of truth outside the cluster.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num orange">2</div>
+        <div class="point-content">
+            <span class="point-title">ExternalSecret Resource:</span> You define an ExternalSecret that specifies which secrets to fetch from which external store. The operator creates and maintains the corresponding Kubernetes Secret, refreshing it on a configurable interval.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num orange">3</div>
+        <div class="point-content">
+            <span class="point-title">Benefits:</span> Secrets never stored in git. Centralized rotation (update in Vault, K8s Secret auto-updates). Audit trails via the external provider. Multi-cluster consistency (same source, multiple clusters). Separation of duties (security team manages secrets, dev team references them).
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- CSI -->
+    <!-- ============================================================ -->
+
+    <h2>Container Storage Interface (CSI)</h2>
+
+    <p>CSI is the standard interface between Kubernetes and storage systems. It replaced in-tree volume plugins, allowing storage vendors to develop and release drivers independently of the Kubernetes release cycle.</p>
+
+    <div class="point">
+        <div class="point-num">1</div>
+        <div class="point-content">
+            <span class="point-title">What is CSI:</span> A specification defining a standard API for container orchestrators to interact with storage systems. Kubernetes communicates with CSI drivers via gRPC. Each driver implements three services: Identity, Controller (provisioning, attach/detach), and Node (mount/unmount on the node).
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">2</div>
+        <div class="point-content">
+            <span class="point-title">Why CSI:</span> Before CSI, storage plugins were compiled into Kubernetes ("in-tree"). Adding or updating a storage backend required changing core Kubernetes code and waiting for a release. CSI decouples storage development from Kubernetes releases, enabling faster innovation and reducing core code bloat.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">3</div>
+        <div class="point-content">
+            <span class="point-title">Architecture:</span> A CSI driver consists of: (1) A Controller plugin (Deployment) that handles volume create/delete/attach/detach/snapshot. (2) A Node plugin (DaemonSet) that handles volume mount/unmount/format on each node. (3) Sidecar containers (external-provisioner, external-attacher, external-snapshotter) that bridge Kubernetes API objects to CSI gRPC calls.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">4</div>
+        <div class="point-content">
+            <span class="point-title">Common CSI Drivers:</span> AWS EBS CSI (ebs.csi.aws.com), AWS EFS CSI (efs.csi.aws.com), GCP PD CSI (pd.csi.storage.gke.io), Azure Disk CSI (disk.csi.azure.com), Ceph CSI (rbd.csi.ceph.com), Longhorn, OpenEBS, Portworx.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num">5</div>
+        <div class="point-content">
+            <span class="point-title">CSI Migration:</span> Kubernetes is migrating all in-tree volume plugins (awsElasticBlockStore, gcePersistentDisk, azureDisk) to their CSI equivalents. Existing PVs using in-tree plugins continue to work via a translation layer that redirects calls to the CSI driver.
+        </div>
+    </div>
+
+    <h3>VolumeSnapshots</h3>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="filename">volumesnapshot.yaml</span>
+            <span class="tag tag-purple">VolumeSnapshot</span>
+        </div>
+        <pre>
+# VolumeSnapshotClass -- defines which CSI driver handles snapshots
+# Similar to StorageClass but for snapshots
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: ebs-snapshot-class
+  labels:
+    velero.io/csi-volumesnapshot-class: "true"   # For Velero backup integration
+driver: ebs.csi.aws.com
+deletionPolicy: Delete         # Delete snapshot when VolumeSnapshot is deleted
+parameters:
+  # Driver-specific parameters for snapshot creation
+  # For EBS: no additional parameters needed
+  {}
+---
+# VolumeSnapshot -- Point-in-time copy of a PVC
+# Like taking a photo of the volume's current state
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: database-snapshot-2024-01-15
+  namespace: production
+  labels:
+    app: postgresql
+    backup-type: scheduled
+spec:
+  volumeSnapshotClassName: ebs-snapshot-class
+  source:
+    # Reference the PVC to snapshot
+    persistentVolumeClaimName: database-storage
+---
+# Restore from snapshot: Create a new PVC from the snapshot
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: database-storage-restored
+  namespace: production
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp3-encrypted
+  resources:
+    requests:
+      storage: 200Gi             # Must be >= snapshot size
+  dataSource:
+    name: database-snapshot-2024-01-15
+    kind: VolumeSnapshot
+    apiGroup: snapshot.storage.k8s.io
+        </pre>
+    </div>
+
+    <h3>Ephemeral Volumes (CSI)</h3>
+
+    <div class="point">
+        <div class="point-num green">1</div>
+        <div class="point-content">
+            <span class="point-title">CSI Ephemeral Volumes:</span> Inline volumes defined directly in the pod spec (no separate PVC). Created when the pod starts, destroyed when the pod terminates. Useful for injecting secrets from external stores, providing per-pod scratch storage with specific characteristics, or attaching node-local storage.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">2</div>
+        <div class="point-content">
+            <span class="point-title">Generic Ephemeral Volumes:</span> Like CSI ephemeral volumes but use standard PVC semantics under the hood. Kubernetes auto-creates a PVC (named &lt;pod-name&gt;-&lt;volume-name&gt;) that is bound to the pod's lifecycle. Supports all PVC features (StorageClass, access modes, snapshots) but with automatic cleanup.
+        </div>
+    </div>
+    <div class="point">
+        <div class="point-num green">3</div>
+        <div class="point-content">
+            <span class="point-title">Use Cases:</span> HashiCorp Vault CSI (inject secrets as files without PVC management), AWS Secrets Manager CSI, local SSDs for batch jobs, temporary high-performance storage for ML training, and testing scenarios where cleanup must be automatic.
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- INTERVIEW Q&A -->
+    <!-- ============================================================ -->
+
+    <h2>Interview Questions and Answers</h2>
+
+    <div class="qa">
+        <div class="q">Q1: What is the difference between a PersistentVolume and a PersistentVolumeClaim?</div>
+        <div class="a">
+            <strong>PV is the storage resource, PVC is the request for storage.</strong> A PersistentVolume (PV) is a cluster-wide resource representing actual provisioned storage (an EBS volume, NFS export, etc.) -- think of it as the "supply." A PersistentVolumeClaim (PVC) is a namespaced resource representing a developer's request for storage with specific characteristics (size, access mode) -- think of it as the "demand." The PV controller binds matching PVs to PVCs. This separation allows administrators to manage storage infrastructure independently from developers who consume it.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q2: Are Kubernetes Secrets actually secure? How would you properly secure them?</div>
+        <div class="a">
+            <strong>Not by default -- base64 encoding is trivially reversible.</strong> To properly secure Secrets: (1) Enable encryption at rest via EncryptionConfiguration with a KMS provider (AWS KMS, Vault). (2) Restrict RBAC -- only pods/service accounts that need a Secret should have access. Avoid granting "get secrets" at the namespace level. (3) Use External Secrets Operator to sync from Vault/AWS Secrets Manager (secrets never in git). (4) Enable audit logging to track who accesses secrets. (5) Use short-lived tokens with projected volumes instead of static secrets. (6) Consider Sealed Secrets for GitOps (encrypted in git, decrypted in-cluster). (7) Limit etcd access to only the API server with mutual TLS.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q3: Explain dynamic provisioning and why WaitForFirstConsumer volume binding mode is important.</div>
+        <div class="a">
+            <strong>Dynamic provisioning auto-creates storage; WaitForFirstConsumer ensures it is in the right zone.</strong> With dynamic provisioning, you only define a StorageClass and PVCs. The CSI driver automatically creates the underlying storage (e.g., AWS EBS volume) when a PVC is created. The problem with <code>Immediate</code> binding: the volume might be created in zone us-east-1a, but the pod gets scheduled to us-east-1b (where the volume is unreachable). <code>WaitForFirstConsumer</code> delays provisioning until a pod using the PVC is scheduled, so the volume is created in the same zone as the pod. This is critical for zone-restricted storage like EBS.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q4: What are the PV access modes and which storage types support which modes?</div>
+        <div class="a">
+            <strong>RWO, ROX, RWX, and RWOP -- support depends on the underlying storage technology.</strong> <code>ReadWriteOnce (RWO)</code>: mounted read-write by pods on a single node. Supported by: EBS, GCP PD, Azure Disk, iSCSI, most block storage. <code>ReadOnlyMany (ROX)</code>: mounted read-only by pods on many nodes. Supported by: NFS, CephFS, AzureFile. <code>ReadWriteMany (RWX)</code>: mounted read-write by pods on many nodes. Supported by: NFS, EFS, CephFS, GlusterFS, AzureFile. <code>ReadWriteOncePod (RWOP)</code>: K8s 1.27+, exactly one pod can mount it. Provides stronger guarantees than RWO (which is per-node, not per-pod). Note: access mode is a constraint, not enforcement -- it determines scheduling eligibility.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q5: What is the difference between ConfigMaps and Secrets? When would you use each?</div>
+        <div class="a">
+            <strong>ConfigMaps for non-sensitive config, Secrets for sensitive data -- with different handling by the system.</strong> Similarities: both store key-value pairs, both can be consumed as env vars or volume mounts, both are namespace-scoped. Differences: Secrets are base64-encoded (not plaintext), can be encrypted at rest, have size limits (1MB vs 1MB), get special RBAC treatment (can restrict access separately), are stored in tmpfs when mounted (never written to node disk), and the kubelet limits which pods can access which secrets. Use ConfigMaps for: application settings, feature flags, connection strings (non-secret), config files. Use Secrets for: passwords, API keys, TLS certificates, SSH keys, OAuth tokens.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q6: How does a ConfigMap hot-reload work and what are its limitations?</div>
+        <div class="a">
+            <strong>Kubelet periodically syncs volume-mounted ConfigMaps via atomic symlink swaps, but with notable caveats.</strong> Process: Kubelet watches for ConfigMap changes (sync period ~60s). When updated, it writes new content to a timestamped directory, then atomically swaps the symlink (..data → new directory). Applications see the update within the kubelet sync period + cache propagation (total ~60-90s). Limitations: (1) Env vars from ConfigMaps are NEVER updated without pod restart. (2) subPath mounts are never updated (snapshot at mount time). (3) Applications must actively watch for file changes (inotify/fsnotify) to react. (4) The update is not truly instant -- there is a window where different pods see different versions. (5) Immutable ConfigMaps disable this entirely.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q7: What happens to data when a PVC is deleted? How do reclaim policies work?</div>
+        <div class="a">
+            <strong>The reclaim policy determines whether data is kept, deleted, or recycled.</strong> When a PVC is deleted: (1) <code>Retain</code>: The PV moves to "Released" state. The underlying storage (EBS volume, NFS export) is preserved with all data intact. An admin must manually clean up the PV and storage (or rebind it). Used for critical data that cannot be lost. (2) <code>Delete</code>: The PV and its underlying storage are automatically destroyed. The EBS volume is terminated, the GCP PD is deleted. Used for ephemeral data where storage cost matters. (3) <code>Recycle</code> (deprecated): A basic <code>rm -rf /volume/*</code> is performed, then the PV becomes Available again. Replaced by dynamic provisioning. Best practice: Use Retain for production databases, Delete for development/testing, and VolumeSnapshots as backup before any deletion.
+        </div>
+    </div>
+
+    <div class="qa">
+        <div class="q">Q8: How would you handle storage for a StatefulSet that needs both high IOPS and data durability?</div>
+        <div class="a">
+            <strong>Use volumeClaimTemplates with a StorageClass configured for high-performance storage, combined with snapshots for durability.</strong> Setup: (1) Create a StorageClass with provisioner-specific params (gp3 with 16000 IOPS, io2 for consistent performance, or local NVMe with a topology constraint). (2) Define volumeClaimTemplates in the StatefulSet -- each replica gets its own PVC (database-0, database-1, etc.) that persists across pod rescheduling. (3) Set <code>volumeBindingMode: WaitForFirstConsumer</code> for zone-aware placement. (4) For durability: schedule periodic VolumeSnapshots via a CronJob or Velero, replicate at the application level (database replication), and use <code>reclaimPolicy: Retain</code> to prevent accidental deletion. (5) Monitor with CSI driver metrics for IOPS throttling and latency.
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TROUBLESHOOTING SCENARIOS -->
+    <!-- ============================================================ -->
+
+    <h2>Troubleshooting Scenarios</h2>
+
+    <div class="scenario">
+        <div class="scenario-header">
+            <span class="icon">&#9888;</span>
+            <span class="title">Scenario: PVC Stuck in Pending State</span>
+        </div>
+        <div class="scenario-body">
+            <p><strong>Symptom:</strong> PersistentVolumeClaim remains in Pending state. Pods referencing it cannot start.</p>
+            <p><strong>Root Causes and Diagnostics:</strong></p>
+            <div class="scenario-step">
+                <span class="step-num">1.</span>
+                <span>Check PVC events: <code>kubectl describe pvc &lt;pvc-name&gt;</code>. Look at Events for specific error messages like "no persistent volumes available" or "waiting for first consumer".</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">2.</span>
+                <span>Verify StorageClass exists: <code>kubectl get storageclass</code>. If the PVC references a non-existent StorageClass, it will remain Pending forever. Check for typos in <code>storageClassName</code>.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">3.</span>
+                <span>Check provisioner is running: <code>kubectl get pods -n kube-system | grep csi</code> or <code>kubectl get pods -n &lt;csi-namespace&gt;</code>. If the CSI driver pods are crashed or missing, dynamic provisioning cannot work.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">4.</span>
+                <span>WaitForFirstConsumer: If using this binding mode, the PVC stays Pending until a pod is scheduled that references it. This is normal behavior -- create the pod and the PVC will bind. Check with <code>kubectl get pvc -o yaml | grep volumeBindingMode</code>.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">5.</span>
+                <span>Capacity and access mode mismatch: For static provisioning, verify a PV exists that satisfies the PVC's size requirement (PV >= PVC) AND access modes. Use <code>kubectl get pv</code> to list available PVs and compare.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">6.</span>
+                <span>Zone/topology constraints: EBS volumes are zone-specific. If no nodes are available in the zone where the PV exists, the PVC cannot bind. Check <code>kubectl get pv -o yaml | grep -A5 nodeAffinity</code>.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="scenario">
+        <div class="scenario-header">
+            <span class="icon">&#9888;</span>
+            <span class="title">Scenario: Volume Mount Permission Denied</span>
+        </div>
+        <div class="scenario-body">
+            <p><strong>Symptom:</strong> Container starts but the application cannot read/write files in the mounted volume. Errors like "permission denied" or "read-only file system" in logs.</p>
+            <p><strong>Root Causes and Diagnostics:</strong></p>
+            <div class="scenario-step">
+                <span class="step-num">1.</span>
+                <span>Check SecurityContext fsGroup: <code>kubectl get pod -o yaml | grep -A5 securityContext</code>. When a volume is mounted, the owning group is set to <code>fsGroup</code>. If your container runs as a non-root user (e.g., UID 1000), set <code>fsGroup: 1000</code> in the pod's securityContext to ensure group write access.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">2.</span>
+                <span>Verify readOnly flag: Check if the volumeMount has <code>readOnly: true</code> set (or if the PVC is ROX). If the app needs to write, change to <code>readOnly: false</code> and ensure the access mode supports writing.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">3.</span>
+                <span>Init container for permissions: Use an init container running as root to fix permissions: <code>initContainers: [{name: fix-perms, image: busybox, command: ["sh", "-c", "chown -R 1000:1000 /data"], volumeMounts: [...]}]</code>.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">4.</span>
+                <span>Check SELinux/AppArmor: On nodes with SELinux enabled, volume mounts may have incorrect labels. Use <code>seLinuxOptions</code> in securityContext or set the volume mount's <code>seLinuxRelabel</code> field to allow relabeling.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">5.</span>
+                <span>NFS root squash: For NFS volumes, the server may have root_squash enabled, mapping root (UID 0) to nobody. Ensure the container user's UID/GID matches the NFS export permissions, or configure no_root_squash on the NFS server (security trade-off).</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="scenario">
+        <div class="scenario-header">
+            <span class="icon">&#9888;</span>
+            <span class="title">Scenario: ConfigMap Changes Not Reflected in Pod</span>
+        </div>
+        <div class="scenario-body">
+            <p><strong>Symptom:</strong> You updated a ConfigMap but the application still uses the old values. No errors visible.</p>
+            <p><strong>Root Causes and Diagnostics:</strong></p>
+            <div class="scenario-step">
+                <span class="step-num">1.</span>
+                <span>Check consumption method: <code>kubectl get pod -o yaml | grep -A10 env</code>. If ConfigMap is injected as environment variables (envFrom or valueFrom), updates NEVER propagate -- a pod restart is required. This is the most common misunderstanding.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">2.</span>
+                <span>Check for subPath mount: <code>kubectl get pod -o yaml | grep subPath</code>. Volumes mounted with subPath do NOT receive automatic updates. Remove subPath and mount the entire ConfigMap as a directory, or use a projected volume.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">3.</span>
+                <span>Wait for sync period: Volume-mounted ConfigMaps take 60-90 seconds to propagate (kubelet sync period + ConfigMap cache TTL). Check the timestamp of the mounted file: <code>kubectl exec &lt;pod&gt; -- ls -la /path/to/config/..data</code> (the symlink target shows the update time).</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">4.</span>
+                <span>Application not watching for changes: Even after the file is updated, the application must detect and reload it. Many apps read config once at startup. Solutions: implement file watching (fsnotify), use a sidecar (configmap-reload by jimmidyson), or use rolling restart (<code>kubectl rollout restart deployment</code>).</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">5.</span>
+                <span>Immutable ConfigMap: Check <code>kubectl get cm &lt;name&gt; -o yaml | grep immutable</code>. If set to true, updates are rejected entirely. You must create a new ConfigMap with a different name and update the pod spec to reference it.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="scenario">
+        <div class="scenario-header">
+            <span class="icon">&#9888;</span>
+            <span class="title">Scenario: Secret Accidentally Committed to Git</span>
+        </div>
+        <div class="scenario-body">
+            <p><strong>Symptom:</strong> A Kubernetes Secret YAML (with base64-encoded credentials) was committed and pushed to a git repository. The credentials may be compromised.</p>
+            <p><strong>Immediate Response and Remediation:</strong></p>
+            <div class="scenario-step">
+                <span class="step-num">1.</span>
+                <span>Rotate credentials immediately: Assume the secret is compromised. Change the password/key/token in the source system (database, API provider, cloud console). Do this BEFORE anything else -- time is critical.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">2.</span>
+                <span>Update the Kubernetes Secret: <code>kubectl create secret generic &lt;name&gt; --from-literal=key=NEW_VALUE --dry-run=client -o yaml | kubectl apply -f -</code>. Restart affected pods to pick up the new credentials.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">3.</span>
+                <span>Remove from git history: Simply deleting the file in a new commit is NOT enough -- the secret remains in git history. Use <code>git filter-branch</code> or BFG Repo-Cleaner to purge from all branches/history. Force-push the cleaned history.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">4.</span>
+                <span>Prevent recurrence: Implement pre-commit hooks (detect-secrets, gitleaks, trufflehog) that scan for high-entropy strings and known secret patterns. Add Secret YAML patterns to .gitignore. Use Sealed Secrets or External Secrets Operator so raw secrets never exist in git.</span>
+            </div>
+            <div class="scenario-step">
+                <span class="step-num">5.</span>
+                <span>Audit access: Check git hosting platform (GitHub/GitLab) audit logs to see who accessed the repository after the commit. Review cloud audit logs (CloudTrail, etc.) for suspicious activity using the compromised credentials.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- FOOTER -->
+    <!-- ============================================================ -->
+
+    <hr>
+
+    <footer>
+        <p>K8s/DevOps/SRE Reference Notes | Kubernetes Storage</p>
+        <p>Built for interview prep and daily reference</p>
+    </footer>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Cloud - DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html" class="active">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; <a href="../index.html">Infrastructure</a> &gt; AWS Cloud
+        </div>
+
+        <h1>AWS Cloud</h1>
+        <p class="subtitle">Comprehensive AWS services reference: compute, networking, storage, security, and cost optimization</p>
+
+        <!-- ============================================ -->
+        <!-- 1. AWS Core Services -->
+        <!-- ============================================ -->
+        <h2>1. AWS Core Services</h2>
+
+        <h3>Compute</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Service</th>
+                    <th>Type</th>
+                    <th>Use Case</th>
+                    <th>Key Features</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>EC2</strong></td>
+                    <td>Virtual Machines</td>
+                    <td>Full control over OS, long-running workloads</td>
+                    <td>Instance types, AMIs, placement groups, auto-scaling</td>
+                </tr>
+                <tr>
+                    <td><strong>ECS</strong></td>
+                    <td>Container Orchestration</td>
+                    <td>Docker containers with AWS-native orchestration</td>
+                    <td>Task definitions, services, EC2 or Fargate launch type</td>
+                </tr>
+                <tr>
+                    <td><strong>EKS</strong></td>
+                    <td>Managed Kubernetes</td>
+                    <td>Kubernetes workloads with AWS integration</td>
+                    <td>Managed control plane, node groups, Fargate profiles</td>
+                </tr>
+                <tr>
+                    <td><strong>Lambda</strong></td>
+                    <td>Serverless Functions</td>
+                    <td>Event-driven, short-duration workloads</td>
+                    <td>Auto-scaling, pay-per-invocation, 15min max timeout</td>
+                </tr>
+                <tr>
+                    <td><strong>Fargate</strong></td>
+                    <td>Serverless Containers</td>
+                    <td>Containers without managing servers</td>
+                    <td>Works with ECS/EKS, pay per vCPU+memory per second</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Storage</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Service</th>
+                    <th>Type</th>
+                    <th>Use Case</th>
+                    <th>Key Features</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>S3</strong></td>
+                    <td>Object Storage</td>
+                    <td>Static files, backups, data lakes, static websites</td>
+                    <td>11 9s durability, lifecycle policies, versioning, encryption</td>
+                </tr>
+                <tr>
+                    <td><strong>EBS</strong></td>
+                    <td>Block Storage</td>
+                    <td>EC2 instance volumes, databases</td>
+                    <td>gp3/io2 types, snapshots, encryption, multi-attach</td>
+                </tr>
+                <tr>
+                    <td><strong>EFS</strong></td>
+                    <td>File Storage (NFS)</td>
+                    <td>Shared filesystem across multiple instances/pods</td>
+                    <td>Auto-scaling, multi-AZ, lifecycle management</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Database</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Service</th>
+                    <th>Type</th>
+                    <th>Use Case</th>
+                    <th>Key Features</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>RDS</strong></td>
+                    <td>Managed Relational DB</td>
+                    <td>MySQL, PostgreSQL, Oracle, SQL Server workloads</td>
+                    <td>Multi-AZ, read replicas, automated backups, Aurora</td>
+                </tr>
+                <tr>
+                    <td><strong>DynamoDB</strong></td>
+                    <td>NoSQL (Key-Value)</td>
+                    <td>High-throughput, low-latency, serverless DB</td>
+                    <td>Single-digit ms latency, auto-scaling, global tables</td>
+                </tr>
+                <tr>
+                    <td><strong>ElastiCache</strong></td>
+                    <td>In-Memory Cache</td>
+                    <td>Session store, caching, real-time analytics</td>
+                    <td>Redis or Memcached, cluster mode, replication</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Networking</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Service</th>
+                    <th>Type</th>
+                    <th>Use Case</th>
+                    <th>Key Features</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>VPC</strong></td>
+                    <td>Virtual Network</td>
+                    <td>Isolated network environment for AWS resources</td>
+                    <td>Subnets, route tables, security groups, NACLs, endpoints</td>
+                </tr>
+                <tr>
+                    <td><strong>ALB/NLB</strong></td>
+                    <td>Load Balancing</td>
+                    <td>Distribute traffic across targets</td>
+                    <td>ALB: L7 (HTTP), NLB: L4 (TCP/UDP), target groups</td>
+                </tr>
+                <tr>
+                    <td><strong>Route 53</strong></td>
+                    <td>DNS Service</td>
+                    <td>Domain registration, DNS routing, health checks</td>
+                    <td>Multiple routing policies, alias records, failover</td>
+                </tr>
+                <tr>
+                    <td><strong>CloudFront</strong></td>
+                    <td>CDN</td>
+                    <td>Low-latency content delivery globally</td>
+                    <td>Edge locations, caching, origin shield, Lambda@Edge</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ============================================ -->
+        <!-- 2. IAM Deep Dive -->
+        <!-- ============================================ -->
+        <h2>2. IAM Deep Dive</h2>
+
+        <div class="card card-info">
+            <h4>IAM Core Concepts</h4>
+            <ul>
+                <li><strong>Users:</strong> Individual identities with long-term credentials (password, access keys)</li>
+                <li><strong>Groups:</strong> Collection of users. Policies attached to groups apply to all members</li>
+                <li><strong>Roles:</strong> Assumable identities with temporary credentials. Used by services, applications, cross-account access</li>
+                <li><strong>Policies:</strong> JSON documents defining permissions (Effect, Action, Resource, Condition)</li>
+            </ul>
+        </div>
+
+        <h3>IAM Policy JSON Structure</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">iam-policy-structure.json</span>
+                <span class="tag tag-blue">IAM</span>
+            </div>
+            <pre>
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DescriptiveStatementId",
+      "Effect": "Allow | Deny",
+      "Principal": {
+        "AWS": "arn:aws:iam::123456789012:role/RoleName"
+      },
+      "Action": [
+        "service:ActionName",
+        "s3:GetObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-bucket/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "us-east-1"
+        }
+      }
+    }
+  ]
+}
+            </pre>
+        </div>
+
+        <h3>Policy Example: S3 Read-Only Access</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">s3-readonly-policy.json</span>
+                <span class="tag tag-green">Policy</span>
+            </div>
+            <pre>
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "S3ReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:GetObjectVersion",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-app-bucket",
+        "arn:aws:s3:::my-app-bucket/*"
+      ]
+    }
+  ]
+}
+            </pre>
+        </div>
+
+        <h3>Policy Example: EC2 Admin (Scoped)</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">ec2-admin-policy.json</span>
+                <span class="tag tag-orange">Policy</span>
+            </div>
+            <pre>
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "EC2AdminScopedToRegion",
+      "Effect": "Allow",
+      "Action": "ec2:*",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": ["us-east-1", "us-west-2"]
+        }
+      }
+    },
+    {
+      "Sid": "DenyTerminateWithoutTag",
+      "Effect": "Deny",
+      "Action": "ec2:TerminateInstances",
+      "Resource": "*",
+      "Condition": {
+        "StringNotEquals": {
+          "ec2:ResourceTag/Environment": "dev"
+        }
+      }
+    }
+  ]
+}
+            </pre>
+        </div>
+
+        <h3>OIDC Federation and IRSA</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">IRSA (IAM Roles for Service Accounts) in EKS</div>
+            <pre>
+  +-------------------+         +-------------------+
+  |  Kubernetes Pod   |         |    AWS STS        |
+  |                   |         |                   |
+  |  ServiceAccount   |         |  AssumeRoleWith   |
+  |  (annotated with  |-------->|  WebIdentity      |
+  |   IAM role ARN)   |  JWT    |                   |
+  |                   |  token  +--------+----------+
+  +-------------------+                  |
+         |                               | Temporary
+         | Projected                     | credentials
+         | service account               |
+         | token (OIDC JWT)              v
+         |                      +--------+----------+
+         v                      |    IAM Role       |
+  +-------------------+         |                   |
+  |  OIDC Provider    |<--------|  Trust Policy:    |
+  |  (EKS-managed)    |  Verify |  - OIDC provider  |
+  |                   |  token  |  - Namespace/SA   |
+  +-------------------+         +-------------------+
+
+  Flow:
+  1. Pod mounts projected service account token (JWT)
+  2. AWS SDK in pod calls STS AssumeRoleWithWebIdentity
+  3. STS validates JWT against EKS OIDC provider
+  4. STS returns temporary credentials for the IAM role
+  5. Pod uses credentials to access AWS services
+
+  Trust Policy on IAM Role:
+  {
+    "Principal": {
+      "Federated": "arn:aws:iam::ACCOUNT:oidc-provider/oidc.eks.REGION.amazonaws.com/id/CLUSTER_ID"
+    },
+    "Condition": {
+      "StringEquals": {
+        "oidc.eks.REGION.amazonaws.com/id/CLUSTER_ID:sub":
+          "system:serviceaccount:NAMESPACE:SA_NAME"
+      }
+    }
+  }
+            </pre>
+        </div>
+
+        <div class="card card-warning">
+            <h4>IAM Best Practices</h4>
+            <ul>
+                <li>Always follow <strong>least privilege</strong> - grant only permissions needed</li>
+                <li>Use <strong>roles</strong> instead of users for applications and services</li>
+                <li>Enable <strong>MFA</strong> for all human users, especially for privileged access</li>
+                <li>Use <strong>conditions</strong> to restrict by IP, region, time, MFA status</li>
+                <li>Regularly audit with <strong>IAM Access Analyzer</strong> and remove unused permissions</li>
+                <li>Use <strong>permission boundaries</strong> to limit maximum permissions delegatable</li>
+                <li>Never embed credentials in code - use IAM roles, IRSA, or Secrets Manager</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 3. VPC Architecture -->
+        <!-- ============================================ -->
+        <h2>3. VPC Architecture</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">Production VPC Architecture (Multi-AZ)</div>
+            <pre>
+  +========================================================================================+
+  |  VPC: 10.0.0.0/16 (65,536 IPs)                                                        |
+  |                                                                                        |
+  |  +--- Availability Zone A (us-east-1a) ---+    +--- Availability Zone B (us-east-1b) --+
+  |  |                                         |    |                                       |
+  |  |  Public Subnet: 10.0.1.0/24            |    |  Public Subnet: 10.0.2.0/24           |
+  |  |  Route: 0.0.0.0/0 -> IGW               |    |  Route: 0.0.0.0/0 -> IGW              |
+  |  |  +--------+  +--------+  +--------+    |    |  +--------+  +--------+              |
+  |  |  |  ALB   |  | NAT GW |  |Bastion |    |    |  |  ALB   |  | NAT GW |              |
+  |  |  | (ENI)  |  |  (A)   |  | (opt)  |    |    |  | (ENI)  |  |  (B)   |              |
+  |  |  +--------+  +---+----+  +--------+    |    |  +--------+  +---+----+              |
+  |  |                   |                     |    |                   |                   |
+  |  +-------------------|---------------------+    +-------------------|-------------------+
+  |                      |                                              |
+  |  +-------------------|---------------------+    +-------------------|-------------------+
+  |  |  Private Subnet (App): 10.0.3.0/24     |    |  Private Subnet (App): 10.0.4.0/24   |
+  |  |  Route: 0.0.0.0/0 -> NAT GW (A)        |    |  Route: 0.0.0.0/0 -> NAT GW (B)     |
+  |  |                                         |    |                                       |
+  |  |  +--------+  +--------+  +--------+    |    |  +--------+  +--------+              |
+  |  |  | EKS    |  | EKS    |  | EKS    |    |    |  | EKS    |  | EKS    |              |
+  |  |  | Node 1 |  | Node 2 |  | Node 3 |    |    |  | Node 4 |  | Node 5 |              |
+  |  |  +--------+  +--------+  +--------+    |    |  +--------+  +--------+              |
+  |  |                                         |    |                                       |
+  |  +-----------------------------------------+    +---------------------------------------+
+  |                                                                                        |
+  |  +-----------------------------------------+    +---------------------------------------+
+  |  |  Private Subnet (Data): 10.0.5.0/24    |    |  Private Subnet (Data): 10.0.6.0/24  |
+  |  |  Route: No internet (local only)        |    |  Route: No internet (local only)     |
+  |  |                                         |    |                                       |
+  |  |  +--------+  +--------+  +--------+    |    |  +--------+  +--------+              |
+  |  |  |  RDS   |  | Elasti |  | OpenS  |    |    |  |  RDS   |  | Elasti |              |
+  |  |  |Primary |  | Cache  |  | earch  |    |    |  |Standby |  | Cache  |              |
+  |  |  +--------+  +--------+  +--------+    |    |  +--------+  +--------+              |
+  |  |                                         |    |                                       |
+  |  +-----------------------------------------+    +---------------------------------------+
+  |                                                                                        |
+  +============+=================================+==========+===============================+
+               |                                 |          |
+       +-------+-------+               +--------+----+  +--+---------------+
+       | Internet GW   |               | S3 Gateway  |  | VPC Endpoint     |
+       | (IGW)         |               | Endpoint    |  | (Interface: STS, |
+       +-------+-------+               +-------------+  |  ECR, Logs, etc) |
+               |                                         +------------------+
+           Internet
+            </pre>
+        </div>
+
+        <h3>Security Groups vs NACLs</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th>Security Groups</th>
+                    <th>Network ACLs (NACLs)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Scope</strong></td>
+                    <td>Instance/ENI level</td>
+                    <td>Subnet level</td>
+                </tr>
+                <tr>
+                    <td><strong>State</strong></td>
+                    <td>Stateful (return traffic auto-allowed)</td>
+                    <td>Stateless (must explicitly allow return traffic)</td>
+                </tr>
+                <tr>
+                    <td><strong>Rule Type</strong></td>
+                    <td>Allow rules only (implicit deny all)</td>
+                    <td>Allow AND Deny rules (processed in order)</td>
+                </tr>
+                <tr>
+                    <td><strong>Evaluation</strong></td>
+                    <td>All rules evaluated (most permissive wins)</td>
+                    <td>Rules processed by number (first match wins)</td>
+                </tr>
+                <tr>
+                    <td><strong>Reference</strong></td>
+                    <td>Can reference other SGs as source/destination</td>
+                    <td>CIDR-based rules only</td>
+                </tr>
+                <tr>
+                    <td><strong>Default</strong></td>
+                    <td>Deny all inbound, allow all outbound</td>
+                    <td>Allow all inbound and outbound</td>
+                </tr>
+                <tr>
+                    <td><strong>Best For</strong></td>
+                    <td>Primary firewall, micro-segmentation</td>
+                    <td>Subnet guardrails, blocking known bad CIDRs</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>VPC Peering vs Transit Gateway</h3>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>VPC Peering</h4>
+                <ul>
+                    <li>1:1 connection between two VPCs</li>
+                    <li>Non-transitive (A-B and B-C does NOT give A-C)</li>
+                    <li>Works cross-region and cross-account</li>
+                    <li>No single point of failure, no bandwidth bottleneck</li>
+                    <li>Scales poorly: N VPCs need N*(N-1)/2 peerings</li>
+                    <li>Best for: few VPCs, simple architectures</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Transit Gateway</h4>
+                <ul>
+                    <li>Hub-and-spoke model: all VPCs connect to TGW</li>
+                    <li>Transitive routing (A-TGW-C works)</li>
+                    <li>Route tables for traffic segmentation</li>
+                    <li>Supports VPN, Direct Connect attachments</li>
+                    <li>Scales well: add VPCs without new connections</li>
+                    <li>Best for: many VPCs, complex network topologies</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 4. EKS (Elastic Kubernetes Service) -->
+        <!-- ============================================ -->
+        <h2>4. EKS (Elastic Kubernetes Service)</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">EKS Architecture</div>
+            <pre>
+  AWS Managed (You don't manage this)
+  +=============================================+
+  |  EKS Control Plane                          |
+  |  +----------+  +----------+  +----------+  |
+  |  | API      |  | etcd     |  | Scheduler|  |
+  |  | Server   |  | (3 nodes)|  | + CCM    |  |
+  |  +----------+  +----------+  +----------+  |
+  |                                             |
+  |  - Multi-AZ, auto-scaled                   |
+  |  - Auto-patched and upgraded               |
+  |  - Accessible via public/private endpoint  |
+  +=====================+=======================+
+                        |
+                        | (ENI in your VPC)
+                        |
+  Your AWS Account      |
+  +=====================+===============================================+
+  |                     |                                               |
+  |  +-----------------+v-----------------+    +-----------------------+|
+  |  |  Managed Node Group (EC2)          |    |  Fargate Profile      ||
+  |  |                                    |    |                       ||
+  |  |  +--------+ +--------+ +--------+ |    |  +--------+           ||
+  |  |  | Node   | | Node   | | Node   | |    |  | Fargate|           ||
+  |  |  | (m5.xl)| | (m5.xl)| | (m5.xl)| |    |  | Pod    |           ||
+  |  |  |        | |        | |        | |    |  | (micro |           ||
+  |  |  | kubelet| | kubelet| | kubelet| |    |  |  VM)   |           ||
+  |  |  | kube-  | | kube-  | | kube-  | |    |  +--------+           ||
+  |  |  | proxy  | | proxy  | | proxy  | |    |                       ||
+  |  |  | VPC CNI| | VPC CNI| | VPC CNI| |    |  - No nodes to manage ||
+  |  |  +--------+ +--------+ +--------+ |    |  - Per-pod billing    ||
+  |  |                                    |    |  - Namespace/label    ||
+  |  |  Auto Scaling Group               |    |    selector match     ||
+  |  +------------------------------------+    +-----------------------+|
+  |                                                                     |
+  |  Add-ons: CoreDNS, kube-proxy, VPC CNI, EBS CSI, EFS CSI          |
+  +=====================================================================+
+            </pre>
+        </div>
+
+        <h3>EKS Networking (VPC CNI)</h3>
+
+        <div class="card card-info">
+            <h4>AWS VPC CNI Plugin</h4>
+            <ul>
+                <li><strong>How it works:</strong> Each pod gets a real VPC IP address (from the subnet CIDR)</li>
+                <li><strong>ENI allocation:</strong> Each node has multiple ENIs, each ENI has multiple secondary IPs</li>
+                <li><strong>Max pods per node:</strong> Limited by instance type ENI count and IPs per ENI</li>
+                <li><strong>Benefit:</strong> Pods are first-class VPC citizens - SGs, NACLs, route tables all apply directly</li>
+                <li><strong>Prefix delegation:</strong> Assign /28 prefixes (16 IPs) per ENI slot for more pod density</li>
+                <li><strong>Custom networking:</strong> Pod IPs from different subnets than node IPs (for IP exhaustion)</li>
+            </ul>
+        </div>
+
+        <h3>EKS Storage (CSI Drivers)</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Driver</th>
+                    <th>Storage Type</th>
+                    <th>Access Mode</th>
+                    <th>Use Case</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>EBS CSI</strong></td>
+                    <td>Block (EBS volumes)</td>
+                    <td>ReadWriteOnce</td>
+                    <td>Databases, stateful apps (single pod)</td>
+                </tr>
+                <tr>
+                    <td><strong>EFS CSI</strong></td>
+                    <td>File (NFS)</td>
+                    <td>ReadWriteMany</td>
+                    <td>Shared data, CMS, ML training data</td>
+                </tr>
+                <tr>
+                    <td><strong>FSx CSI</strong></td>
+                    <td>High-perf file</td>
+                    <td>ReadWriteMany</td>
+                    <td>HPC, ML training, Lustre workloads</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>eksctl Commands</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">EKS Cluster Management</span>
+                <span class="tag tag-blue">eksctl</span>
+            </div>
+            <pre>
+# Create cluster with managed node group
+eksctl create cluster \
+  --name my-cluster \
+  --region us-east-1 \
+  --version 1.29 \
+  --nodegroup-name standard-workers \
+  --node-type m5.xlarge \
+  --nodes 3 \
+  --nodes-min 2 \
+  --nodes-max 5 \
+  --managed
+
+# Create Fargate profile
+eksctl create fargateprofile \
+  --cluster my-cluster \
+  --name fp-default \
+  --namespace default \
+  --namespace kube-system
+
+# Enable OIDC provider (required for IRSA)
+eksctl utils associate-iam-oidc-provider \
+  --cluster my-cluster \
+  --approve
+
+# Create IAM service account (IRSA)
+eksctl create iamserviceaccount \
+  --cluster my-cluster \
+  --namespace my-app \
+  --name my-sa \
+  --attach-policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess \
+  --approve
+
+# Scale node group
+eksctl scale nodegroup \
+  --cluster my-cluster \
+  --name standard-workers \
+  --nodes 5
+
+# Upgrade cluster
+eksctl upgrade cluster --name my-cluster --version 1.30 --approve
+
+# Install add-on
+eksctl create addon --cluster my-cluster --name aws-ebs-csi-driver
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 5. S3 -->
+        <!-- ============================================ -->
+        <h2>5. S3 (Simple Storage Service)</h2>
+
+        <h3>Storage Classes</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Storage Class</th>
+                    <th>Availability</th>
+                    <th>Min Storage Duration</th>
+                    <th>Retrieval Fee</th>
+                    <th>Use Case</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>S3 Standard</strong></td>
+                    <td>99.99%</td>
+                    <td>None</td>
+                    <td>None</td>
+                    <td>Frequently accessed data</td>
+                </tr>
+                <tr>
+                    <td><strong>S3 Standard-IA</strong></td>
+                    <td>99.9%</td>
+                    <td>30 days</td>
+                    <td>Per GB retrieved</td>
+                    <td>Infrequent access, rapid retrieval needed</td>
+                </tr>
+                <tr>
+                    <td><strong>S3 One Zone-IA</strong></td>
+                    <td>99.5%</td>
+                    <td>30 days</td>
+                    <td>Per GB retrieved</td>
+                    <td>Non-critical, reproducible data</td>
+                </tr>
+                <tr>
+                    <td><strong>S3 Intelligent-Tiering</strong></td>
+                    <td>99.9%</td>
+                    <td>None</td>
+                    <td>None</td>
+                    <td>Unknown or changing access patterns</td>
+                </tr>
+                <tr>
+                    <td><strong>S3 Glacier Instant</strong></td>
+                    <td>99.9%</td>
+                    <td>90 days</td>
+                    <td>Per GB retrieved</td>
+                    <td>Archive with millisecond access</td>
+                </tr>
+                <tr>
+                    <td><strong>S3 Glacier Flexible</strong></td>
+                    <td>99.99%</td>
+                    <td>90 days</td>
+                    <td>Per GB + per request</td>
+                    <td>Archive, 1-12 hour retrieval</td>
+                </tr>
+                <tr>
+                    <td><strong>S3 Glacier Deep Archive</strong></td>
+                    <td>99.99%</td>
+                    <td>180 days</td>
+                    <td>Per GB + per request</td>
+                    <td>Long-term archive, 12-48 hour retrieval</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>S3 Bucket Policy Example</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">bucket-policy.json</span>
+                <span class="tag tag-green">S3</span>
+            </div>
+            <pre>
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowEKSServiceAccount",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::123456789012:role/my-eks-pod-role"
+      },
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-app-data",
+        "arn:aws:s3:::my-app-data/*"
+      ]
+    },
+    {
+      "Sid": "DenyUnencryptedUploads",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:PutObject",
+      "Resource": "arn:aws:s3:::my-app-data/*",
+      "Condition": {
+        "StringNotEquals": {
+          "s3:x-amz-server-side-encryption": "aws:kms"
+        }
+      }
+    },
+    {
+      "Sid": "DenyNonHTTPS",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::my-app-data",
+        "arn:aws:s3:::my-app-data/*"
+      ],
+      "Condition": {
+        "Bool": {
+          "aws:SecureTransport": "false"
+        }
+      }
+    }
+  ]
+}
+            </pre>
+        </div>
+
+        <h3>S3 Lifecycle Rules</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">lifecycle-configuration.json</span>
+                <span class="tag tag-orange">Lifecycle</span>
+            </div>
+            <pre>
+{
+  "Rules": [
+    {
+      "ID": "TransitionToIA",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "logs/" },
+      "Transitions": [
+        {
+          "Days": 30,
+          "StorageClass": "STANDARD_IA"
+        },
+        {
+          "Days": 90,
+          "StorageClass": "GLACIER"
+        },
+        {
+          "Days": 365,
+          "StorageClass": "DEEP_ARCHIVE"
+        }
+      ],
+      "Expiration": {
+        "Days": 730
+      },
+      "NoncurrentVersionTransitions": [
+        {
+          "NoncurrentDays": 30,
+          "StorageClass": "GLACIER"
+        }
+      ],
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 90
+      }
+    }
+  ]
+}
+            </pre>
+        </div>
+
+        <div class="card">
+            <h4>S3 Key Features</h4>
+            <ul>
+                <li><strong>Versioning:</strong> Keep all versions of objects. Protects against accidental deletes (delete marker instead of actual deletion)</li>
+                <li><strong>Replication:</strong> CRR (Cross-Region) for DR, SRR (Same-Region) for compliance/aggregation. Requires versioning enabled</li>
+                <li><strong>Encryption:</strong> SSE-S3 (AWS managed), SSE-KMS (customer KMS key), SSE-C (customer-provided key)</li>
+                <li><strong>Consistency:</strong> Strong read-after-write consistency for all operations (since Dec 2020)</li>
+                <li><strong>Event Notifications:</strong> Trigger Lambda, SQS, SNS on object creation/deletion</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 6. Route 53 -->
+        <!-- ============================================ -->
+        <h2>6. Route 53</h2>
+
+        <h3>DNS Record Types</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Purpose</th>
+                    <th>Example</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>A</strong></td>
+                    <td>IPv4 address</td>
+                    <td><code>example.com -> 1.2.3.4</code></td>
+                </tr>
+                <tr>
+                    <td><strong>AAAA</strong></td>
+                    <td>IPv6 address</td>
+                    <td><code>example.com -> 2001:db8::1</code></td>
+                </tr>
+                <tr>
+                    <td><strong>CNAME</strong></td>
+                    <td>Alias to another domain (cannot be at zone apex)</td>
+                    <td><code>www.example.com -> example.com</code></td>
+                </tr>
+                <tr>
+                    <td><strong>ALIAS</strong></td>
+                    <td>AWS-specific: like CNAME but works at zone apex</td>
+                    <td><code>example.com -> d1234.cloudfront.net</code></td>
+                </tr>
+                <tr>
+                    <td><strong>MX</strong></td>
+                    <td>Mail server (with priority)</td>
+                    <td><code>10 mail.example.com</code></td>
+                </tr>
+                <tr>
+                    <td><strong>TXT</strong></td>
+                    <td>Verification, SPF, DKIM</td>
+                    <td><code>"v=spf1 include:_spf.google.com ~all"</code></td>
+                </tr>
+                <tr>
+                    <td><strong>NS</strong></td>
+                    <td>Nameservers for delegated zone</td>
+                    <td><code>ns-123.awsdns-45.com</code></td>
+                </tr>
+                <tr>
+                    <td><strong>SRV</strong></td>
+                    <td>Service location (port + priority + weight)</td>
+                    <td><code>10 5 5060 sip.example.com</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Routing Policies</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Policy</th>
+                    <th>How It Works</th>
+                    <th>Health Check</th>
+                    <th>Best For</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Simple</strong></td>
+                    <td>Returns single/multiple values (random)</td>
+                    <td>No</td>
+                    <td>Single resource, no failover needed</td>
+                </tr>
+                <tr>
+                    <td><strong>Weighted</strong></td>
+                    <td>Distribute by weight (0-255)</td>
+                    <td>Yes</td>
+                    <td>A/B testing, gradual migration (90/10 split)</td>
+                </tr>
+                <tr>
+                    <td><strong>Latency</strong></td>
+                    <td>Route to lowest-latency region</td>
+                    <td>Yes</td>
+                    <td>Multi-region deployment, best performance</td>
+                </tr>
+                <tr>
+                    <td><strong>Failover</strong></td>
+                    <td>Primary unless unhealthy, then secondary</td>
+                    <td>Required</td>
+                    <td>Active-passive disaster recovery</td>
+                </tr>
+                <tr>
+                    <td><strong>Geolocation</strong></td>
+                    <td>Route by user's geographic location</td>
+                    <td>Yes</td>
+                    <td>Compliance (data sovereignty), localization</td>
+                </tr>
+                <tr>
+                    <td><strong>Geoproximity</strong></td>
+                    <td>Route by distance with bias adjustment</td>
+                    <td>Yes</td>
+                    <td>Fine-grained geographic control</td>
+                </tr>
+                <tr>
+                    <td><strong>Multi-value</strong></td>
+                    <td>Return up to 8 healthy records</td>
+                    <td>Yes</td>
+                    <td>Simple load balancing at DNS level</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Health Checks</h3>
+
+        <div class="card">
+            <h4>Route 53 Health Check Types</h4>
+            <ul>
+                <li><strong>Endpoint:</strong> Monitor an IP/domain - HTTP, HTTPS, or TCP. Configurable interval (10s or 30s), failure threshold</li>
+                <li><strong>Calculated:</strong> Combine multiple health checks (AND/OR logic). "Healthy if 2 of 3 children are healthy"</li>
+                <li><strong>CloudWatch Alarm:</strong> Based on CloudWatch alarm state. Useful for monitoring internal resources</li>
+            </ul>
+            <p>Health checkers run from multiple AWS regions. Resource considered unhealthy if &gt;18% of checkers report unhealthy.</p>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 7. CloudWatch -->
+        <!-- ============================================ -->
+        <h2>7. CloudWatch</h2>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>CloudWatch Components</h4>
+                <ul>
+                    <li><strong>Metrics:</strong> Time-series data points (CPU, memory, custom). Namespace/dimension/metric-name. Standard (5min) or detailed (1min) monitoring</li>
+                    <li><strong>Logs:</strong> Log groups > log streams. Filter patterns, Logs Insights for querying. Retention configurable</li>
+                    <li><strong>Alarms:</strong> Trigger actions based on metric thresholds. States: OK, ALARM, INSUFFICIENT_DATA. Actions: SNS, Auto Scaling, EC2</li>
+                    <li><strong>Dashboards:</strong> Custom visualization of metrics and logs. Cross-account, cross-region supported</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>CloudWatch Agent</h4>
+                <ul>
+                    <li>Collects system-level metrics (memory, disk, processes)</li>
+                    <li>Collects custom application logs</li>
+                    <li>Runs on EC2, on-premises, or ECS/EKS</li>
+                    <li>Configured via JSON config file</li>
+                    <li>StatsD and collectd protocol support</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>CloudWatch vs Prometheus</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th>CloudWatch</th>
+                    <th>Prometheus</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Type</strong></td>
+                    <td>Managed AWS service (push-based)</td>
+                    <td>Open-source (pull-based scraping)</td>
+                </tr>
+                <tr>
+                    <td><strong>Hosting</strong></td>
+                    <td>Fully managed, no infra to maintain</td>
+                    <td>Self-hosted or AMP (AWS Managed Prometheus)</td>
+                </tr>
+                <tr>
+                    <td><strong>Query Language</strong></td>
+                    <td>Metric Math, Logs Insights</td>
+                    <td>PromQL (more powerful)</td>
+                </tr>
+                <tr>
+                    <td><strong>Resolution</strong></td>
+                    <td>1 second (high-res) to 5 minutes</td>
+                    <td>Configurable (typically 15s-60s)</td>
+                </tr>
+                <tr>
+                    <td><strong>Retention</strong></td>
+                    <td>15 months (auto aggregation)</td>
+                    <td>Configurable (Thanos/Cortex for long-term)</td>
+                </tr>
+                <tr>
+                    <td><strong>Alerting</strong></td>
+                    <td>CloudWatch Alarms + SNS</td>
+                    <td>Alertmanager (more flexible routing)</td>
+                </tr>
+                <tr>
+                    <td><strong>Cost</strong></td>
+                    <td>Per metric, per API call, per GB logs</td>
+                    <td>Infrastructure cost (or AMP per-sample pricing)</td>
+                </tr>
+                <tr>
+                    <td><strong>Best For</strong></td>
+                    <td>AWS-native monitoring, simple setup</td>
+                    <td>Kubernetes-native, high-cardinality metrics</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ============================================ -->
+        <!-- 8. Lambda -->
+        <!-- ============================================ -->
+        <h2>8. Lambda</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">Lambda Event-Driven Architecture</div>
+            <pre>
+  Event Sources                          Lambda Function               Destinations
+  +------------------+                  +------------------+          +------------------+
+  |                  |                  |                  |          |                  |
+  | API Gateway      |---+             | Handler Code     |---+      | DynamoDB         |
+  | (REST/HTTP API)  |   |             |                  |   |      | (store results)  |
+  +------------------+   |             | - Runtime        |   |      +------------------+
+                         |   Invoke    |   (Python/Node/  |   |
+  +------------------+   +------------>|    Go/Java/.NET) |   +----> +------------------+
+  | S3 Events        |   |             |                  |   |      | SQS/SNS          |
+  | (ObjectCreated)  |---+             | - Memory: 128MB  |   |      | (publish events) |
+  +------------------+   |             |   to 10GB        |   |      +------------------+
+                         |             |                  |   |
+  +------------------+   |             | - Timeout: max   |   +----> +------------------+
+  | SQS Queue        |---+             |   15 minutes     |          | S3               |
+  | (batch polling)  |   |             |                  |          | (write output)   |
+  +------------------+   |             | - /tmp: 512MB    |          +------------------+
+                         |             |   to 10GB        |
+  +------------------+   |             |                  |          +------------------+
+  | CloudWatch Events|---+             | - Layers (shared |          | CloudWatch Logs  |
+  | / EventBridge    |   |             |   code/libs)     |--------> | (auto-logged)    |
+  +------------------+   |             |                  |          +------------------+
+                         |             | - Env Variables  |
+  +------------------+   |             |                  |
+  | DynamoDB Streams |---+             | - VPC (optional) |
+  +------------------+                 +------------------+
+                                              |
+  +------------------+                        | Concurrency
+  | Kinesis Data     |---+                    |
+  | Streams          |   |              +-----+-----+
+  +------------------+   |              | Reserved  | - Guaranteed capacity
+                         +------>       | Provisioned| - No cold starts (pre-warmed)
+  +------------------+                  | Unreserved| - Shared pool (default)
+  | ALB Target       |---+             +-----------+
+  +------------------+
+            </pre>
+        </div>
+
+        <h3>Cold Starts</h3>
+
+        <div class="card card-warning">
+            <h4>Understanding Cold Starts</h4>
+            <ul>
+                <li><strong>What:</strong> First invocation (or scale-up) requires downloading code, starting runtime, initializing handler. Adds 100ms-10s latency</li>
+                <li><strong>When:</strong> First request, after idle timeout (~5-15 min), during scale-out</li>
+                <li><strong>Factors affecting duration:</strong> Runtime (Java/C# worst, Python/Node fastest), package size, VPC attachment, init code complexity</li>
+            </ul>
+        </div>
+
+        <h3>Lambda Best Practices</h3>
+
+        <div class="grid-2">
+            <div class="card card-success">
+                <h4>Performance</h4>
+                <ul>
+                    <li>Use <strong>Provisioned Concurrency</strong> for latency-sensitive workloads</li>
+                    <li>Minimize package size (remove unused deps, use layers)</li>
+                    <li>Initialize SDK clients outside the handler (reuse across invocations)</li>
+                    <li>Use ARM64 (Graviton2) for better price-performance</li>
+                    <li>Increase memory to get proportionally more CPU</li>
+                </ul>
+            </div>
+            <div class="card card-info">
+                <h4>Architecture</h4>
+                <ul>
+                    <li>Keep functions small and focused (single responsibility)</li>
+                    <li>Use environment variables for configuration</li>
+                    <li>Use dead letter queues (DLQ) for failed async invocations</li>
+                    <li>Avoid VPC unless necessary (adds cold start overhead)</li>
+                    <li>Use Step Functions for orchestrating multiple Lambdas</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 9. Cost Optimization -->
+        <!-- ============================================ -->
+        <h2>9. Cost Optimization</h2>
+
+        <h3>Pricing Models</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Model</th>
+                    <th>Savings</th>
+                    <th>Commitment</th>
+                    <th>Flexibility</th>
+                    <th>Best For</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>On-Demand</strong></td>
+                    <td>0% (baseline)</td>
+                    <td>None</td>
+                    <td>Full</td>
+                    <td>Unpredictable workloads, short-term</td>
+                </tr>
+                <tr>
+                    <td><strong>Reserved Instances</strong></td>
+                    <td>Up to 72%</td>
+                    <td>1 or 3 years</td>
+                    <td>Low (instance family/region locked)</td>
+                    <td>Steady-state, predictable workloads</td>
+                </tr>
+                <tr>
+                    <td><strong>Savings Plans</strong></td>
+                    <td>Up to 72%</td>
+                    <td>1 or 3 years ($/hr)</td>
+                    <td>Medium (Compute SP is flexible)</td>
+                    <td>Flexible compute commitment</td>
+                </tr>
+                <tr>
+                    <td><strong>Spot Instances</strong></td>
+                    <td>Up to 90%</td>
+                    <td>None (can be interrupted)</td>
+                    <td>High (but no guarantee)</td>
+                    <td>Fault-tolerant, batch, CI/CD, ML training</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Cost Optimization Strategies</h3>
+
+        <div class="point">
+            <div class="point-num">1</div>
+            <div class="point-content">
+                <div class="point-title">Right-sizing</div>
+                <p>Use AWS Compute Optimizer and CloudWatch metrics to identify over-provisioned instances. Downsize instances with consistently low CPU/memory utilization (&lt;40%). Consider Graviton (ARM) instances for 20% better price-performance.</p>
+            </div>
+        </div>
+
+        <div class="point">
+            <div class="point-num green">2</div>
+            <div class="point-content">
+                <div class="point-title">Spot Instances for EKS</div>
+                <p>Use spot instances for non-critical node groups. Implement pod disruption budgets, use multiple instance types/AZs, and run stateless workloads. Combine with Karpenter for intelligent spot instance selection and fallback to on-demand.</p>
+            </div>
+        </div>
+
+        <div class="point">
+            <div class="point-num purple">3</div>
+            <div class="point-content">
+                <div class="point-title">S3 Lifecycle Policies</div>
+                <p>Transition objects through storage classes based on access patterns. Standard -> Standard-IA (30 days) -> Glacier (90 days) -> Deep Archive (365 days). Use S3 Intelligent-Tiering for unknown patterns.</p>
+            </div>
+        </div>
+
+        <div class="point">
+            <div class="point-num orange">4</div>
+            <div class="point-content">
+                <div class="point-title">Tagging Strategy</div>
+                <p>Enforce cost allocation tags: Team, Environment, Project, CostCenter. Use AWS Organizations SCPs to enforce tagging. Enable Cost Explorer with tag-based grouping for chargeback/showback.</p>
+            </div>
+        </div>
+
+        <div class="point">
+            <div class="point-num red">5</div>
+            <div class="point-content">
+                <div class="point-title">Eliminate Waste</div>
+                <p>Identify and remove: unattached EBS volumes, unused Elastic IPs, idle load balancers, oversized NAT Gateways, forgotten dev/test environments. Use AWS Trusted Advisor and Cost Explorer for anomaly detection.</p>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 10. Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>10. Interview Q&A</h2>
+
+        <div class="qa">
+            <div class="q">Q1: When would you choose EKS vs ECS vs Lambda?</div>
+            <div class="a"><strong>EKS:</strong> When you need Kubernetes-specific features (CRDs, operators, service mesh), multi-cloud portability, or have existing K8s expertise. More complex but more flexible. <strong>ECS:</strong> AWS-native container orchestration, simpler than EKS, deep AWS integration (native IAM task roles, CloudMap service discovery). Good when you don't need K8s ecosystem. <strong>Lambda:</strong> Event-driven, short-lived tasks (&lt;15min), unpredictable traffic patterns, minimal ops overhead. Not suitable for long-running processes, websockets, or workloads needing persistent local state.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q2: Explain IAM OIDC federation and IRSA. Why is it important for EKS?</div>
+            <div class="a"><strong>IRSA</strong> (IAM Roles for Service Accounts) allows individual Kubernetes pods to assume specific IAM roles without sharing the node's role. Without IRSA, all pods on a node share the node's IAM role (overly permissive). With IRSA: (1) EKS exposes an OIDC provider, (2) K8s ServiceAccount is annotated with an IAM role ARN, (3) Pod gets a projected JWT token, (4) AWS SDK calls STS AssumeRoleWithWebIdentity, (5) STS validates the token against the OIDC provider and returns temporary credentials. This enables <strong>least privilege</strong> per pod.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q3: Design a VPC for a production EKS cluster. What are the key considerations?</div>
+            <div class="a"><strong>Key decisions:</strong> (1) CIDR sizing: /16 VPC with /19 subnets (8192 IPs each) for pod IP density with VPC CNI. (2) Multi-AZ: minimum 3 AZs. (3) Subnet tiers: public (ALB, NAT GW), private (EKS nodes), private-data (RDS). (4) IP planning: VPC CNI assigns pod IPs from subnet - plan for max pods. Consider prefix delegation or custom networking for scale. (5) NAT GW per AZ for resilience. (6) VPC endpoints for ECR, S3, STS, Logs (reduce NAT costs, improve security). (7) DNS: enable DNS hostnames and resolution. (8) No overlapping CIDRs with other VPCs (for peering/TGW).</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q4: What is S3 strong consistency and why did it matter when AWS introduced it?</div>
+            <div class="a">Since December 2020, S3 provides <strong>strong read-after-write consistency</strong> for all operations (PUT, DELETE, LIST). Previously, S3 had eventual consistency for overwrite PUTs and DELETEs (you might read stale data). This meant applications needed workarounds (DynamoDB for consistency tracking, retry logic). Now: immediately after a successful PUT, any GET returns the latest version. LIST operations immediately reflect new/deleted objects. This simplified architectures that depend on S3 as a source of truth (data lakes, config storage, artifact repositories).</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q5: Compare Route 53 routing policies. When would you use Weighted vs Latency vs Failover?</div>
+            <div class="a"><strong>Weighted:</strong> Traffic distribution by percentage. Use for canary deployments (send 5% to new version), A/B testing, or gradual migration between environments. <strong>Latency:</strong> Routes to the AWS region with lowest measured latency from the user. Use for multi-region active-active deployments to optimize user experience. <strong>Failover:</strong> Active-passive with health checks. Primary receives all traffic unless health check fails, then DNS points to secondary (DR region). Use when you want a hot standby but don't want active-active complexity. You can also combine them: Latency routing with Failover within each region.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q6: How do you optimize costs for an EKS cluster running in production?</div>
+            <div class="a"><strong>Compute:</strong> (1) Savings Plans for baseline capacity, (2) Spot instances for fault-tolerant workloads with Karpenter (diverse instance types, multiple AZs), (3) Fargate for bursty/infrequent workloads. <strong>Right-sizing:</strong> VPA recommendations, Goldilocks tool, Kubecost for per-pod cost allocation. <strong>Cluster:</strong> Cluster Autoscaler/Karpenter to scale down idle nodes. Schedule dev/staging clusters to shutdown off-hours. <strong>Networking:</strong> VPC endpoints to reduce NAT GW data processing costs. <strong>Storage:</strong> GP3 over GP2 (20% cheaper, better performance). Lifecycle policies for logs. <strong>Monitoring:</strong> Tag everything for cost attribution.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q7: What is the difference between ALB and NLB? When do you use each?</div>
+            <div class="a"><strong>ALB (Application Load Balancer):</strong> Layer 7, understands HTTP/HTTPS. Supports path-based routing, host-based routing, gRPC, WebSocket, Lambda targets, WAF integration. Use for: web applications, microservices with URL-based routing, HTTP/2. <strong>NLB (Network Load Balancer):</strong> Layer 4, handles TCP/UDP/TLS. Ultra-low latency (~100us), millions of requests/sec, static IP/Elastic IP per AZ, preserves source IP. Use for: non-HTTP protocols (MQTT, gaming), extreme performance needs, when you need static IPs, or TCP passthrough. In EKS: ALB via AWS Load Balancer Controller for Ingress, NLB for LoadBalancer-type Services.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q8: How does CloudFront work and how would you configure it for a web application?</div>
+            <div class="a"><strong>CloudFront</strong> is a CDN with 400+ edge locations. It caches content close to users. Architecture: (1) Client hits nearest edge location, (2) Cache hit = instant response, (3) Cache miss = fetch from origin (S3, ALB, custom). <strong>Configuration for web app:</strong> Origin 1: S3 bucket for static assets (path: /static/*). Origin 2: ALB for API (path: /api/*). Behaviors: cache static assets aggressively (TTL: 1 year with cache-busting), forward all headers for /api/* (no caching or short TTL). Add custom error pages, HTTPS redirect, Origin Access Control for S3 (block direct S3 access). Enable compression, HTTP/2, and Lambda@Edge for auth or A/B testing.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q9: Explain VPC endpoints. What are the types and why are they important?</div>
+            <div class="a"><strong>VPC Endpoints</strong> allow private connectivity to AWS services without internet (no IGW, NAT GW, VPN needed). <strong>Gateway Endpoints:</strong> Free, route-table based. Only S3 and DynamoDB. Traffic stays on AWS backbone. <strong>Interface Endpoints (PrivateLink):</strong> ENI in your subnet with private IP. Works for 100+ services (ECR, STS, CloudWatch, Secrets Manager, etc.). Costs: per-hour + per-GB. <strong>Why important:</strong> (1) Security: no internet exposure, (2) Cost: avoid NAT GW data processing fees (~$0.045/GB), (3) Reliability: no internet dependency, (4) Compliance: data never leaves AWS network. For EKS: essential for ECR pulls, STS (IRSA), CloudWatch Logs in private clusters.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q10: How would you implement a disaster recovery strategy on AWS?</div>
+            <div class="a"><strong>DR strategies (increasing cost and lower RTO/RPO):</strong> (1) <strong>Backup & Restore:</strong> S3 cross-region replication, RDS automated backups, AMI copies. RPO: hours, RTO: hours. (2) <strong>Pilot Light:</strong> Core components running in DR region (RDS replica, minimal infra). Scale up on failover. RPO: minutes, RTO: 10-30min. (3) <strong>Warm Standby:</strong> Scaled-down version running in DR. Route 53 failover routing. RPO: seconds, RTO: minutes. (4) <strong>Active-Active:</strong> Full deployment in both regions, Route 53 latency routing, DynamoDB global tables, Aurora global database. RPO: ~0, RTO: ~0. <strong>Key services:</strong> Route 53 health checks trigger failover, S3 CRR, RDS cross-region read replicas, Aurora global DB, DynamoDB global tables.</div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 11. Scenarios -->
+        <!-- ============================================ -->
+        <h2>11. Scenarios</h2>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">1.</span>
+                <span class="title">EKS Node Group Scaling Issues</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> Pods stuck in Pending state. Cluster Autoscaler not adding new nodes.</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span>Check pod events: <code>kubectl describe pod &lt;pod&gt;</code> - look for "Insufficient cpu/memory" or "0/N nodes are available"</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span>Check Cluster Autoscaler logs: <code>kubectl logs -n kube-system -l app=cluster-autoscaler</code></span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span>Common causes: ASG max size reached, instance type unavailable in AZ, node group IAM role missing permissions, subnet has no available IPs</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">4.</span>
+                    <span>Fix: Increase ASG max size, add instance type diversity, check subnet CIDR space, verify IAM permissions (autoscaling:SetDesiredCapacity, ec2:RunInstances)</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">5.</span>
+                    <span>Prevention: Use Karpenter instead (faster scaling, automatic instance type selection, consolidation). Set appropriate pod resource requests (not too high)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">2.</span>
+                <span class="title">Cross-Account Access Setup</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Requirement:</strong> EKS pods in Account A need to access S3 bucket in Account B.</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span>In Account A: Create IAM role with IRSA trust policy (EKS OIDC provider as principal)</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span>In Account A: Role policy allows <code>s3:GetObject</code> on Account B bucket ARN</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span>In Account B: Add bucket policy allowing Account A's IAM role as principal</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">4.</span>
+                    <span>In Account A (K8s): Create ServiceAccount annotated with the IAM role ARN</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">5.</span>
+                    <span>Verify: Deploy test pod with SA, run <code>aws s3 ls s3://account-b-bucket/</code> from inside pod</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">6.</span>
+                    <span>Common issues: Missing bucket policy in Account B, OIDC provider not associated, wrong namespace/SA in trust policy condition</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">3.</span>
+                <span class="title">S3 Permission Denied (Access Denied)</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> Application returns "Access Denied" when accessing S3 objects.</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span>Identify the caller: <code>aws sts get-caller-identity</code> - confirm which IAM principal is being used</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span>Check IAM policy: Does the identity have s3:GetObject on the correct resource ARN? (bucket/* not just bucket)</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span>Check bucket policy: Is there an explicit Deny? Does the bucket policy allow the principal?</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">4.</span>
+                    <span>Check S3 Block Public Access settings (account-level and bucket-level)</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">5.</span>
+                    <span>Check VPC endpoint policy (if using S3 Gateway endpoint - it may restrict which buckets are accessible)</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">6.</span>
+                    <span>Check KMS key policy if bucket uses SSE-KMS (caller needs kms:Decrypt permission on the key)</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">7.</span>
+                    <span>Use IAM Policy Simulator or CloudTrail logs to identify exactly which permission is being denied</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">4.</span>
+                <span class="title">Lambda Cold Start Optimization</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> API responses are slow (~3-5s) intermittently. CloudWatch shows init duration spikes.</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span>Measure: Check CloudWatch metrics for "Init Duration" - this is the cold start. Look at "Duration" for warm execution time</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span>Reduce package size: Remove unused dependencies, use Lambda layers for shared code, use webpack/esbuild for JS bundling</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span>Move initialization outside handler: SDK clients, DB connections, config loading should be at module level (reused across invocations)</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">4.</span>
+                    <span>If in VPC: Use VPC with Hyperplane ENIs (now default - dramatically reduced VPC cold starts). Consider if VPC is even necessary</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">5.</span>
+                    <span>Use Provisioned Concurrency for latency-critical paths (keeps N instances pre-warmed). Set up Application Auto Scaling on provisioned concurrency</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">6.</span>
+                    <span>Consider SnapStart (Java only): snapshots initialized function for near-zero cold starts</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">7.</span>
+                    <span>Runtime choice: Python/Node.js have fastest cold starts (~100-300ms). Java/C# are slowest (1-5s without SnapStart)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            AWS Cloud Reference | Part of the DevOps/SRE Study Guide | 2026
+        </footer>
+
+    </div>
+
+</body>
+</html>

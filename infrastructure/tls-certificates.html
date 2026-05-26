@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TLS & Certificates - DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html" class="active">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; <a href="../index.html">Infrastructure</a> &gt; TLS & Certificates
+        </div>
+
+        <h1>TLS & Certificates</h1>
+        <p class="subtitle">TLS handshake, certificate management, cert-manager in Kubernetes, mTLS, and OpenSSL operations</p>
+
+        <!-- ============================================ -->
+        <!-- 1. TLS/SSL Basics -->
+        <!-- ============================================ -->
+        <h2>1. TLS/SSL Basics</h2>
+
+        <div class="grid-2">
+            <div class="card card-info">
+                <h4>Symmetric Encryption</h4>
+                <ul>
+                    <li><strong>Same key</strong> for encryption and decryption</li>
+                    <li><strong>Fast:</strong> AES-256-GCM is hardware-accelerated</li>
+                    <li><strong>Problem:</strong> How to share the key securely?</li>
+                    <li><strong>Used for:</strong> Bulk data encryption after handshake</li>
+                    <li><strong>Algorithms:</strong> AES-128, AES-256, ChaCha20-Poly1305</li>
+                </ul>
+            </div>
+            <div class="card card-success">
+                <h4>Asymmetric Encryption</h4>
+                <ul>
+                    <li><strong>Key pair:</strong> Public key (encrypt) + Private key (decrypt)</li>
+                    <li><strong>Slow:</strong> 1000x slower than symmetric</li>
+                    <li><strong>Solves:</strong> Key exchange problem (send public key openly)</li>
+                    <li><strong>Used for:</strong> Key exchange, digital signatures, authentication</li>
+                    <li><strong>Algorithms:</strong> RSA, ECDSA, Ed25519, ECDH (key exchange)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <h4>How TLS Combines Both</h4>
+            <p>TLS uses <strong>asymmetric encryption</strong> during the handshake to securely exchange a <strong>session key</strong>, then switches to <strong>symmetric encryption</strong> for the actual data transfer. This gives you the security of asymmetric key exchange with the speed of symmetric data encryption.</p>
+        </div>
+
+        <h3>Certificate Chain</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Certificate Chain of Trust</div>
+            <pre>
+  +================================+
+  |         ROOT CA                |    Stored in browser/OS trust store
+  |   (Self-signed)                |    Examples: DigiCert, Let's Encrypt (ISRG Root)
+  |                                |
+  |   Validity: 20-30 years        |    Kept OFFLINE for security
+  |   Signs: Intermediate CAs      |
+  +===============+================+
+                  |
+                  | Signs (cross-signs)
+                  v
+  +===============+================+
+  |     INTERMEDIATE CA            |    Online, handles day-to-day signing
+  |   (Signed by Root CA)          |    If compromised, only it is revoked (not root)
+  |                                |
+  |   Validity: 5-10 years         |    Examples: Let's Encrypt R3, DigiCert SHA2
+  |   Signs: Leaf certificates     |
+  +===============+================+
+                  |
+                  | Signs
+                  v
+  +===============+================+
+  |     LEAF CERTIFICATE           |    Your server's certificate
+  |   (Signed by Intermediate)     |    Contains: domain name, public key, validity
+  |                                |
+  |   Validity: 90 days - 1 year   |    Presented to clients during TLS handshake
+  |   CN/SAN: *.example.com        |
+  +================================+
+
+  VERIFICATION (client-side):
+  1. Server sends: Leaf cert + Intermediate cert(s)
+  2. Client verifies: Leaf signed by Intermediate? (check signature)
+  3. Client verifies: Intermediate signed by Root? (check signature)
+  4. Client checks: Root in local trust store? --> TRUSTED
+  5. Client checks: Not expired? Not revoked (CRL/OCSP)?
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 2. TLS Handshake -->
+        <!-- ============================================ -->
+        <h2>2. TLS Handshake</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">TLS 1.2 Handshake (2 Round Trips)</div>
+            <pre>
+  Client                                              Server
+    |                                                    |
+    |  1. ClientHello                                   |
+    |    - TLS version (1.2)                            |
+    |    - Random bytes (client_random)                 |
+    |    - Supported cipher suites                      |
+    |    - SNI (server name indication)                 |
+    |--------------------------------------------------->|
+    |                                                    |
+    |  2. ServerHello                                   |
+    |    - Chosen cipher suite                          |
+    |    - Random bytes (server_random)                 |
+    |    - Session ID                                   |
+    |<---------------------------------------------------|
+    |                                                    |
+    |  3. Certificate                                   |
+    |    - Server's certificate chain                   |
+    |<---------------------------------------------------|
+    |                                                    |
+    |  4. ServerKeyExchange (if DHE/ECDHE)             |
+    |    - DH parameters + signature                   |
+    |<---------------------------------------------------|
+    |                                                    |
+    |  5. ServerHelloDone                              |
+    |<---------------------------------------------------|
+    |                                                    |
+    |  6. ClientKeyExchange                            |
+    |    - Pre-main secret (encrypted with             |
+    |      server's public key) OR DH public value     |
+    |--------------------------------------------------->|
+    |                                                    |
+    |  7. ChangeCipherSpec                             |
+    |    - "Switching to encrypted mode"               |
+    |--------------------------------------------------->|
+    |                                                    |
+    |  8. Finished (encrypted)                         |
+    |    - Hash of all handshake messages              |
+    |--------------------------------------------------->|
+    |                                                    |
+    |  9. ChangeCipherSpec                             |
+    |<---------------------------------------------------|
+    |                                                    |
+    |  10. Finished (encrypted)                        |
+    |<---------------------------------------------------|
+    |                                                    |
+    |  ======= Application Data (Encrypted) =======    |
+    |         Using symmetric session key               |
+    |         (derived from pre-main secret +          |
+    |          client_random + server_random)            |
+            </pre>
+        </div>
+
+        <h3>TLS 1.2 vs TLS 1.3</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th>TLS 1.2</th>
+                    <th>TLS 1.3</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Handshake RTTs</strong></td>
+                    <td>2 round trips</td>
+                    <td>1 round trip (0-RTT for resumption)</td>
+                </tr>
+                <tr>
+                    <td><strong>Key Exchange</strong></td>
+                    <td>RSA, DHE, ECDHE</td>
+                    <td>ECDHE only (forward secrecy mandatory)</td>
+                </tr>
+                <tr>
+                    <td><strong>Cipher Suites</strong></td>
+                    <td>Many (some insecure: RC4, 3DES, SHA1)</td>
+                    <td>Only 5 secure suites (AEAD only)</td>
+                </tr>
+                <tr>
+                    <td><strong>Forward Secrecy</strong></td>
+                    <td>Optional (only with DHE/ECDHE)</td>
+                    <td>Always (RSA key exchange removed)</td>
+                </tr>
+                <tr>
+                    <td><strong>Handshake Encryption</strong></td>
+                    <td>Handshake in plaintext (except Finished)</td>
+                    <td>Most of handshake encrypted (after ServerHello)</td>
+                </tr>
+                <tr>
+                    <td><strong>0-RTT Resumption</strong></td>
+                    <td>Not supported</td>
+                    <td>Supported (with replay protection caveats)</td>
+                </tr>
+                <tr>
+                    <td><strong>Removed</strong></td>
+                    <td>N/A</td>
+                    <td>RSA key exchange, CBC, RC4, SHA-1, compression</td>
+                </tr>
+                <tr>
+                    <td><strong>Performance</strong></td>
+                    <td>Slower (more round trips)</td>
+                    <td>Faster (~100ms saved per connection)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="card card-info">
+            <h4>Forward Secrecy (Perfect Forward Secrecy - PFS)</h4>
+            <p>With forward secrecy, even if the server's private key is compromised later, past recorded sessions cannot be decrypted. This is because each session uses a unique ephemeral key (ECDHE) that is discarded after use. Without PFS (RSA key exchange): if the private key leaks, ALL past sessions can be decrypted. TLS 1.3 mandates PFS.</p>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 3. Certificate Types -->
+        <!-- ============================================ -->
+        <h2>3. Certificate Types</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Validation Level</th>
+                    <th>Issuance Time</th>
+                    <th>Trust Indicator</th>
+                    <th>Use Case</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>DV (Domain Validated)</strong></td>
+                    <td>Domain ownership only</td>
+                    <td>Minutes (automated)</td>
+                    <td>Padlock icon</td>
+                    <td>Blogs, APIs, internal services</td>
+                </tr>
+                <tr>
+                    <td><strong>OV (Organization Validated)</strong></td>
+                    <td>Domain + organization identity</td>
+                    <td>Days (manual verification)</td>
+                    <td>Padlock + org name in details</td>
+                    <td>Business websites, SaaS</td>
+                </tr>
+                <tr>
+                    <td><strong>EV (Extended Validation)</strong></td>
+                    <td>Domain + extensive org verification</td>
+                    <td>Weeks (strict process)</td>
+                    <td>Padlock (green bar removed)</td>
+                    <td>Banks, e-commerce (declining use)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Special Certificate Types</h3>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Wildcard Certificates</h4>
+                <ul>
+                    <li>Covers <code>*.example.com</code> - all single-level subdomains</li>
+                    <li>Does NOT cover <code>*.sub.example.com</code> (only one level)</li>
+                    <li>Does NOT cover the bare domain <code>example.com</code> (need separate SAN)</li>
+                    <li>Convenience vs security tradeoff (key compromise affects all subdomains)</li>
+                    <li>Not available with EV certificates</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>SAN (Subject Alternative Names)</h4>
+                <ul>
+                    <li>One certificate covering multiple domains</li>
+                    <li>Example: <code>example.com</code>, <code>www.example.com</code>, <code>api.example.com</code>, <code>example.org</code></li>
+                    <li>Modern approach (CN field is deprecated for validation)</li>
+                    <li>Can mix domains and wildcards in one cert</li>
+                    <li>Browsers check SAN field (not CN) for validation</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 4. Certificate Authorities -->
+        <!-- ============================================ -->
+        <h2>4. Certificate Authorities</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">How CA Trust Works</div>
+            <pre>
+  TRUST STORE (Pre-installed in OS/Browser)
+  +================================================+
+  |  Root CAs (150-200 trusted roots)              |
+  |                                                |
+  |  - DigiCert Global Root G2                     |
+  |  - ISRG Root X1 (Let's Encrypt)               |
+  |  - Amazon Root CA 1-4                          |
+  |  - Baltimore CyberTrust Root                   |
+  |  - GlobalSign Root CA                          |
+  +============================+===================+
+                               |
+  When server presents certificate:
+                               |
+  +============================v===================+
+  |  VERIFICATION CHAIN                            |
+  |                                                |
+  |  1. Extract issuer from leaf cert              |
+  |  2. Find issuer's cert (sent by server        |
+  |     or fetched via AIA extension)              |
+  |  3. Verify signature on leaf using             |
+  |     issuer's public key                        |
+  |  4. Repeat up the chain until root             |
+  |  5. Root found in trust store? = VALID         |
+  |                                                |
+  |  Also checks:                                  |
+  |  - Expiration (notBefore/notAfter)             |
+  |  - Revocation (CRL or OCSP stapling)          |
+  |  - Domain match (SAN contains requested host)  |
+  |  - Key usage constraints                       |
+  +================================================+
+
+  REVOCATION CHECKING:
+  +------------------+    +------------------+
+  |  CRL             |    |  OCSP            |
+  |  (Certificate    |    |  (Online         |
+  |   Revocation     |    |   Certificate    |
+  |   List)          |    |   Status         |
+  |                  |    |   Protocol)      |
+  |  - Periodic      |    |  - Real-time     |
+  |    download      |    |    per-cert      |
+  |  - Can be large  |    |    query         |
+  |  - Cached        |    |  - OCSP Stapling |
+  +------------------+    |    (server       |
+                          |    fetches and    |
+                          |    sends status)  |
+                          +------------------+
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 5. Let's Encrypt -->
+        <!-- ============================================ -->
+        <h2>5. Let's Encrypt & ACME</h2>
+
+        <div class="card card-info">
+            <h4>ACME Protocol (Automatic Certificate Management Environment)</h4>
+            <p>ACME automates the entire certificate lifecycle: domain verification, certificate issuance, and renewal. Let's Encrypt is the largest ACME-based CA, issuing free DV certificates with 90-day validity.</p>
+        </div>
+
+        <h3>Challenge Types</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Challenge</th>
+                    <th>How It Works</th>
+                    <th>Pros</th>
+                    <th>Cons</th>
+                    <th>Best For</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>HTTP-01</strong></td>
+                    <td>Place a file at <code>http://domain/.well-known/acme-challenge/TOKEN</code></td>
+                    <td>Simple, works with any web server</td>
+                    <td>Requires port 80 open, no wildcards</td>
+                    <td>Single domain certs, simple setups</td>
+                </tr>
+                <tr>
+                    <td><strong>DNS-01</strong></td>
+                    <td>Create TXT record <code>_acme-challenge.domain</code> with token</td>
+                    <td>Supports wildcards, no port 80 needed</td>
+                    <td>Requires DNS API access, propagation delay</td>
+                    <td>Wildcard certs, private servers</td>
+                </tr>
+                <tr>
+                    <td><strong>TLS-ALPN-01</strong></td>
+                    <td>Respond on port 443 with special self-signed cert via ALPN</td>
+                    <td>Only needs port 443</td>
+                    <td>Less widely supported</td>
+                    <td>When only 443 is available</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="diagram">
+            <div class="diagram-label">ACME Certificate Issuance Flow (HTTP-01)</div>
+            <pre>
+  ACME Client                    Let's Encrypt CA                DNS/Web
+  (certbot/cert-manager)         (ACME server)
+       |                              |                            |
+       | 1. Request new order         |                            |
+       |   (domain: example.com)      |                            |
+       |----------------------------->|                            |
+       |                              |                            |
+       | 2. Return challenges         |                            |
+       |   (HTTP-01 token: abc123)    |                            |
+       |<-----------------------------|                            |
+       |                              |                            |
+       | 3. Place token file                                       |
+       |   /.well-known/acme-challenge/abc123                     |
+       |--------------------------------------------------------->|
+       |                              |                            |
+       | 4. Notify ready              |                            |
+       |----------------------------->|                            |
+       |                              |                            |
+       |                              | 5. Fetch token             |
+       |                              |    GET http://example.com  |
+       |                              |    /.well-known/acme-      |
+       |                              |    challenge/abc123        |
+       |                              |--------------------------->|
+       |                              |                            |
+       |                              | 6. Token valid!            |
+       |                              |<---------------------------|
+       |                              |                            |
+       | 7. Submit CSR                |                            |
+       |----------------------------->|                            |
+       |                              |                            |
+       | 8. Return signed certificate |                            |
+       |   (valid 90 days)            |                            |
+       |<-----------------------------|                            |
+       |                              |                            |
+       | 9. Auto-renew at 60 days                                 |
+       |   (repeat process)                                        |
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 6. cert-manager in Kubernetes -->
+        <!-- ============================================ -->
+        <h2>6. cert-manager in Kubernetes</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">cert-manager Architecture</div>
+            <pre>
+  +===========================================================================+
+  |  Kubernetes Cluster                                                        |
+  |                                                                            |
+  |  +--- cert-manager namespace ---+     +--- your-app namespace ---+        |
+  |  |                              |     |                           |        |
+  |  |  +------------------+        |     |  +------------------+    |        |
+  |  |  | cert-manager     |        |     |  | Ingress          |    |        |
+  |  |  | controller       |        |     |  | (annotated for   |    |        |
+  |  |  | - watches Cert   |        |     |  |  auto TLS)       |    |        |
+  |  |  |   resources      |        |     |  +------------------+    |        |
+  |  |  | - creates Orders |        |     |                           |        |
+  |  |  | - solves challs  |        |     |  +------------------+    |        |
+  |  |  +--------+---------+        |     |  | Certificate      |    |        |
+  |  |           |                  |     |  | (custom resource)|    |        |
+  |  |  +--------+---------+        |     |  +------------------+    |        |
+  |  |  | cert-manager     |        |     |                           |        |
+  |  |  | webhook          |        |     |  +------------------+    |        |
+  |  |  | (validates CRs)  |        |     |  | Secret (TLS)     |    |        |
+  |  |  +------------------+        |     |  | tls.crt + tls.key|    |        |
+  |  |                              |     |  +------------------+    |        |
+  |  |  +------------------+        |     +---------------------------+        |
+  |  |  | cainjector       |        |                                          |
+  |  |  | (injects CA      |        |                                          |
+  |  |  |  bundles)        |        |                                          |
+  |  |  +------------------+        |                                          |
+  |  +------------------------------+                                          |
+  |                                                                            |
+  |  Custom Resources:                                                         |
+  |  - ClusterIssuer / Issuer  (how to get certs: ACME, CA, Vault, etc.)     |
+  |  - Certificate             (what cert to get: domains, secret name)       |
+  |  - CertificateRequest      (CSR sent to issuer)                           |
+  |  - Order                   (ACME order tracking)                          |
+  |  - Challenge               (ACME challenge solving)                       |
+  +============================================================================+
+
+  Flow:
+  1. Create ClusterIssuer (configures Let's Encrypt)
+  2. Create Certificate resource (or annotate Ingress)
+  3. cert-manager creates CertificateRequest -> Order -> Challenge
+  4. Solves challenge (creates temp Ingress/DNS record)
+  5. Gets signed cert from CA
+  6. Stores in Kubernetes Secret (tls.crt + tls.key)
+  7. Auto-renews before expiry (default: 30 days before)
+            </pre>
+        </div>
+
+        <h3>ClusterIssuer (Let's Encrypt)</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">cluster-issuer-letsencrypt.yaml</span>
+                <span class="tag tag-blue">cert-manager</span>
+            </div>
+            <pre>
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    # Let's Encrypt production endpoint
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: platform-team@example.com
+    # Secret to store ACME account private key
+    privateKeySecretRef:
+      name: letsencrypt-prod-account-key
+    solvers:
+    # HTTP-01 solver using ingress
+    - http01:
+        ingress:
+          class: nginx
+      selector:
+        dnsZones:
+        - "example.com"
+    # DNS-01 solver for wildcard certs (Route53)
+    - dns01:
+        route53:
+          region: us-east-1
+          hostedZoneID: Z1234567890
+          # Use IRSA for AWS credentials
+      selector:
+        dnsZones:
+        - "example.com"
+        matchLabels:
+          use-dns-solver: "true"
+---
+# Staging issuer for testing (higher rate limits)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: platform-team@example.com
+    privateKeySecretRef:
+      name: letsencrypt-staging-account-key
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+            </pre>
+        </div>
+
+        <h3>Certificate Resource</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">certificate.yaml</span>
+                <span class="tag tag-green">Certificate</span>
+            </div>
+            <pre>
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: app-tls
+  namespace: production
+spec:
+  # Secret where cert will be stored
+  secretName: app-tls-secret
+
+  # Certificate details
+  duration: 2160h    # 90 days
+  renewBefore: 720h  # Renew 30 days before expiry
+
+  # Domains
+  dnsNames:
+  - app.example.com
+  - api.example.com
+  - "*.staging.example.com"  # Wildcard (requires DNS-01)
+
+  # Issuer reference
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+    group: cert-manager.io
+
+  # Private key settings
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+
+  # Optional: Additional labels on the secret
+  secretTemplate:
+    labels:
+      app: my-app
+            </pre>
+        </div>
+
+        <h3>Ingress Auto-Provisioning</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">ingress-auto-tls.yaml</span>
+                <span class="tag tag-orange">Ingress</span>
+            </div>
+            <pre>
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+  namespace: production
+  annotations:
+    # cert-manager will auto-create Certificate resource
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # Optional: force DNS-01 for this ingress
+    cert-manager.io/acme-challenge-type: "dns01"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - app.example.com
+    - api.example.com
+    secretName: app-tls-secret  # cert-manager creates this
+  rules:
+  - host: app.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: app-service
+            port:
+              number: 80
+  - host: api.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: api-service
+            port:
+              number: 8080
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 7. mTLS (Mutual TLS) -->
+        <!-- ============================================ -->
+        <h2>7. mTLS (Mutual TLS)</h2>
+
+        <div class="card card-info">
+            <h4>What is mTLS?</h4>
+            <p>In standard TLS, only the server presents a certificate (client verifies server identity). In <strong>mutual TLS (mTLS)</strong>, both sides present certificates and verify each other. The client also proves its identity to the server. This provides strong authentication for service-to-service communication.</p>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">mTLS vs Standard TLS</div>
+            <pre>
+  STANDARD TLS (one-way):            mTLS (two-way):
+
+  Client         Server              Client         Server
+    |               |                  |               |
+    |  ClientHello  |                  |  ClientHello  |
+    |-------------->|                  |-------------->|
+    |               |                  |               |
+    |  ServerHello  |                  |  ServerHello  |
+    |  + Server Cert|                  |  + Server Cert|
+    |<--------------|                  |  + CertRequest|  <-- Server requests
+    |               |                  |<--------------|      client cert
+    |  (verify      |                  |               |
+    |   server)     |                  |  Client Cert  |  <-- Client sends
+    |               |                  |-------------->|      its certificate
+    |  Key Exchange |                  |               |
+    |-------------->|                  |  (both verify |
+    |               |                  |   each other) |
+    |  === DATA === |                  |               |
+    |               |                  |  Key Exchange |
+    |               |                  |-------------->|
+    | Server        |                  |               |
+    | authenticated |                  |  === DATA === |
+    | only          |                  |               |
+    |               |                  | BOTH sides    |
+    |               |                  | authenticated |
+
+  USE CASES for mTLS:
+  - Service-to-service in microservices (zero-trust)
+  - Service mesh (Istio/Linkerd auto-inject mTLS)
+  - API authentication (replace API keys)
+  - IoT device authentication
+  - Database connections
+            </pre>
+        </div>
+
+        <h3>How Service Mesh Implements mTLS</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Service Mesh mTLS (Istio Example)</div>
+            <pre>
+  Service A Pod                              Service B Pod
+  +---------------------------+              +---------------------------+
+  |                           |              |                           |
+  |  +-------+  +----------+ |    mTLS     | +----------+  +-------+  |
+  |  | App   |->| Envoy    |===============>| Envoy    |->| App   |  |
+  |  |Container| | Sidecar  | |  encrypted  | | Sidecar  | |Container| |
+  |  |       |  |          | |  connection  | |          | |       |  |
+  |  | plain |  | - Has    | |              | | - Has    | | plain |  |
+  |  | HTTP  |  |   cert   | |              | |   cert   | | HTTP  |  |
+  |  |       |  | - Auto   | |              | | - Auto   | |       |  |
+  |  +-------+  |   rotated| |              | |   rotated| +-------+  |
+  |             +----------+ |              | +----------+             |
+  +---------------------------+              +---------------------------+
+
+  Istiod (Control Plane):
+  +------------------------------------------+
+  |  Certificate Authority (Citadel)          |
+  |  - Issues SPIFFE identity certs          |
+  |    (spiffe://cluster/ns/SA)              |
+  |  - Short-lived (24h default)             |
+  |  - Auto-rotated by Envoy                 |
+  |  - No manual cert management!            |
+  +------------------------------------------+
+
+  Benefits:
+  1. Encryption: All inter-service traffic encrypted
+  2. Authentication: Every service has verified identity
+  3. Authorization: Policy based on service identity
+  4. Zero code changes: App sends plain HTTP, sidecar handles TLS
+  5. Automatic rotation: No cert expiry incidents
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 8. OpenSSL Commands -->
+        <!-- ============================================ -->
+        <h2>8. OpenSSL Commands</h2>
+
+        <h3>Generate Private Key</h3>
+
+        <div class="cmd">openssl genrsa -out server.key 2048</div>
+        <div class="cmd">openssl ecparam -genkey -name prime256v1 -out server-ec.key</div>
+        <div class="cmd">openssl genpkey -algorithm Ed25519 -out server-ed25519.key</div>
+
+        <h3>Create Certificate Signing Request (CSR)</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Generate CSR with SAN</span>
+                <span class="tag tag-blue">OpenSSL</span>
+            </div>
+            <pre>
+# Interactive CSR generation
+openssl req -new -key server.key -out server.csr
+
+# Non-interactive with subject
+openssl req -new -key server.key -out server.csr \
+  -subj "/C=US/ST=California/L=SF/O=MyOrg/CN=example.com"
+
+# CSR with Subject Alternative Names (SAN)
+openssl req -new -key server.key -out server.csr \
+  -subj "/CN=example.com" \
+  -addext "subjectAltName=DNS:example.com,DNS:www.example.com,DNS:api.example.com"
+
+# View CSR contents
+openssl req -in server.csr -text -noout
+            </pre>
+        </div>
+
+        <h3>Self-Signed Certificate</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Self-Signed Cert (testing/internal)</span>
+                <span class="tag tag-orange">OpenSSL</span>
+            </div>
+            <pre>
+# Generate key + self-signed cert in one command
+openssl req -x509 -nodes -days 365 \
+  -newkey rsa:2048 \
+  -keyout tls.key \
+  -out tls.crt \
+  -subj "/CN=myapp.internal" \
+  -addext "subjectAltName=DNS:myapp.internal,DNS:localhost,IP:127.0.0.1"
+
+# Create CA, then sign server cert (proper chain)
+# 1. Create CA key and cert
+openssl req -x509 -nodes -days 3650 \
+  -newkey rsa:4096 \
+  -keyout ca.key -out ca.crt \
+  -subj "/CN=My Internal CA"
+
+# 2. Sign server CSR with CA
+openssl x509 -req -days 365 \
+  -in server.csr \
+  -CA ca.crt -CAkey ca.key -CAcreateserial \
+  -out server.crt \
+  -extfile <(printf "subjectAltName=DNS:example.com,DNS:www.example.com")
+            </pre>
+        </div>
+
+        <h3>Verify and Inspect Certificates</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Certificate Inspection Commands</span>
+                <span class="tag tag-green">OpenSSL</span>
+            </div>
+            <pre>
+# View certificate details
+openssl x509 -in server.crt -text -noout
+
+# Check certificate expiry date
+openssl x509 -in server.crt -enddate -noout
+
+# Verify cert chain
+openssl verify -CAfile ca.crt server.crt
+
+# Check remote server certificate
+openssl s_client -connect example.com:443 -servername example.com </dev/null 2>/dev/null \
+  | openssl x509 -text -noout
+
+# Check expiry of remote server
+openssl s_client -connect example.com:443 -servername example.com </dev/null 2>/dev/null \
+  | openssl x509 -enddate -noout
+
+# Check full chain from remote server
+openssl s_client -connect example.com:443 -servername example.com -showcerts </dev/null
+
+# Verify key matches certificate
+openssl x509 -in server.crt -modulus -noout | md5sum
+openssl rsa -in server.key -modulus -noout | md5sum
+# (outputs must match)
+
+# Decode a certificate (PEM to human-readable)
+openssl x509 -in cert.pem -text -noout | grep -A1 "Subject Alternative Name"
+
+# Convert formats
+openssl x509 -in cert.pem -outform der -out cert.der   # PEM to DER
+openssl x509 -in cert.der -inform der -out cert.pem     # DER to PEM
+openssl pkcs12 -export -in cert.pem -inkey key.pem -out cert.p12  # PEM to PKCS12
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 9. Common Issues -->
+        <!-- ============================================ -->
+        <h2>9. Common Issues</h2>
+
+        <div class="grid-2">
+            <div class="card card-danger">
+                <h4>Certificate Expired</h4>
+                <ul>
+                    <li><strong>Symptoms:</strong> ERR_CERT_DATE_INVALID, connection refused, HTTPS errors</li>
+                    <li><strong>Detection:</strong> <code>openssl s_client -connect host:443</code> shows expiry</li>
+                    <li><strong>Fix:</strong> Renew certificate, update secret, restart/reload services</li>
+                    <li><strong>Prevention:</strong> cert-manager auto-renewal, monitoring expiry with alerts (30 days out)</li>
+                </ul>
+            </div>
+            <div class="card card-danger">
+                <h4>Incomplete Certificate Chain</h4>
+                <ul>
+                    <li><strong>Symptoms:</strong> Works in Chrome (chain completion) but fails in curl/Python/Java</li>
+                    <li><strong>Cause:</strong> Server only sends leaf cert, missing intermediate(s)</li>
+                    <li><strong>Detection:</strong> <code>openssl s_client -connect host:443</code> shows "verify error:num=21"</li>
+                    <li><strong>Fix:</strong> Concatenate leaf + intermediate(s) in server cert file (order matters: leaf first)</li>
+                </ul>
+            </div>
+            <div class="card card-warning">
+                <h4>Name Mismatch</h4>
+                <ul>
+                    <li><strong>Symptoms:</strong> ERR_CERT_COMMON_NAME_INVALID</li>
+                    <li><strong>Cause:</strong> Requested hostname not in cert's SAN/CN</li>
+                    <li><strong>Example:</strong> Cert for <code>www.example.com</code> but accessing <code>example.com</code></li>
+                    <li><strong>Fix:</strong> Reissue cert with all required SANs, or use wildcard</li>
+                </ul>
+            </div>
+            <div class="card card-warning">
+                <h4>Mixed Content</h4>
+                <ul>
+                    <li><strong>Symptoms:</strong> Page loads but resources fail, browser warnings</li>
+                    <li><strong>Cause:</strong> HTTPS page loading HTTP resources (scripts, images, CSS)</li>
+                    <li><strong>Fix:</strong> Update all resource URLs to HTTPS or use protocol-relative URLs</li>
+                    <li><strong>Prevention:</strong> Content-Security-Policy header, upgrade-insecure-requests</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card card-danger">
+            <h4>TLS Version / Cipher Mismatch</h4>
+            <ul>
+                <li><strong>Symptoms:</strong> "No common cipher suites" or "Protocol version not supported"</li>
+                <li><strong>Cause:</strong> Server configured for TLS 1.3 only, client only supports TLS 1.2 (or vice versa)</li>
+                <li><strong>Detection:</strong> <code>openssl s_client -connect host:443 -tls1_2</code> (test specific version)</li>
+                <li><strong>Fix:</strong> Enable compatible TLS versions and cipher suites on server. Recommended minimum: TLS 1.2</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 10. Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>10. Interview Q&A</h2>
+
+        <div class="qa">
+            <div class="q">Q1: Walk through the TLS 1.3 handshake. How is it faster than TLS 1.2?</div>
+            <div class="a">TLS 1.3 completes in <strong>1 RTT</strong> (vs 2 for TLS 1.2). Client sends ClientHello with key_share (guesses server's preferred key exchange method, usually X25519). Server responds with ServerHello + key_share + encrypted extensions + certificate + CertificateVerify + Finished - all in one flight. Client sends Finished. The key insight: by including key_share speculatively, the key exchange and hello happen in parallel. Additionally, TLS 1.3 supports <strong>0-RTT resumption</strong> for returning clients (sends encrypted data in the first message), though this has replay attack risks for non-idempotent requests.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q2: What is the difference between symmetric and asymmetric encryption? Why does TLS use both?</div>
+            <div class="a"><strong>Symmetric:</strong> Same key encrypts and decrypts. Fast (AES is hardware-accelerated, ~GB/s). Problem: how to share the key securely? <strong>Asymmetric:</strong> Public key encrypts, private key decrypts (or signs). Solves key distribution but is ~1000x slower. <strong>TLS uses both:</strong> Asymmetric (ECDHE) during handshake to securely derive a shared secret, then symmetric (AES-GCM) for bulk data transfer. This hybrid approach gives security of asymmetric key exchange with performance of symmetric encryption. The session key is ephemeral - new for each connection (forward secrecy).</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q3: What is mTLS and when would you use it?</div>
+            <div class="a"><strong>mTLS</strong> (Mutual TLS) means both client and server authenticate each other with certificates. In standard TLS, only the server proves its identity. In mTLS, the server also requests and verifies a client certificate. <strong>Use cases:</strong> (1) Service-to-service authentication in microservices (zero-trust networking), (2) Service mesh (Istio/Linkerd automate mTLS between sidecars), (3) Strong API client authentication (replace API keys), (4) IoT device authentication, (5) Internal services where you control both ends. <strong>When NOT to use:</strong> Public-facing websites (users don't have client certs), situations where certificate management overhead isn't justified.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q4: How does cert-manager work in Kubernetes? Walk through the certificate lifecycle.</div>
+            <div class="a"><strong>cert-manager</strong> automates TLS certificate management in K8s. Lifecycle: (1) Create a ClusterIssuer (configures CA - Let's Encrypt ACME, Vault, self-signed). (2) Create a Certificate resource (specifies domains, secret name, issuer) OR annotate an Ingress for auto-creation. (3) cert-manager controller creates a CertificateRequest, then an Order (ACME). (4) For each domain, creates a Challenge (HTTP-01: temporary Ingress/pod, DNS-01: creates TXT record). (5) Once validated, submits CSR to CA, receives signed cert. (6) Stores cert+key in a Kubernetes Secret (type: kubernetes.io/tls). (7) Monitors expiry, auto-renews (default: 30 days before expiry). Pod/Ingress mounts the secret and uses the cert.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q5: Explain the certificate chain of trust. What happens if the chain is incomplete?</div>
+            <div class="a"><strong>Chain of trust:</strong> Root CA (in trust store) signs Intermediate CA, which signs Leaf certificate (your server's cert). The server must send the leaf + all intermediates (not the root - client already has it). Client verifies: leaf signed by intermediate? Intermediate signed by root? Root in trust store? All valid = trusted. <strong>If chain is incomplete:</strong> Browsers may still work (they can fetch missing intermediates via AIA extension), but programmatic clients (curl, Python, Java, mobile apps) will fail with "unable to verify certificate" errors. <strong>Fix:</strong> Concatenate certs in order: leaf cert first, then intermediate(s). Never include the root.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q6: A service in production suddenly starts getting TLS errors. How do you diagnose?</div>
+            <div class="a"><strong>Systematic approach:</strong> (1) Check certificate expiry: <code>openssl s_client -connect host:443 | openssl x509 -enddate -noout</code>. (2) Check certificate chain: <code>openssl s_client -connect host:443 -showcerts</code> - look for "verify return code". (3) Check domain match: does the SAN include the requested hostname? (4) Check TLS version: <code>openssl s_client -connect host:443 -tls1_2</code> vs <code>-tls1_3</code>. (5) Check if cert was recently rotated (wrong cert mounted?). (6) For K8s: <code>kubectl get secret tls-secret -o jsonpath='{.data.tls\.crt}' | base64 -d | openssl x509 -text</code>. (7) Check cert-manager: <code>kubectl describe certificate</code>, <code>kubectl get certificaterequest</code>. (8) Monitor: set up alerts for certs expiring within 30 days.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q7: What is forward secrecy and why does TLS 1.3 mandate it?</div>
+            <div class="a"><strong>Forward secrecy</strong> (Perfect Forward Secrecy - PFS) means that compromising the server's long-term private key does NOT allow decryption of past recorded sessions. This is achieved by using <strong>ephemeral keys</strong> (ECDHE) for each session - the session key is derived from a one-time Diffie-Hellman exchange and the ephemeral keys are discarded. Without PFS (e.g., RSA key exchange in TLS 1.2): if an attacker records encrypted traffic AND later obtains the server's private key, they can decrypt ALL past sessions. TLS 1.3 <strong>removed RSA key exchange entirely</strong>, making forward secrecy mandatory, because mass surveillance capabilities make "record now, decrypt later" a real threat.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q8: How does HTTPS work end-to-end? Explain what happens from URL to rendered page.</div>
+            <div class="a"><strong>Steps:</strong> (1) DNS resolution: resolve hostname to IP address. (2) TCP handshake: SYN, SYN-ACK, ACK (establish connection). (3) TLS handshake: ClientHello (with SNI indicating hostname), ServerHello + certificate, key exchange (ECDHE), derive symmetric session key. Client verifies: cert chain valid? Domain matches? Not expired? Not revoked? (4) HTTP request: encrypted with session key, sent over TLS tunnel. (5) Server decrypts request, processes it, encrypts response. (6) Client decrypts response, renders page. <strong>Key detail:</strong> SNI (Server Name Indication) in ClientHello tells the server which certificate to present (one IP can host multiple HTTPS sites). SNI is sent in plaintext in TLS 1.2 (encrypted in TLS 1.3 with ECH).</div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 11. Scenarios -->
+        <!-- ============================================ -->
+        <h2>11. Scenarios</h2>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">1.</span>
+                <span class="title">Certificate Expired in Production</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> Users getting ERR_CERT_DATE_INVALID. Monitoring alerts firing. Some clients returning 502.</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span>Confirm expiry: <code>openssl s_client -connect app.example.com:443 &lt;/dev/null 2&gt;/dev/null | openssl x509 -enddate -noout</code></span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span>Check cert-manager status: <code>kubectl describe certificate app-tls -n production</code> - look at "Status" and "Events"</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span>Check certificate request: <code>kubectl get certificaterequest -n production</code> - is there a pending/failed request?</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">4.</span>
+                    <span>Check challenge: <code>kubectl get challenge -n production</code> - is the ACME challenge failing? (DNS propagation, port 80 blocked?)</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">5.</span>
+                    <span>Emergency fix: If cert-manager is broken, manually issue cert with certbot and create the K8s secret: <code>kubectl create secret tls app-tls-secret --cert=tls.crt --key=tls.key -n production --dry-run=client -o yaml | kubectl apply -f -</code></span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">6.</span>
+                    <span>Force cert-manager renewal: <code>kubectl delete secret app-tls-secret -n production</code> (cert-manager will detect missing secret and re-issue)</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">7.</span>
+                    <span>Prevention: Set up monitoring for cert expiry (Prometheus cert_exporter, or CloudWatch). Alert at 30 days, page at 7 days. Test cert-manager renewal in staging regularly</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">2.</span>
+                <span class="title">cert-manager Not Issuing Certificates</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> Certificate resource shows "Not Ready". New deployments have no TLS secret.</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span>Check Certificate status: <code>kubectl describe certificate &lt;name&gt; -n &lt;ns&gt;</code> - look at Conditions and Events</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span>Check Issuer/ClusterIssuer: <code>kubectl describe clusterissuer letsencrypt-prod</code> - is it Ready? ACME account registered?</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span>Check CertificateRequest: <code>kubectl get certificaterequest -n &lt;ns&gt;</code> then describe it - look for approval/denial</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">4.</span>
+                    <span>Check Order and Challenge: <code>kubectl get order,challenge -n &lt;ns&gt;</code> - what state? For HTTP-01: is the solver pod/ingress created?</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">5.</span>
+                    <span>Common HTTP-01 issues: Ingress class mismatch, port 80 blocked by firewall/NLB, solver pod cannot be scheduled, rate limits exceeded</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">6.</span>
+                    <span>Common DNS-01 issues: IAM permissions for Route53 missing (IRSA not configured), wrong hosted zone ID, DNS propagation slow</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">7.</span>
+                    <span>Check cert-manager logs: <code>kubectl logs -n cert-manager deploy/cert-manager -f</code> - look for errors</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">8.</span>
+                    <span>Rate limits: Let's Encrypt has rate limits (50 certs/domain/week). Use staging issuer for testing. Check if you hit the limit</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">3.</span>
+                <span class="title">mTLS Breaking Legacy Service Communication</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> After enabling Istio mTLS (STRICT mode), a legacy service that cannot present a client certificate starts getting connection refused errors.</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span>Identify the issue: Legacy service has no Envoy sidecar (not part of mesh) trying to reach a mesh service with STRICT mTLS</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span>Immediate fix - use PERMISSIVE mode for the target service (accepts both mTLS and plaintext):</span>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="filename">peer-authentication-permissive.yaml</span>
+                        <span class="tag tag-purple">Istio</span>
+                    </div>
+                    <pre>
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: allow-legacy
+  namespace: target-service-ns
+spec:
+  selector:
+    matchLabels:
+      app: target-service
+  mtls:
+    mode: PERMISSIVE  # Accept both mTLS and plain HTTP
+                    </pre>
+                </div>
+
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span>Better fix: Add the legacy service to the mesh (inject sidecar). If it cannot have a sidecar, use a gateway or proxy in front of it</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">4.</span>
+                    <span>Long-term: Migrate all services into the mesh. Use PERMISSIVE during migration, then switch to STRICT once all services have sidecars</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">5.</span>
+                    <span>Alternative: Create a DestinationRule to disable mTLS for traffic TO the legacy service (mesh services connecting out to legacy)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            TLS & Certificates Reference | Part of the DevOps/SRE Study Guide | 2026
+        </footer>
+
+    </div>
+
+</body>
+</html>

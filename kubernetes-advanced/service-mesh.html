@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Mesh - DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+<nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html" class="active">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; <a href="advanced-topics.html">Kubernetes Advanced</a> &gt; Service Mesh
+        </div>
+
+        <h1>Service Mesh</h1>
+        <p class="subtitle">Istio, Linkerd, traffic management, mTLS, observability, and production deployment patterns</p>
+
+        <!-- ============================================ -->
+        <!-- 1. What is a Service Mesh -->
+        <!-- ============================================ -->
+        <h2>1. What is a Service Mesh</h2>
+
+        <div class="card card-info">
+            <h4>Problems a Service Mesh Solves</h4>
+            <ul>
+                <li><strong>Observability:</strong> Automatic metrics, distributed tracing, and access logs for all service-to-service traffic without code changes</li>
+                <li><strong>Security:</strong> Automatic mTLS encryption and identity-based authorization between services</li>
+                <li><strong>Traffic Management:</strong> Fine-grained routing, retries, timeouts, circuit breaking, and traffic splitting</li>
+                <li><strong>Resilience:</strong> Automatic retries, failover, rate limiting, and fault injection for chaos testing</li>
+            </ul>
+            <p>All of this happens at the <strong>infrastructure layer</strong> - no application code changes needed.</p>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">Sidecar Pattern</div>
+            <pre>
+  WITHOUT Service Mesh:                    WITH Service Mesh (Sidecar Pattern):
+
+  +--------+         +--------+           +-------------------+    +-------------------+
+  | Svc A  |-------->| Svc B  |           | Pod A             |    | Pod B             |
+  |        |  direct |        |           | +-----+ +-------+ |    | +-------+ +-----+ |
+  | - retry|  call   | - auth |           | |App A| |Envoy  | |    | |Envoy  | |App B| |
+  | - TLS  |         | - rate |           | |     |->|Proxy  |======>|Proxy  |->|     | |
+  | - trace|         |   limit|           | |     | |       | |mTLS| |       | |     | |
+  | - meter|         | - trace|           | | No  | |- mTLS | |    | |- mTLS | | No  | |
+  |        |         |        |           | | net | |- retry| |    | |- auth | | net | |
+  +--------+         +--------+           | | code| |- trace| |    | |- trace| | code| |
+                                          | +-----+ +-------+ |    | +-------+ +-----+ |
+  Problems:                               +-------------------+    +-------------------+
+  - Every service implements retry,                    |
+    TLS, tracing, etc.                                 v
+  - Different languages = different        +-------------------------+
+    implementations                        | Control Plane (Istiod)  |
+  - Hard to enforce consistent             | - Certificate Authority |
+    policies                               | - Configuration (xDS)   |
+  - Library updates = redeploy all         | - Service Discovery     |
+                                           +-------------------------+
+
+  Benefits:
+  - Consistent behavior across ALL services (any language)
+  - Update policies without redeploying applications
+  - Application code stays focused on business logic
+  - Zero-trust security by default
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 2. Istio Architecture -->
+        <!-- ============================================ -->
+        <h2>2. Istio Architecture</h2>
+
+        <div class="diagram">
+            <div class="diagram-label">Istio Architecture (Data Plane + Control Plane)</div>
+            <pre>
+  +=============================================================================+
+  |                           CONTROL PLANE                                      |
+  |                                                                              |
+  |  +--- istiod (single binary, replaces Pilot + Citadel + Galley) ----------+|
+  |  |                                                                          ||
+  |  |  +------------------+  +------------------+  +------------------+        ||
+  |  |  |     Pilot        |  |    Citadel       |  |    Galley        |        ||
+  |  |  |                  |  |                  |  |                  |        ||
+  |  |  | - Service        |  | - Certificate    |  | - Configuration  |        ||
+  |  |  |   discovery      |  |   authority      |  |   validation     |        ||
+  |  |  | - Traffic rules  |  | - Issues SPIFFE  |  | - Schema         |        ||
+  |  |  |   -> xDS API     |  |   identity certs |  |   validation     |        ||
+  |  |  | - Converts       |  | - mTLS cert      |  | - Webhook for    |        ||
+  |  |  |   VirtualService |  |   rotation       |  |   CRDs           |        ||
+  |  |  |   to Envoy       |  | - Root CA        |  |                  |        ||
+  |  |  |   config         |  |   management     |  |                  |        ||
+  |  |  +--------+---------+  +--------+---------+  +------------------+        ||
+  |  |           |                      |                                       ||
+  |  +-----------+----------------------+---------------------------------------+|
+  |              |                      |                                         |
+  +==============|======================|=========================================+
+                 | xDS (config push)    | Certs (SDS)
+                 v                      v
+  +=============================================================================+
+  |                            DATA PLANE                                        |
+  |                                                                              |
+  |  +--- Pod A -------------------------+   +--- Pod B ----------------------+ |
+  |  |                                    |   |                                | |
+  |  |  +-----------+    +-------------+  |   |  +-------------+  +---------+ | |
+  |  |  | App       |    | Envoy Proxy |  |   |  | Envoy Proxy |  | App     | | |
+  |  |  | Container | -> | (sidecar)   |======>| (sidecar)   | -> |Container| | |
+  |  |  |           |    |             |  |   |  |             |  |         | | |
+  |  |  | localhost  |    | - L7 routing|  |   |  | - L7 routing|  |localhost| | |
+  |  |  | :8080     |    | - mTLS      |  |   |  | - mTLS      |  | :8080  | | |
+  |  |  |           |    | - Retry     |  |   |  | - AuthZ     |  |         | | |
+  |  |  |           |    | - CB        |  |   |  | - Metrics   |  |         | | |
+  |  |  |           |    | - Metrics   |  |   |  | - Tracing   |  |         | | |
+  |  |  +-----------+    +-------------+  |   |  +-------------+  +---------+ | |
+  |  |                                    |   |                                | |
+  |  +------------------------------------+   +--------------------------------+ |
+  |                                                                              |
+  +=============================================================================+
+
+  Key Concepts:
+  - Envoy sidecar automatically injected (MutatingWebhook)
+  - All traffic intercepted by iptables rules (init container)
+  - App talks to localhost, Envoy handles everything else
+  - xDS API: dynamic configuration (LDS, RDS, CDS, EDS, SDS)
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 3. Istio Traffic Management -->
+        <!-- ============================================ -->
+        <h2>3. Istio Traffic Management</h2>
+
+        <h3>VirtualService</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">virtualservice-full.yaml</span>
+                <span class="tag tag-blue">Istio</span>
+            </div>
+            <pre>
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: reviews-vs
+  namespace: production
+spec:
+  hosts:
+  - reviews  # K8s service name (short or FQDN)
+  http:
+  # Route 1: Header-based routing (canary for internal testers)
+  - match:
+    - headers:
+        x-canary:
+          exact: "true"
+    route:
+    - destination:
+        host: reviews
+        subset: v3  # References DestinationRule subset
+      weight: 100
+
+  # Route 2: Traffic splitting (90/10 canary)
+  - route:
+    - destination:
+        host: reviews
+        subset: v2
+      weight: 90
+    - destination:
+        host: reviews
+        subset: v3
+      weight: 10
+
+    # Retry policy
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+      retryOn: 5xx,reset,connect-failure,retriable-4xx
+
+    # Timeout
+    timeout: 10s
+
+    # Fault injection (chaos testing)
+    fault:
+      delay:
+        percentage:
+          value: 5.0    # 5% of requests
+        fixedDelay: 3s  # Add 3s latency
+      abort:
+        percentage:
+          value: 1.0    # 1% of requests
+        httpStatus: 503 # Return 503
+
+    # Mirror traffic (shadow testing)
+    mirror:
+      host: reviews
+      subset: v3
+    mirrorPercentage:
+      value: 10.0  # Mirror 10% of traffic
+            </pre>
+        </div>
+
+        <h3>DestinationRule</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">destinationrule.yaml</span>
+                <span class="tag tag-green">Istio</span>
+            </div>
+            <pre>
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: reviews-dr
+  namespace: production
+spec:
+  host: reviews
+  trafficPolicy:
+    # Load balancing
+    loadBalancer:
+      simple: LEAST_REQUEST  # ROUND_ROBIN, RANDOM, LEAST_REQUEST, PASSTHROUGH
+
+    # Connection pool settings
+    connectionPool:
+      tcp:
+        maxConnections: 100
+        connectTimeout: 5s
+      http:
+        h2UpgradePolicy: DEFAULT
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 1000
+        maxRequestsPerConnection: 10
+        maxRetries: 3
+
+    # Circuit breaker (outlier detection)
+    outlierDetection:
+      consecutive5xxErrors: 5       # Trip after 5 consecutive 5xx
+      interval: 10s                 # Check every 10s
+      baseEjectionTime: 30s         # Eject for 30s minimum
+      maxEjectionPercent: 50        # Max 50% of hosts ejected
+      minHealthPercent: 50          # Require 50% healthy hosts
+
+  # Subsets (versions) - referenced by VirtualService
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2
+    labels:
+      version: v2
+    trafficPolicy:
+      loadBalancer:
+        simple: ROUND_ROBIN
+  - name: v3
+    labels:
+      version: v3
+    trafficPolicy:
+      connectionPool:
+        http:
+          h2UpgradePolicy: UPGRADE  # Force HTTP/2 for v3
+            </pre>
+        </div>
+
+        <h3>Gateway</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">gateway.yaml</span>
+                <span class="tag tag-orange">Istio</span>
+            </div>
+            <pre>
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: app-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway  # Use Istio's ingress gateway pods
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE  # SIMPLE (one-way TLS), MUTUAL (mTLS), PASSTHROUGH
+      credentialName: app-tls-secret  # K8s secret with cert
+    hosts:
+    - "app.example.com"
+    - "api.example.com"
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "app.example.com"
+    tls:
+      httpsRedirect: true  # Redirect HTTP to HTTPS
+---
+# VirtualService bound to Gateway
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: app-vs
+  namespace: production
+spec:
+  hosts:
+  - "app.example.com"
+  gateways:
+  - istio-system/app-gateway  # Reference the gateway
+  http:
+  - match:
+    - uri:
+        prefix: /api
+    route:
+    - destination:
+        host: api-service
+        port:
+          number: 8080
+  - route:
+    - destination:
+        host: web-frontend
+        port:
+          number: 80
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 4. Istio Security -->
+        <!-- ============================================ -->
+        <h2>4. Istio Security</h2>
+
+        <h3>PeerAuthentication (mTLS)</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">peer-authentication.yaml</span>
+                <span class="tag tag-red">Security</span>
+            </div>
+            <pre>
+# Mesh-wide STRICT mTLS (all services must use mTLS)
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: istio-system  # Mesh-wide when in istio-system
+spec:
+  mtls:
+    mode: STRICT  # STRICT, PERMISSIVE, DISABLE
+---
+# Namespace-level override (allow legacy services)
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: legacy-ns-policy
+  namespace: legacy-services
+spec:
+  mtls:
+    mode: PERMISSIVE  # Accept both mTLS and plaintext
+---
+# Workload-level: specific port exemption
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: metrics-port-exception
+  namespace: production
+spec:
+  selector:
+    matchLabels:
+      app: my-service
+  mtls:
+    mode: STRICT
+  portLevelMtls:
+    9090:  # Prometheus scrape port
+      mode: PERMISSIVE  # Allow plain HTTP for metrics scraping
+            </pre>
+        </div>
+
+        <h3>AuthorizationPolicy</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">authorization-policy.yaml</span>
+                <span class="tag tag-purple">Security</span>
+            </div>
+            <pre>
+# Deny all traffic by default (zero-trust)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all
+  namespace: production
+spec:
+  {}  # Empty spec = deny all
+---
+# Allow specific service-to-service communication
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-frontend-to-api
+  namespace: production
+spec:
+  selector:
+    matchLabels:
+      app: api-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - "cluster.local/ns/production/sa/frontend-sa"
+        namespaces:
+        - "production"
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+        paths: ["/api/v1/*"]
+    when:
+    - key: request.headers[x-request-id]
+      notValues: [""]
+---
+# Deny traffic from outside namespace
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-external
+  namespace: production
+spec:
+  selector:
+    matchLabels:
+      app: internal-service
+  action: DENY
+  rules:
+  - from:
+    - source:
+        notNamespaces: ["production"]
+            </pre>
+        </div>
+
+        <h3>RequestAuthentication (JWT)</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">request-authentication-jwt.yaml</span>
+                <span class="tag tag-blue">Security</span>
+            </div>
+            <pre>
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: jwt-auth
+  namespace: production
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  jwtRules:
+  - issuer: "https://auth.example.com"
+    jwksUri: "https://auth.example.com/.well-known/jwks.json"
+    audiences:
+    - "api.example.com"
+    forwardOriginalToken: true
+    outputPayloadToHeader: "x-jwt-payload"
+---
+# Require valid JWT for specific paths
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: require-jwt
+  namespace: production
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  action: DENY
+  rules:
+  - from:
+    - source:
+        notRequestPrincipals: ["*"]  # Deny if no valid JWT
+    to:
+    - operation:
+        paths: ["/api/*"]
+        notPaths: ["/api/health", "/api/public/*"]
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 5. Istio Observability -->
+        <!-- ============================================ -->
+        <h2>5. Istio Observability</h2>
+
+        <div class="card card-info">
+            <h4>Automatic Telemetry (Zero Code Changes)</h4>
+            <p>Envoy sidecars automatically generate metrics, traces, and access logs for all traffic. No instrumentation libraries needed in your application code.</p>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Automatic Metrics</h4>
+                <ul>
+                    <li><strong>Request count:</strong> <code>istio_requests_total</code> (by source, dest, response code)</li>
+                    <li><strong>Request duration:</strong> <code>istio_request_duration_milliseconds</code></li>
+                    <li><strong>Request size:</strong> <code>istio_request_bytes</code></li>
+                    <li><strong>Response size:</strong> <code>istio_response_bytes</code></li>
+                    <li><strong>TCP connections:</strong> <code>istio_tcp_connections_opened_total</code></li>
+                    <li><strong>Golden signals</strong> (latency, traffic, errors, saturation) out of the box</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Observability Tools</h4>
+                <ul>
+                    <li><strong>Kiali:</strong> Service mesh topology visualization, traffic flow, health status, configuration validation</li>
+                    <li><strong>Jaeger/Zipkin:</strong> Distributed tracing - see request path across services, identify latency bottlenecks</li>
+                    <li><strong>Grafana:</strong> Dashboards for mesh metrics (pre-built Istio dashboards)</li>
+                    <li><strong>Prometheus:</strong> Scrapes Envoy metrics, powers alerting</li>
+                    <li><strong>Access Logs:</strong> Configurable Envoy access logs (JSON format for parsing)</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>Enabling Telemetry</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">telemetry.yaml</span>
+                <span class="tag tag-green">Observability</span>
+            </div>
+            <pre>
+# Enable access logging mesh-wide
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: mesh-logging
+  namespace: istio-system
+spec:
+  accessLogging:
+  - providers:
+    - name: envoy
+    filter:
+      expression: "response.code >= 400"  # Only log errors
+
+---
+# Enable tracing with sampling
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: mesh-tracing
+  namespace: istio-system
+spec:
+  tracing:
+  - providers:
+    - name: jaeger
+    randomSamplingPercentage: 10.0  # Sample 10% of traces
+    customTags:
+      environment:
+        literal:
+          value: "production"
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 6. Traffic Splitting (Canary) -->
+        <!-- ============================================ -->
+        <h2>6. Traffic Splitting & Canary Deployments</h2>
+
+        <h3>Weight-Based Canary</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">canary-traffic-split.yaml</span>
+                <span class="tag tag-orange">Canary</span>
+            </div>
+            <pre>
+# Step 1: Deploy v2 alongside v1
+# (Both Deployments exist with different version labels)
+
+# Step 2: Start canary at 5%
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: my-app
+  namespace: production
+spec:
+  hosts:
+  - my-app
+  http:
+  - route:
+    - destination:
+        host: my-app
+        subset: v1
+      weight: 95
+    - destination:
+        host: my-app
+        subset: v2
+      weight: 5  # 5% canary
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: my-app
+  namespace: production
+spec:
+  host: my-app
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2
+    labels:
+      version: v2
+
+# Step 3: Gradually increase (5% -> 25% -> 50% -> 100%)
+# Monitor error rate and latency at each step
+# Rollback: set v1 weight to 100, v2 to 0
+            </pre>
+        </div>
+
+        <h3>Header-Based Routing (Internal Testing)</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">header-based-routing.yaml</span>
+                <span class="tag tag-purple">Routing</span>
+            </div>
+            <pre>
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: my-app
+  namespace: production
+spec:
+  hosts:
+  - my-app
+  http:
+  # Route internal testers to v2
+  - match:
+    - headers:
+        x-canary-version:
+          exact: "v2"
+    - headers:
+        cookie:
+          regex: ".*canary=true.*"
+    route:
+    - destination:
+        host: my-app
+        subset: v2
+
+  # Route by user identity (e.g., beta users)
+  - match:
+    - headers:
+        x-user-group:
+          exact: "beta"
+    route:
+    - destination:
+        host: my-app
+        subset: v2
+
+  # All other traffic to v1 (stable)
+  - route:
+    - destination:
+        host: my-app
+        subset: v1
+            </pre>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">Canary Deployment Progress</div>
+            <pre>
+  Time    v1 Weight    v2 Weight    Action
+  -----   ---------    ---------    ------
+  T+0     100%         0%           Deploy v2 pods (no traffic)
+  T+5m    95%          5%           Initial canary (watch metrics)
+  T+30m   75%          25%          Increase if error rate OK
+  T+1h    50%          50%          Half traffic (validate perf)
+  T+2h    25%          75%          Almost full rollout
+  T+3h    0%           100%         Complete rollout
+  T+24h   -            -            Remove v1 Deployment
+
+  ROLLBACK at any step: set v1=100%, v2=0%
+  Decision criteria:
+  - Error rate (5xx) increase > 0.1% --> ROLLBACK
+  - P99 latency increase > 20% --> ROLLBACK
+  - Key business metric degradation --> ROLLBACK
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 7. Linkerd -->
+        <!-- ============================================ -->
+        <h2>7. Linkerd</h2>
+
+        <h3>Istio vs Linkerd Comparison</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th>Istio</th>
+                    <th>Linkerd</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Proxy</strong></td>
+                    <td>Envoy (C++, feature-rich)</td>
+                    <td>linkerd2-proxy (Rust, ultra-lightweight)</td>
+                </tr>
+                <tr>
+                    <td><strong>Resource Usage</strong></td>
+                    <td>Higher (~50-100MB per sidecar)</td>
+                    <td>Lower (~20-30MB per sidecar, ~1ms p99 latency)</td>
+                </tr>
+                <tr>
+                    <td><strong>Complexity</strong></td>
+                    <td>Complex (many CRDs, extensive config)</td>
+                    <td>Simple (minimal config, sane defaults)</td>
+                </tr>
+                <tr>
+                    <td><strong>mTLS</strong></td>
+                    <td>Yes (configurable STRICT/PERMISSIVE)</td>
+                    <td>Yes (on by default, automatic)</td>
+                </tr>
+                <tr>
+                    <td><strong>Traffic Splitting</strong></td>
+                    <td>VirtualService + DestinationRule</td>
+                    <td>TrafficSplit (SMI spec) or HTTPRoute</td>
+                </tr>
+                <tr>
+                    <td><strong>Protocol Support</strong></td>
+                    <td>HTTP, gRPC, TCP, WebSocket, MongoDB, etc.</td>
+                    <td>HTTP, gRPC, TCP (fewer L7 protocols)</td>
+                </tr>
+                <tr>
+                    <td><strong>Multi-cluster</strong></td>
+                    <td>Yes (complex setup)</td>
+                    <td>Yes (simpler model)</td>
+                </tr>
+                <tr>
+                    <td><strong>Extensibility</strong></td>
+                    <td>Wasm plugins, EnvoyFilter</td>
+                    <td>Policy extensions (limited)</td>
+                </tr>
+                <tr>
+                    <td><strong>CNCF Status</strong></td>
+                    <td>Graduated</td>
+                    <td>Graduated</td>
+                </tr>
+                <tr>
+                    <td><strong>Best For</strong></td>
+                    <td>Complex routing, multi-protocol, extensibility</td>
+                    <td>Simplicity, low overhead, quick adoption</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Linkerd Installation and Traffic Split</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">Linkerd Commands</span>
+                <span class="tag tag-blue">Linkerd</span>
+            </div>
+            <pre>
+# Install Linkerd CLI
+curl -sL run.linkerd.io/install | sh
+
+# Pre-check cluster
+linkerd check --pre
+
+# Install Linkerd control plane
+linkerd install --crds | kubectl apply -f -
+linkerd install | kubectl apply -f -
+
+# Verify installation
+linkerd check
+
+# Inject sidecar into namespace
+kubectl annotate namespace production linkerd.io/inject=enabled
+
+# Or inject specific deployment
+kubectl get deploy my-app -o yaml | linkerd inject - | kubectl apply -f -
+
+# Dashboard
+linkerd viz install | kubectl apply -f -
+linkerd viz dashboard
+            </pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="filename">linkerd-traffic-split.yaml</span>
+                <span class="tag tag-green">Linkerd</span>
+            </div>
+            <pre>
+# Traffic split using SMI spec (works with Linkerd)
+apiVersion: split.smi-spec.io/v1alpha4
+kind: TrafficSplit
+metadata:
+  name: my-app-canary
+  namespace: production
+spec:
+  service: my-app          # Root service (what clients call)
+  backends:
+  - service: my-app-v1    # Stable version
+    weight: 900            # 90%
+  - service: my-app-v2    # Canary version
+    weight: 100            # 10%
+---
+# HTTPRoute-based (newer approach with Gateway API)
+apiVersion: policy.linkerd.io/v1beta3
+kind: HTTPRoute
+metadata:
+  name: my-app-route
+  namespace: production
+spec:
+  parentRefs:
+  - name: my-app
+    kind: Service
+    group: core
+    port: 8080
+  rules:
+  - backendRefs:
+    - name: my-app-v1
+      port: 8080
+      weight: 90
+    - name: my-app-v2
+      port: 8080
+      weight: 10
+            </pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 8. When to Use a Service Mesh -->
+        <!-- ============================================ -->
+        <h2>8. When to Use a Service Mesh</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Criteria</th>
+                    <th>Service Mesh Recommended</th>
+                    <th>Probably Overkill</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Number of Services</strong></td>
+                    <td>10+ microservices with complex communication</td>
+                    <td>Fewer than 5 services (monolith or simple arch)</td>
+                </tr>
+                <tr>
+                    <td><strong>Team Size</strong></td>
+                    <td>Multiple teams owning different services</td>
+                    <td>Single team managing everything</td>
+                </tr>
+                <tr>
+                    <td><strong>Security Requirements</strong></td>
+                    <td>Zero-trust, compliance (PCI, HIPAA), audit needs</td>
+                    <td>Internal-only services with trusted network</td>
+                </tr>
+                <tr>
+                    <td><strong>Traffic Management</strong></td>
+                    <td>Canary releases, A/B testing, traffic mirroring</td>
+                    <td>Simple deployments, no advanced routing needed</td>
+                </tr>
+                <tr>
+                    <td><strong>Observability</strong></td>
+                    <td>Need consistent metrics/tracing across all services</td>
+                    <td>Already have good instrumentation in code</td>
+                </tr>
+                <tr>
+                    <td><strong>Language Diversity</strong></td>
+                    <td>Polyglot environment (Go, Java, Python, Node)</td>
+                    <td>Single language with good libraries</td>
+                </tr>
+                <tr>
+                    <td><strong>Operational Maturity</strong></td>
+                    <td>Team experienced with K8s, ready for complexity</td>
+                    <td>Still learning Kubernetes basics</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="card card-warning">
+            <h4>When NOT to Use a Service Mesh</h4>
+            <ul>
+                <li>You have fewer than 5-10 services (overhead not justified)</li>
+                <li>Team is still learning Kubernetes fundamentals (adds complexity)</li>
+                <li>Low-latency requirements where sidecar overhead (~1-3ms) is unacceptable</li>
+                <li>Simple architecture with one team and one language (library-based approach works)</li>
+                <li>You don't need mTLS, advanced routing, or mesh-level observability</li>
+                <li>Resource-constrained clusters (sidecars add memory/CPU per pod)</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 9. Service Mesh vs Ingress vs API Gateway -->
+        <!-- ============================================ -->
+        <h2>9. Service Mesh vs Ingress vs API Gateway</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th>Ingress Controller</th>
+                    <th>API Gateway</th>
+                    <th>Service Mesh</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Scope</strong></td>
+                    <td>North-South (external to cluster)</td>
+                    <td>North-South (external to services)</td>
+                    <td>East-West (service-to-service) + North-South</td>
+                </tr>
+                <tr>
+                    <td><strong>Position</strong></td>
+                    <td>Edge of cluster</td>
+                    <td>Edge of platform/API surface</td>
+                    <td>Between every service pair</td>
+                </tr>
+                <tr>
+                    <td><strong>TLS</strong></td>
+                    <td>Terminates at edge</td>
+                    <td>Terminates at edge</td>
+                    <td>mTLS between all services</td>
+                </tr>
+                <tr>
+                    <td><strong>Routing</strong></td>
+                    <td>Host/path based routing</td>
+                    <td>Advanced routing, transformation</td>
+                    <td>L7 routing, traffic splitting, mirroring</td>
+                </tr>
+                <tr>
+                    <td><strong>Auth</strong></td>
+                    <td>Basic (cert, OAuth via annotation)</td>
+                    <td>API keys, OAuth, JWT, rate limiting</td>
+                    <td>mTLS identity, JWT, RBAC between services</td>
+                </tr>
+                <tr>
+                    <td><strong>Observability</strong></td>
+                    <td>Access logs, basic metrics</td>
+                    <td>API analytics, developer portal</td>
+                    <td>Full distributed tracing, golden signals</td>
+                </tr>
+                <tr>
+                    <td><strong>Circuit Breaking</strong></td>
+                    <td>Limited</td>
+                    <td>Yes (per API)</td>
+                    <td>Yes (between all services)</td>
+                </tr>
+                <tr>
+                    <td><strong>Examples</strong></td>
+                    <td>Nginx Ingress, Traefik, HAProxy</td>
+                    <td>Kong, Apigee, AWS API Gateway</td>
+                    <td>Istio, Linkerd, Consul Connect</td>
+                </tr>
+                <tr>
+                    <td><strong>Best For</strong></td>
+                    <td>Simple external access to services</td>
+                    <td>API management, developer experience</td>
+                    <td>Microservice networking, security, observability</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="card">
+            <h4>They Complement Each Other</h4>
+            <p>In a production architecture, you often use <strong>all three together</strong>:</p>
+            <ul>
+                <li><strong>API Gateway</strong> at the edge: authentication, rate limiting, API versioning for external consumers</li>
+                <li><strong>Ingress Controller</strong> (or Istio Gateway): route external traffic into the cluster</li>
+                <li><strong>Service Mesh</strong> internally: secure and observe all service-to-service communication</li>
+            </ul>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 10. Interview Q&A -->
+        <!-- ============================================ -->
+        <h2>10. Interview Q&A</h2>
+
+        <div class="qa">
+            <div class="q">Q1: What is a service mesh and what problems does it solve?</div>
+            <div class="a">A service mesh is a <strong>dedicated infrastructure layer</strong> for handling service-to-service communication. It deploys a sidecar proxy (like Envoy) alongside each service, intercepting all network traffic. It solves: (1) <strong>Observability:</strong> automatic metrics, distributed tracing, access logs without code changes. (2) <strong>Security:</strong> automatic mTLS encryption, identity-based auth between services. (3) <strong>Traffic Management:</strong> retries, timeouts, circuit breaking, canary deployments, traffic mirroring. (4) <strong>Reliability:</strong> consistent retry/timeout behavior across all services regardless of language. The key value: these cross-cutting concerns are moved from application code to infrastructure, applied consistently, and managed centrally.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q2: Compare Istio and Linkerd. When would you choose one over the other?</div>
+            <div class="a"><strong>Istio:</strong> Uses Envoy proxy (C++), very feature-rich (Wasm extensions, multiple protocols, complex routing rules). Higher resource usage (~50-100MB per sidecar). Many CRDs and configuration options. <strong>Linkerd:</strong> Uses linkerd2-proxy (Rust), ultra-lightweight (~20MB, ~1ms p99 latency overhead). Simpler to operate with sane defaults. Less extensible but covers 90% of use cases. <strong>Choose Istio when:</strong> you need complex routing, Wasm extensibility, multi-protocol support (MongoDB, Redis), or your team has Envoy expertise. <strong>Choose Linkerd when:</strong> you want simplicity, minimal overhead, quick time-to-value, or your team is smaller and wants less operational burden. Both are CNCF graduated projects.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q3: How does mTLS work in a service mesh? How are certificates managed?</div>
+            <div class="a">In a service mesh, mTLS is <strong>automatic and transparent</strong> to applications. The control plane (Istiod/Linkerd identity) acts as a Certificate Authority. Each sidecar proxy gets a short-lived certificate (SPIFFE identity: <code>spiffe://cluster/ns/namespace/sa/service-account</code>). When Service A calls Service B: (1) A's sidecar initiates mTLS to B's sidecar, (2) both present their certificates, (3) both verify the other's cert was signed by the mesh CA, (4) encrypted tunnel established. The application sends plain HTTP to localhost; the sidecar handles all TLS. Certificates are automatically rotated (typically 24h in Istio). No manual cert management, no expiry incidents.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q4: How would you implement a canary deployment using a service mesh?</div>
+            <div class="a">With Istio: (1) Deploy v2 alongside v1 (separate Deployment with version label). (2) Create a DestinationRule defining subsets (v1, v2 based on labels). (3) Create a VirtualService with weight-based routing: start at 95/5 (v1/v2). (4) Monitor error rates and latency for v2 traffic using mesh metrics (istio_requests_total with destination_version label). (5) Gradually shift traffic: 90/10, 75/25, 50/50, 0/100. (6) If errors spike, rollback by setting v1=100, v2=0. <strong>Advanced:</strong> Use header-based routing to test v2 with internal team first (match header x-canary: true). Use traffic mirroring to send shadow traffic to v2 without affecting users. Automate with Flagger or Argo Rollouts for progressive delivery.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q5: How does sidecar injection work in Istio?</div>
+            <div class="a">Istio uses a <strong>MutatingAdmissionWebhook</strong> to automatically inject sidecars. When a pod is created: (1) The API server sends the pod spec to Istio's webhook. (2) If the namespace has label <code>istio-injection=enabled</code> (or pod has annotation <code>sidecar.istio.io/inject=true</code>), (3) The webhook mutates the pod spec to add: an init container (istio-init) that sets up iptables rules to intercept traffic, and the Envoy sidecar container (istio-proxy). (4) The iptables rules redirect all inbound/outbound traffic through the sidecar on port 15001/15006. The application is unaware - it sends traffic to original destinations but iptables redirects it through Envoy. You can exclude specific ports/IPs with annotations.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q6: When would you NOT use a service mesh?</div>
+            <div class="a">Avoid a service mesh when: (1) <strong>Few services (&lt;5-10):</strong> Overhead of running/maintaining the mesh isn't justified. Use library-based approaches instead. (2) <strong>Early K8s adoption:</strong> Adding a mesh before mastering K8s basics compounds complexity. (3) <strong>Ultra-low latency requirements:</strong> The sidecar adds 1-5ms per hop. For high-frequency trading or real-time systems, this matters. (4) <strong>Resource-constrained:</strong> Each sidecar uses 50-100MB RAM (Istio). For 100 pods, that's 5-10GB extra. (5) <strong>Simple communication patterns:</strong> If services just do synchronous REST calls with no need for traffic splitting, circuit breaking, or mTLS, a mesh is overkill. (6) <strong>Single language/framework:</strong> If all services use the same language, library-based solutions (like gRPC interceptors) may suffice.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q7: What is the difference between a service mesh, an ingress controller, and an API gateway?</div>
+            <div class="a"><strong>Ingress Controller</strong> (Nginx, Traefik): Handles North-South traffic at cluster edge. Simple host/path routing, TLS termination. One point of entry. <strong>API Gateway</strong> (Kong, Apigee): Also North-South but with API management features: rate limiting, API keys, developer portal, request transformation, analytics. Aimed at API consumers. <strong>Service Mesh</strong> (Istio, Linkerd): Primarily East-West (service-to-service) traffic. mTLS everywhere, distributed tracing, fine-grained traffic control between all services. In practice, they're complementary: API Gateway for external API management, Ingress for routing into the cluster, Service Mesh for internal communication security and observability. Istio Gateway can also serve as an ingress controller.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q8: How do you troubleshoot connectivity issues in a service mesh?</div>
+            <div class="a"><strong>Systematic approach:</strong> (1) Check if sidecar is injected: <code>kubectl get pod -o jsonpath='{.spec.containers[*].name}'</code> - should see istio-proxy. (2) Check proxy status: <code>istioctl proxy-status</code> - are all proxies synced? Look for "STALE" or "NOT SENT". (3) Check proxy config: <code>istioctl proxy-config routes &lt;pod&gt;</code> - verify routes exist for the target service. (4) Check mTLS: <code>istioctl authn tls-check &lt;pod&gt; &lt;service&gt;</code> - confirm both sides agree on mTLS mode. (5) Check AuthorizationPolicy: Is there a deny-all without matching allow? (6) Check Envoy logs: <code>kubectl logs &lt;pod&gt; -c istio-proxy</code> - look for "403 RBAC: access denied" or connection errors. (7) Analyze with Kiali: visualize traffic flow, see which connections are failing. (8) Check DestinationRule: wrong subset labels can cause "no healthy upstream".</div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 11. Scenarios -->
+        <!-- ============================================ -->
+        <h2>11. Scenarios</h2>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">1.</span>
+                <span class="title">Sidecar Not Being Injected</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> New pods in a namespace don't have the istio-proxy container. Service mesh features not working.</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span>Check namespace label: <code>kubectl get namespace production --show-labels</code> - must have <code>istio-injection=enabled</code></span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span>Check if pod has opt-out annotation: <code>sidecar.istio.io/inject: "false"</code> on pod or deployment template</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span>Check webhook: <code>kubectl get mutatingwebhookconfigurations</code> - istio-sidecar-injector should exist</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">4.</span>
+                    <span>Check istiod is running: <code>kubectl get pods -n istio-system -l app=istiod</code> - webhook calls istiod for injection</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">5.</span>
+                    <span>Check if pod was created before label was added: Existing pods are NOT retroactively injected. Must restart: <code>kubectl rollout restart deployment/my-app -n production</code></span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">6.</span>
+                    <span>Check for host network: Pods with <code>hostNetwork: true</code> skip injection. Init containers and Jobs may also be excluded by default</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">7.</span>
+                    <span>Manual injection test: <code>kubectl get deploy my-app -o yaml | istioctl kube-inject -f - | kubectl apply -f -</code></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">2.</span>
+                <span class="title">mTLS Breaking Legacy Service Communication</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> After enabling STRICT mTLS mesh-wide, a legacy service (no sidecar) cannot communicate with mesh services. Getting "connection reset" errors.</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span>Confirm the issue: Legacy service has no sidecar, cannot present a client certificate when calling a STRICT mTLS service</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span>Check current mTLS mode: <code>istioctl authn tls-check &lt;legacy-pod&gt; &lt;target-service&gt;</code></span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span>Immediate fix: Set PERMISSIVE mode for the target service (accepts both mTLS and plaintext)</span>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="filename">permissive-for-legacy.yaml</span>
+                        <span class="tag tag-blue">Fix</span>
+                    </div>
+                    <pre>
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: allow-legacy-clients
+  namespace: target-namespace
+spec:
+  selector:
+    matchLabels:
+      app: target-service
+  mtls:
+    mode: PERMISSIVE
+                    </pre>
+                </div>
+
+                <div class="scenario-step">
+                    <span class="step-num">4.</span>
+                    <span>Better solution: Add the legacy service to the mesh (inject sidecar). If not possible (e.g., VM, external service), use a mesh gateway as an intermediary</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">5.</span>
+                    <span>For mesh services calling OUT to legacy: Create a DestinationRule disabling mTLS for that destination</span>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="filename">disable-mtls-to-legacy.yaml</span>
+                        <span class="tag tag-orange">DestinationRule</span>
+                    </div>
+                    <pre>
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: legacy-service-dr
+  namespace: production
+spec:
+  host: legacy-service.legacy-ns.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: DISABLE  # Don't use mTLS when calling this service
+                    </pre>
+                </div>
+
+                <div class="scenario-step">
+                    <span class="step-num">6.</span>
+                    <span>Migration plan: Keep PERMISSIVE during migration, track plaintext connections in Kiali, switch to STRICT only after all services are in the mesh</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="icon">3.</span>
+                <span class="title">Traffic Split for Gradual Rollout</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Requirement:</strong> Roll out v2 of payment service gradually. Zero downtime. Automatic rollback if error rate exceeds threshold.</p>
+
+                <div class="scenario-step">
+                    <span class="step-num">1.</span>
+                    <span>Deploy v2 alongside v1 (separate Deployment, same Service selector but with version label)</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">2.</span>
+                    <span>Create DestinationRule with subsets for v1 and v2</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">3.</span>
+                    <span>Start with header-based routing: send internal team traffic to v2 via <code>x-canary: true</code> header. Validate functionality</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">4.</span>
+                    <span>Begin weight-based split: 95% v1, 5% v2. Monitor for 30 minutes</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">5.</span>
+                    <span>Monitor key metrics via Prometheus/Grafana: <code>rate(istio_requests_total{destination_version="v2",response_code=~"5.."}[5m])</code></span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">6.</span>
+                    <span>If error rate OK: progress 5% -> 25% -> 50% -> 100%. Each step: wait, validate, proceed</span>
+                </div>
+                <div class="scenario-step">
+                    <span class="step-num">7.</span>
+                    <span>Automate with Flagger: Define canary analysis (metrics query + threshold), Flagger automatically progresses or rolls back</span>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="filename">flagger-canary.yaml</span>
+                        <span class="tag tag-green">Flagger</span>
+                    </div>
+                    <pre>
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: payment-service
+  namespace: production
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: payment-service
+  service:
+    port: 8080
+  analysis:
+    interval: 1m           # Check every minute
+    threshold: 5           # Max failed checks before rollback
+    maxWeight: 50          # Max canary weight
+    stepWeight: 10         # Increase by 10% each step
+    metrics:
+    - name: request-success-rate
+      thresholdRange:
+        min: 99            # Must maintain 99% success
+      interval: 1m
+    - name: request-duration
+      thresholdRange:
+        max: 500           # P99 must stay under 500ms
+      interval: 1m
+                    </pre>
+                </div>
+
+                <div class="scenario-step">
+                    <span class="step-num">8.</span>
+                    <span>Rollback: If automated - Flagger detects metric breach and sets v1=100%. If manual: <code>kubectl apply</code> VirtualService with v1 weight=100</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            Service Mesh Reference | Part of the DevOps/SRE Study Guide | 2026
+        </footer>
+
+    </div>
+
+</body>
+</html>
