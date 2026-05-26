@@ -2,7 +2,7 @@
 
 A comprehensive, offline-ready reference site covering everything a DevOps/SRE engineer needs — from Docker and Kubernetes to AWS, Terraform, CI/CD, and interview preparation.
 
-**[Open the Handbook](index.html)** (open `index.html` in your browser)
+**[Open the Handbook](https://saurabh111121.github.io/devops-handbook/)**
 
 ---
 
