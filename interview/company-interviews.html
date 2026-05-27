@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Interviews - DevOps Handbook</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+        </div>
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+        </div>
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html">K8s Advanced</a>
+        </div>
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+        </div>
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+        </div>
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+        </div>
+        <div class="nav-item">
+            <a href="../interview/index.html" class="active">Interview</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <nav class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; <a href="index.html">Interview</a> &gt; <span>Company Interviews</span>
+        </nav>
+
+        <h1>Company-Specific Interview Prep</h1>
+        <p class="subtitle">Targeted preparation for specific companies — process, expectations, technical topics, and scenarios.</p>
+
+        <!-- ============================================================ -->
+        <!-- KONG INC -->
+        <!-- ============================================================ -->
+
+        <h2 id="kong">Kong Inc — Senior Technical Support Engineer</h2>
+
+        <div class="card card-info">
+            <strong>Role:</strong> Senior TSE, supporting Kong customers with complex production/pre-production issues.<br>
+            <strong>Location:</strong> Bangalore, India<br>
+            <strong>Shift:</strong> 4 PM – 1 AM IST (EST coverage)<br>
+            <strong>Company Values (COURAGE):</strong> Customer Champions, Owners, Unstoppable, Real, Accelerators, Global, Explorers
+        </div>
+
+        <!-- Interview Process -->
+        <h3>Interview Process (5-6 Rounds)</h3>
+        <div class="card">
+            <div class="point">
+                <div class="point-num">1</div>
+                <div class="point-content">
+                    <span class="point-title">Recruiter Screen</span> — Culture fit, salary expectations, role overview
+                </div>
+            </div>
+            <div class="point">
+                <div class="point-num">2</div>
+                <div class="point-content">
+                    <span class="point-title">Hiring Manager Screen</span> — Experience deep-dive, troubleshooting approach, motivation
+                </div>
+            </div>
+            <div class="point">
+                <div class="point-num">3</div>
+                <div class="point-content">
+                    <span class="point-title">Take-Home Assignment</span> — Technical project (deploy/troubleshoot Kong Gateway)
+                </div>
+            </div>
+            <div class="point">
+                <div class="point-num">4</div>
+                <div class="point-content">
+                    <span class="point-title">Technical Screen</span> — Based on assignment + experience deep-dive
+                </div>
+            </div>
+            <div class="point">
+                <div class="point-num">5</div>
+                <div class="point-content">
+                    <span class="point-title">Panel Interviews (2-3 rounds)</span> — Team members + Head of Engineering
+                </div>
+            </div>
+        </div>
+        <p><strong>Difficulty:</strong> Moderate. <strong>Timeline:</strong> 2-4 weeks typically.</p>
+
+        <!-- Assignment -->
+        <h3>Take-Home Assignment (Expected Format)</h3>
+        <div class="card">
+            <p>Kong gives a take-home project. Most likely scenarios:</p>
+            <ul>
+                <li>Deploy and troubleshoot a broken Kong Gateway setup (Docker Compose / K8s)</li>
+                <li>Configure routes, services, plugins from scratch (auth, rate limiting, load balancing)</li>
+                <li>Debug a misconfigured environment or custom plugin</li>
+                <li>Reproduce and resolve customer-like scenarios (502s, auth failures, rate limiting issues)</li>
+            </ul>
+            <p>The subsequent technical screen probes deeper into the assignment decisions.</p>
+        </div>
+
+        <!-- Kong Architecture -->
+        <h3>Kong Architecture</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Kong Gateway Stack</div>
+<pre>
+  Client Request
+       │
+       ▼
+ ┌─────────────────────────────────────────────┐
+ │              KONG GATEWAY                    │
+ │                                             │
+ │   NGINX → OpenResty → LuaJIT → Lua Plugins │
+ │                                (also Go/    │
+ │                                 Python/JS   │
+ │                                 via PDK)    │
+ └──────────────────┬──────────────────────────┘
+                    │
+                    ▼
+ ┌──────────────────────────────┐
+ │         Upstream Service     │
+ └──────────────────────────────┘
+
+ Core Entities:
+ Route → Service → Upstream → Target
+            + Consumer + Plugin
+</pre>
+        </div>
+
+        <h4>Deployment Modes</h4>
+        <table>
+            <tr><th>Mode</th><th>Database</th><th>Use Case</th><th>Admin API</th></tr>
+            <tr><td><strong>Traditional</strong></td><td>PostgreSQL</td><td>All-in-one, simple</td><td>Full read/write</td></tr>
+            <tr><td><strong>Hybrid</strong></td><td>CP with DB + stateless DP</td><td>Production (recommended)</td><td>CP only</td></tr>
+            <tr><td><strong>DB-less</strong></td><td>None (declarative YAML)</td><td>CI/CD, GitOps</td><td>Read-only</td></tr>
+        </table>
+
+        <h4>Hybrid Mode Key Points</h4>
+        <div class="card">
+            <ul>
+                <li>DP survives CP outage (cached config in LMDB)</li>
+                <li>mTLS communication on port 8005</li>
+                <li>Same major version required; DP minor &lt;= CP minor</li>
+                <li>OAuth2 and cluster-strategy rate limiting <strong>NOT supported</strong></li>
+                <li>Incremental sync in v3.10+</li>
+            </ul>
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">Hybrid Mode Architecture</div>
+<pre>
+                    ┌─────────────────────┐
+                    │    Control Plane     │
+                    │  (PostgreSQL + API)  │
+                    └──────────┬──────────┘
+                               │ mTLS :8005
+              ┌────────────────┼────────────────┐
+              │                │                │
+              ▼                ▼                ▼
+ ┌────────────────┐ ┌────────────────┐ ┌────────────────┐
+ │   Data Plane   │ │   Data Plane   │ │   Data Plane   │
+ │  (stateless)   │ │  (stateless)   │ │  (stateless)   │
+ │  LMDB cache    │ │  LMDB cache    │ │  LMDB cache    │
+ └────────────────┘ └────────────────┘ └────────────────┘
+        │                   │                   │
+        ▼                   ▼                   ▼
+   [Upstream]          [Upstream]          [Upstream]
+</pre>
+        </div>
+
+        <!-- Plugin Execution Order -->
+        <h3>Plugin Execution Order</h3>
+
+        <h4>Phases</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">Plugin Lifecycle Phases</span></div>
+<pre>
+certificate → rewrite (global only) → access → response OR (header_filter + body_filter) → log
+</pre>
+        </div>
+
+        <h4>Priority (Higher = Executes First)</h4>
+        <table>
+            <tr><th>Plugin</th><th>Priority</th></tr>
+            <tr><td>Pre-function</td><td>1,000,000</td></tr>
+            <tr><td>JWT</td><td>1,450</td></tr>
+            <tr><td>OAuth2</td><td>1,400</td></tr>
+            <tr><td>Key-Auth</td><td>1,250</td></tr>
+            <tr><td>Basic-Auth</td><td>1,100</td></tr>
+            <tr><td>IP Restriction</td><td>990</td></tr>
+            <tr><td>ACL</td><td>950</td></tr>
+            <tr><td>Rate Limiting</td><td>910</td></tr>
+            <tr><td>Request Transformer</td><td>801</td></tr>
+            <tr><td>Proxy Cache</td><td>100</td></tr>
+            <tr><td>HTTP Log</td><td>12</td></tr>
+            <tr><td>Post-function</td><td>-1,000</td></tr>
+        </table>
+
+        <h4>Plugin Scoping Precedence (Highest First)</h4>
+        <div class="card">
+            <ol>
+                <li>Consumer + Route + Service</li>
+                <li>Consumer Group + Service + Route</li>
+                <li>Route + Service</li>
+                <li>Consumer</li>
+                <li>Route</li>
+                <li>Service</li>
+                <li>Global</li>
+            </ol>
+        </div>
+
+        <!-- Technical Questions -->
+        <h3>Top Technical Questions Expected</h3>
+
+        <div class="qa">
+            <div class="q">1. Explain hybrid mode architecture and benefits</div>
+            <div class="a">Hybrid mode separates the Control Plane (CP) from Data Planes (DPs). CP handles config/admin with PostgreSQL, DPs are stateless and proxy traffic. Benefits: DPs survive CP outages (LMDB cache), horizontal DP scaling, security isolation (Admin API not exposed on DP), easier upgrades. Communication via mTLS on port 8005.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">2. Customer reports intermittent 502s — investigation walkthrough</div>
+            <div class="a"><strong>Gather:</strong> When did it start? Specific routes or all? Any recent changes? Frequency?<br>
+            <strong>Isolate:</strong> Check Kong error logs, upstream health (<code>curl localhost:8001/upstreams/&lt;name&gt;/health</code>), check if all targets are healthy.<br>
+            <strong>Diagnose:</strong> 502 means upstream returned error or connection failed. Check: upstream down, SSL mismatch to upstream, plugin error in response phase, buffer too small for headers, DNS resolution failures.<br>
+            <strong>Verify:</strong> <code>X-Kong-Upstream-Latency</code> header, <code>curl -v</code> directly to upstream bypassing Kong.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">3. Rate limiting not working across nodes</div>
+            <div class="a"><strong>Root cause:</strong> Using <code>local</code> strategy — each node counts independently.<br>
+            <strong>Fix:</strong> Switch to <code>redis</code> strategy for shared counters across nodes. Check: Redis connection, <code>config.redis_host</code>, firewall rules. Also verify plugin fires after auth — unauthenticated requests bypass consumer-scoped rate limits.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">4. Plugins that don't work in hybrid/DB-less mode</div>
+            <div class="a"><strong>Hybrid:</strong> OAuth2 (requires DB writes on DP), cluster-strategy rate limiting (needs shared DB state).<br>
+            <strong>DB-less:</strong> Any plugin that requires writes — OAuth2, session (DB store), response-ratelimiting (cluster).</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">5. Active vs passive health checks</div>
+            <div class="a"><strong>Active:</strong> Kong periodically probes targets (configurable interval, path, thresholds). Can both mark targets unhealthy AND re-enable them.<br>
+            <strong>Passive:</strong> Monitors actual traffic responses. Can mark targets unhealthy but <strong>cannot re-enable them</strong> — requires active checks or manual API call to re-enable.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">6. Plugin execution order conflicts</div>
+            <div class="a">Plugins execute by priority (higher number = earlier). If auth plugin (1250) runs before rate limiting (910), unauthenticated requests are rejected before consuming rate limit quota. If you need rate limiting BEFORE auth (to protect from DDoS), use pre-function (1M priority) with custom logic or adjust plugin order via <code>ordering</code> field (Enterprise only).</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">7. CORS preflight handling</div>
+            <div class="a">Enable the CORS plugin. Configure <code>origins</code>, <code>methods</code>, <code>headers</code>, <code>credentials</code>. For preflight (OPTIONS): Kong responds directly without forwarding to upstream. Common issue: wildcard origin (<code>*</code>) doesn't work with <code>credentials: true</code> — must specify exact origin.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">8. WebSocket proxying requirements</div>
+            <div class="a">Kong supports WebSocket natively. Requirements: route must match the upgrade request, <code>Upgrade: websocket</code> and <code>Connection: Upgrade</code> headers must pass through. Increase <code>proxy_read_timeout</code> and <code>proxy_send_timeout</code> for long-lived connections. Protocol must be <code>ws</code> or <code>wss</code> on the service.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">9. gRPC proxying</div>
+            <div class="a">Requires HTTP/2 end-to-end. Set service protocol to <code>grpc</code> or <code>grpcs</code>. Route must have <code>protocols: ["grpc", "grpcs"]</code>. Client connects via HTTP/2 to Kong, Kong forwards gRPC to upstream. Use <code>grpc-gateway</code> plugin to transcode REST to gRPC.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">10. How to troubleshoot a custom Lua plugin</div>
+            <div class="a"><strong>Steps:</strong> Check <code>/usr/local/share/lua/5.1/kong/plugins/&lt;name&gt;/</code> for handler.lua and schema.lua. Enable debug logging (<code>log_level = debug</code>). Use <code>kong.log.inspect()</code> in plugin code. Check error logs for stack traces. Validate schema with <code>kong config parse</code>. Test in DB-less mode with declarative config for faster iteration.</div>
+        </div>
+
+        <!-- Troubleshooting Framework -->
+        <h3>Troubleshooting Framework</h3>
+        <div class="card card-info">
+            <p><strong>Use this structure in EVERY troubleshooting answer:</strong></p>
+            <div class="point">
+                <div class="point-num">1</div>
+                <div class="point-content"><span class="point-title">Gather</span> — What error? When? Intermittent or constant? What changed?</div>
+            </div>
+            <div class="point">
+                <div class="point-num">2</div>
+                <div class="point-content"><span class="point-title">Reproduce</span> — Can you consistently trigger it? Specific users/routes/times?</div>
+            </div>
+            <div class="point">
+                <div class="point-num">3</div>
+                <div class="point-content"><span class="point-title">Isolate</span> — Client → Gateway → Network → Upstream? Disable plugins one by one.</div>
+            </div>
+            <div class="point">
+                <div class="point-num">4</div>
+                <div class="point-content"><span class="point-title">Diagnose</span> — Logs, metrics, tcpdump, curl at each layer.</div>
+            </div>
+            <div class="point">
+                <div class="point-num">5</div>
+                <div class="point-content"><span class="point-title">Resolve</span> — Fix + verify.</div>
+            </div>
+            <div class="point">
+                <div class="point-num">6</div>
+                <div class="point-content"><span class="point-title">Document</span> — Root cause, resolution, prevention (knowledge article).</div>
+            </div>
+        </div>
+
+        <!-- Common Scenarios -->
+        <h3>Common Troubleshooting Scenarios</h3>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">502 Bad Gateway</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Causes:</strong></p>
+                <ul>
+                    <li>Upstream service down or not reachable</li>
+                    <li>SSL/TLS mismatch to upstream (wrong cert, protocol version)</li>
+                    <li>Plugin error in response phase</li>
+                    <li>Connection refused (wrong port, firewall)</li>
+                    <li>Buffer too small for response headers (<code>proxy_buffer_size</code>)</li>
+                </ul>
+                <p><strong>Debug:</strong> <code>curl localhost:8001/upstreams/&lt;name&gt;/health</code>, check error.log, try direct curl to upstream.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">503 Service Unavailable</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Causes:</strong></p>
+                <ul>
+                    <li>All targets unhealthy (health check threshold breached)</li>
+                    <li>DNS resolution failure for upstream</li>
+                    <li>Server overloaded</li>
+                    <li>Circuit breaker tripped (if configured)</li>
+                </ul>
+                <p><strong>Debug:</strong> Check target health status, DNS resolution, upstream resource usage.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">Rate Limiting Issues</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Causes:</strong></p>
+                <ul>
+                    <li>Using <code>local</code> strategy — not shared across nodes</li>
+                    <li>Redis connection failure — plugin fail-opens (allows all traffic)</li>
+                    <li>Wrong identifier — IP behind load balancer (use <code>X-Forwarded-For</code>)</li>
+                    <li>Plugin fires after auth — unauthenticated requests bypass consumer limits</li>
+                </ul>
+                <p><strong>Fix:</strong> Use <code>redis</code> strategy, verify Redis connectivity, check <code>X-RateLimit-*</code> response headers.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">Auth Failures (JWT/Key-Auth)</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Causes:</strong></p>
+                <ul>
+                    <li>Token expired (check <code>exp</code> claim)</li>
+                    <li>Issuer mismatch (<code>iss</code> in token vs plugin config)</li>
+                    <li>Clock skew between client and Kong</li>
+                    <li>JWKS endpoint unreachable</li>
+                    <li><code>config.anonymous</code> misconfigured — allowing unintended access</li>
+                </ul>
+                <p><strong>Debug:</strong> Decode JWT at jwt.io, check clock sync, verify JWKS URL accessible from Kong pod.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">Hybrid Mode Issues</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Causes:</strong></p>
+                <ul>
+                    <li>CP/DP version mismatch (DP minor must be &lt;= CP minor)</li>
+                    <li>mTLS certificate expired</li>
+                    <li>Stale DP config (check <code>curl localhost:8001/clustering/data-planes</code>)</li>
+                    <li>Using unsupported plugins (OAuth2, cluster rate limiting)</li>
+                </ul>
+                <p><strong>Debug:</strong> Check DP logs for connection errors, verify cert expiry with <code>openssl</code>, compare versions.</p>
+            </div>
+        </div>
+
+        <!-- Key Commands -->
+        <h3>Key Commands</h3>
+
+        <div class="code-block">
+            <div class="code-header"><span class="filename">Kong Admin API & Debugging</span></div>
+<pre>
+# Kong health and status
+curl localhost:8001/status
+curl localhost:8001/upstreams/&lt;name&gt;/health
+curl localhost:8001/clustering/data-planes
+
+# Latency breakdown
+curl -w "DNS:%{time_namelookup} TLS:%{time_appconnect} TTFB:%{time_starttransfer} Total:%{time_total}\n" \
+  -o /dev/null -s https://your-api.example.com
+
+# SSL certificate check
+openssl s_client -connect host:443 -servername host
+
+# Response headers to inspect
+# X-Kong-Proxy-Latency    — time spent in Kong (plugins, routing)
+# X-Kong-Upstream-Latency — time upstream took to respond
+# X-RateLimit-Limit-*     — rate limit quotas
+# X-RateLimit-Remaining-* — remaining quota
+</pre>
+        </div>
+
+        <!-- Skills -->
+        <h3>Skills to Demonstrate</h3>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Must-Have</h4>
+                <ul>
+                    <li>REST APIs (design + debugging)</li>
+                    <li>Docker & Kubernetes</li>
+                    <li>Linux networking (curl, dig, tcpdump, ss)</li>
+                    <li>HTTP deep knowledge (headers, status codes, TLS)</li>
+                    <li>Log analysis & structured troubleshooting</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Differentiators</h4>
+                <ul>
+                    <li>Lua (read/understand Kong plugin code)</li>
+                    <li>Go (custom plugins via PDK)</li>
+                    <li>decK CLI (declarative Kong config)</li>
+                    <li>Redis troubleshooting</li>
+                    <li>Prometheus/Grafana (Kong metrics)</li>
+                </ul>
+            </div>
+        </div>
+
+        <hr>
+
+        <p style="color: var(--text-muted); text-align: center; margin-top: 2rem;"><em>More company interviews will be added here as you prepare for them.</em></p>
+
+        <footer>
+            DevOps Handbook | Company Interview Prep | 2026
+        </footer>
+    </div>
+
+</body>
+</html>
