@@ -1,0 +1,2615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Tier Application Deployment Patterns - K8s/DevOps/SRE Reference</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+    <nav class="topnav">
+        <a href="../index.html" class="brand">DevOps Handbook</a>
+
+        <div class="nav-item">
+            <a href="../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../containers/docker.html">Docker, Compose & Images</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../kubernetes-core/networking.html">Networking</a>
+                <a href="../kubernetes-core/storage.html">Storage</a>
+                <a href="../kubernetes-core/scaling.html">Scaling & Scheduling</a>
+                <a href="../kubernetes-core/security.html">Security</a>
+                <a href="../kubernetes-core/observability.html">Observability</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../kubernetes-advanced/index.html" class="active">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../kubernetes-advanced/advanced-topics.html">Strategies, Helm & Operators</a>
+                <a href="../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../kubernetes-advanced/argocd-gitops.html">ArgoCD & GitOps</a>
+                <a href="../kubernetes-advanced/multi-tier-deployment.html">Multi-Tier Deployment</a>
+                <a href="../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../devops/git.html">Git</a>
+                <a href="../devops/cicd.html">CI/CD & Pipelines</a>
+                <a href="../devops/sre.html">SRE Principles</a>
+                <a href="../devops/observability.html">Observability</a>
+                <a href="../devops/terraform.html">Terraform</a>
+                <a href="../devops/ansible.html">Ansible</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../infrastructure/linux-networking.html">Linux & Networking</a>
+                <a href="../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../infrastructure/tls-certificates.html">TLS & Certificates</a>
+                <a href="../infrastructure/databases.html">Databases</a>
+                <a href="../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../infrastructure/cost-finops.html">Cost & FinOps</a>
+                <a href="../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../application/microservices.html">Microservices</a>
+                <a href="../application/api-rest.html">API & REST</a>
+                <a href="../application/scripting.html">Bash & Python</a>
+                <a href="../application/prometheus-grafana.html">Prometheus & Grafana</a>
+                <a href="../application/logging-stacks.html">Logging Stacks</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <a href="../interview/index.html">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../interview/interview-prep.html">Full Interview Prep</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+            <a href="../index.html">Home</a> &rsaquo;
+            <a href="index.html">Kubernetes Advanced</a> &rsaquo;
+            <span>Multi-Tier Deployment</span>
+        </nav>
+
+        <h1>Multi-Tier Application Deployment Patterns</h1>
+        <p class="subtitle">Complete, production-ready patterns for deploying multi-tier applications on Kubernetes. Includes full YAML manifests, networking, scaling strategies, and real-world troubleshooting.</p>
+
+        <!-- ============================================================ -->
+        <!-- SECTION 1: What is Multi-Tier Architecture? -->
+        <!-- ============================================================ -->
+        <h2 id="what-is-multi-tier">1. What is Multi-Tier Architecture?</h2>
+
+        <div class="card card-info">
+            <h3>Definition</h3>
+            <p>Multi-tier architecture separates an application into distinct layers (tiers), each responsible for a specific concern. Each tier can be developed, deployed, scaled, and maintained independently.</p>
+        </div>
+
+        <h3>Classic 3-Tier Architecture</h3>
+
+        <div class="diagram">
+<pre>
++-------------------+       +-------------------+       +-------------------+
+|                   |       |                   |       |                   |
+|   PRESENTATION    |       |    APPLICATION    |       |       DATA        |
+|    (Frontend)     | ----&gt; |   (Backend/API)   | ----&gt; |    (Database)     |
+|                   |       |                   |       |                   |
+|  React / Angular  |       |  Node.js / Java   |       | PostgreSQL/MySQL  |
+|  Served by Nginx  |       |  REST/gRPC API    |       | Redis (Cache)     |
+|                   |       |                   |       |                   |
++-------------------+       +-------------------+       +-------------------+
+      Port 80/443                Port 3000                  Port 5432
+     (User-facing)             (Internal only)            (Internal only)
+</pre>
+        </div>
+
+        <h3>Why Separate Tiers?</h3>
+
+        <div class="grid-2">
+            <div class="point">
+                <span class="point-num">1</span>
+                <div class="point-content">
+                    <span class="point-title">Independent Scaling</span>
+                    <p>Scale the frontend to handle traffic spikes without scaling the database. Scale the backend independently based on API load.</p>
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num">2</span>
+                <div class="point-content">
+                    <span class="point-title">Fault Isolation</span>
+                    <p>A crash in the frontend tier does not take down the database. Each tier can fail and recover independently.</p>
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num">3</span>
+                <div class="point-content">
+                    <span class="point-title">Team Ownership</span>
+                    <p>Frontend team owns the presentation tier, backend team owns the API, and DBAs own the data layer. Clear boundaries reduce conflicts.</p>
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num">4</span>
+                <div class="point-content">
+                    <span class="point-title">Security Boundaries</span>
+                    <p>Only the frontend is exposed to the internet. The backend is only reachable from the frontend. The database is only reachable from the backend. Network policies enforce this.</p>
+                </div>
+            </div>
+        </div>
+
+        <h3>Concrete Example</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Tier</th>
+                    <th>Technology</th>
+                    <th>K8s Resource</th>
+                    <th>Exposed To</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Frontend</td>
+                    <td>React app served by Nginx</td>
+                    <td>Deployment + Service + Ingress</td>
+                    <td>Internet (via Ingress)</td>
+                </tr>
+                <tr>
+                    <td>Backend</td>
+                    <td>Node.js Express API</td>
+                    <td>Deployment + Service + HPA</td>
+                    <td>Frontend only (ClusterIP)</td>
+                </tr>
+                <tr>
+                    <td>Cache</td>
+                    <td>Redis</td>
+                    <td>Deployment + Service</td>
+                    <td>Backend only (ClusterIP)</td>
+                </tr>
+                <tr>
+                    <td>Database</td>
+                    <td>PostgreSQL 15</td>
+                    <td>StatefulSet + Headless Service + PVC</td>
+                    <td>Backend only (ClusterIP)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ============================================================ -->
+        <!-- SECTION 2: Complete 3-Tier App on Kubernetes -->
+        <!-- ============================================================ -->
+        <h2 id="complete-yaml">2. Complete 3-Tier App on Kubernetes (Full YAML)</h2>
+
+        <div class="card card-info">
+            <h3>Overview</h3>
+            <p>Below is a complete, production-ready set of Kubernetes manifests for a 3-tier application with a Redis cache layer. All resources are deployed in the <code>myapp</code> namespace. Copy-paste these YAMLs and apply them with <code>kubectl apply -f</code>.</p>
+        </div>
+
+        <!-- Namespace -->
+        <h3>Namespace</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">namespace.yaml</span></div>
+<pre>
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: myapp
+  labels:
+    app.kubernetes.io/part-of: myapp
+    pod-security.kubernetes.io/enforce: restricted
+</pre>
+        </div>
+
+        <!-- FRONTEND -->
+        <h3 id="frontend-tier">Frontend Tier (React/Nginx)</h3>
+
+        <h4>Frontend ConfigMap (nginx.conf)</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">frontend-nginx-config.yaml</span></div>
+<pre>
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-nginx-config
+  namespace: myapp
+  labels:
+    app: frontend
+    tier: presentation
+data:
+  nginx.conf: |
+    user nginx;
+    worker_processes auto;
+    error_log /var/log/nginx/error.log warn;
+    pid /tmp/nginx.pid;
+
+    events {
+        worker_connections 1024;
+    }
+
+    http {
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+
+        log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_x_request_id"';
+
+        access_log /var/log/nginx/access.log main;
+        sendfile on;
+        keepalive_timeout 65;
+        gzip on;
+        gzip_types text/plain text/css application/json application/javascript;
+
+        # Temp paths for non-root
+        client_body_temp_path /tmp/client_temp;
+        proxy_temp_path /tmp/proxy_temp;
+        fastcgi_temp_path /tmp/fastcgi_temp;
+        uwsgi_temp_path /tmp/uwsgi_temp;
+        scgi_temp_path /tmp/scgi_temp;
+
+        server {
+            listen 8080;
+            server_name _;
+            root /usr/share/nginx/html;
+            index index.html;
+
+            # Health check endpoint
+            location /health {
+                access_log off;
+                return 200 'healthy';
+                add_header Content-Type text/plain;
+            }
+
+            # Proxy API requests to backend service
+            location /api/ {
+                proxy_pass http://backend-svc.myapp.svc.cluster.local:3000/api/;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Request-ID $http_x_request_id;
+                proxy_connect_timeout 5s;
+                proxy_read_timeout 30s;
+            }
+
+            # SPA fallback - serve index.html for all routes
+            location / {
+                try_files $uri $uri/ /index.html;
+            }
+
+            # Cache static assets
+            location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2)$ {
+                expires 1y;
+                add_header Cache-Control "public, immutable";
+            }
+        }
+    }
+</pre>
+        </div>
+
+        <h4>Frontend Deployment</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">frontend-deployment.yaml</span></div>
+<pre>
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: myapp
+  labels:
+    app: frontend
+    tier: presentation
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: frontend
+      tier: presentation
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: frontend
+        tier: presentation
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: nginx
+          image: myregistry.io/myapp-frontend:1.2.0
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-log
+              mountPath: /var/log/nginx
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: frontend-nginx-config
+        - name: tmp
+          emptyDir: {}
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-log
+          emptyDir: {}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: frontend
+</pre>
+        </div>
+
+        <h4>Frontend Service</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">frontend-service.yaml</span></div>
+<pre>
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-svc
+  namespace: myapp
+  labels:
+    app: frontend
+    tier: presentation
+spec:
+  type: ClusterIP
+  selector:
+    app: frontend
+    tier: presentation
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+</pre>
+        </div>
+
+        <h4>Frontend Ingress</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">frontend-ingress.yaml</span></div>
+<pre>
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend-ingress
+  namespace: myapp
+  labels:
+    app: frontend
+    tier: presentation
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - myapp.example.com
+      secretName: frontend-tls-secret
+  rules:
+    - host: myapp.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-svc
+                port:
+                  number: 80
+</pre>
+        </div>
+
+        <!-- BACKEND -->
+        <h3 id="backend-tier">Backend Tier (Node.js API)</h3>
+
+        <h4>Backend ConfigMap</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">backend-configmap.yaml</span></div>
+<pre>
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: myapp
+  labels:
+    app: backend
+    tier: application
+data:
+  DB_HOST: "postgres-svc.myapp.svc.cluster.local"
+  DB_PORT: "5432"
+  DB_NAME: "myappdb"
+  REDIS_HOST: "redis-svc.myapp.svc.cluster.local"
+  REDIS_PORT: "6379"
+  LOG_LEVEL: "info"
+  NODE_ENV: "production"
+  API_PORT: "3000"
+  CORS_ORIGIN: "https://myapp.example.com"
+  REQUEST_TIMEOUT_MS: "30000"
+</pre>
+        </div>
+
+        <h4>Backend Secret</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">backend-secret.yaml</span></div>
+<pre>
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backend-secrets
+  namespace: myapp
+  labels:
+    app: backend
+    tier: application
+type: Opaque
+stringData:
+  DB_USER: "appuser"
+  DB_PASSWORD: "change-me-use-sealed-secrets-in-prod"
+  JWT_SECRET: "your-jwt-secret-here"
+  REDIS_PASSWORD: "redis-password-here"
+</pre>
+        </div>
+
+        <div class="card card-warning">
+            <h3>Security Warning</h3>
+            <p>Never commit plain-text Secrets to version control. In production, use <strong>Sealed Secrets</strong>, <strong>External Secrets Operator</strong>, or a vault solution (HashiCorp Vault, AWS Secrets Manager) to manage credentials securely.</p>
+        </div>
+
+        <h4>Backend Deployment</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">backend-deployment.yaml</span></div>
+<pre>
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: myapp
+  labels:
+    app: backend
+    tier: application
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: backend
+      tier: application
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: backend
+        tier: application
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/api/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: backend-sa
+      containers:
+        - name: api
+          image: myregistry.io/myapp-backend:1.2.0
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: backend-config
+            - secretRef:
+                name: backend-secrets
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /api/health/live
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /api/health/live
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 12
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: backend
+</pre>
+        </div>
+
+        <h4>Backend Service</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">backend-service.yaml</span></div>
+<pre>
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-svc
+  namespace: myapp
+  labels:
+    app: backend
+    tier: application
+spec:
+  type: ClusterIP
+  selector:
+    app: backend
+    tier: application
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+      protocol: TCP
+</pre>
+        </div>
+
+        <h4>Backend HPA</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">backend-hpa.yaml</span></div>
+<pre>
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend-hpa
+  namespace: myapp
+  labels:
+    app: backend
+    tier: application
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Pods
+      pods:
+        metric:
+          name: http_requests_per_second
+        target:
+          type: AverageValue
+          averageValue: "100"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+</pre>
+        </div>
+
+        <h4>Backend ServiceAccount</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">backend-serviceaccount.yaml</span></div>
+<pre>
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backend-sa
+  namespace: myapp
+  labels:
+    app: backend
+    tier: application
+  annotations:
+    # For AWS IRSA (IAM Roles for Service Accounts)
+    # eks.amazonaws.com/role-arn: arn:aws:iam::123456789:role/myapp-backend
+</pre>
+        </div>
+
+        <!-- DATABASE -->
+        <h3 id="database-tier">Database Tier (PostgreSQL)</h3>
+
+        <h4>Database Secret</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">postgres-secret.yaml</span></div>
+<pre>
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-credentials
+  namespace: myapp
+  labels:
+    app: postgres
+    tier: data
+type: Opaque
+stringData:
+  POSTGRES_USER: "appuser"
+  POSTGRES_PASSWORD: "change-me-use-sealed-secrets-in-prod"
+  POSTGRES_DB: "myappdb"
+  PGDATA: "/var/lib/postgresql/data/pgdata"
+</pre>
+        </div>
+
+        <h4>PostgreSQL StatefulSet</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">postgres-statefulset.yaml</span></div>
+<pre>
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: myapp
+  labels:
+    app: postgres
+    tier: data
+spec:
+  serviceName: postgres-svc
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+      tier: data
+  template:
+    metadata:
+      labels:
+        app: postgres
+        tier: data
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9187"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: init-permissions
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /var/lib/postgresql/data/pgdata
+              chmod 700 /var/lib/postgresql/data/pgdata
+              chown -R 999:999 /var/lib/postgresql/data
+          securityContext:
+            runAsUser: 0
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+      containers:
+        - name: postgres
+          image: postgres:15.4-alpine
+          ports:
+            - name: postgresql
+              containerPort: 5432
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: postgres-credentials
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - appuser
+                - -d
+                - myappdb
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - appuser
+                - -d
+                - myappdb
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+        labels:
+          app: postgres
+          tier: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: gp3-encrypted
+        resources:
+          requests:
+            storage: 20Gi
+</pre>
+        </div>
+
+        <h4>PostgreSQL Headless Service</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">postgres-service.yaml</span></div>
+<pre>
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-svc
+  namespace: myapp
+  labels:
+    app: postgres
+    tier: data
+spec:
+  type: ClusterIP
+  clusterIP: None  # Headless service for StatefulSet
+  selector:
+    app: postgres
+    tier: data
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: postgresql
+      protocol: TCP
+</pre>
+        </div>
+
+        <div class="card card-info">
+            <h3>Why Headless Service for StatefulSets?</h3>
+            <p>A headless service (clusterIP: None) creates DNS records for each pod individually: <code>postgres-0.postgres-svc.myapp.svc.cluster.local</code>. This provides stable network identity for stateful workloads, allowing clients to connect to specific pods (important for primary/replica topologies).</p>
+        </div>
+
+        <h4>StorageClass (Reference)</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">storageclass.yaml</span></div>
+<pre>
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3-encrypted
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  encrypted: "true"
+  iops: "3000"
+  throughput: "125"
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+</pre>
+        </div>
+
+        <!-- REDIS CACHE -->
+        <h3 id="cache-tier">Cache Layer (Redis)</h3>
+
+        <h4>Redis Deployment</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">redis-deployment.yaml</span></div>
+<pre>
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: myapp
+  labels:
+    app: redis
+    tier: cache
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+      tier: cache
+  template:
+    metadata:
+      labels:
+        app: redis
+        tier: cache
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: redis
+          image: redis:7.2-alpine
+          command:
+            - redis-server
+            - --requirepass
+            - $(REDIS_PASSWORD)
+            - --maxmemory
+            - 256mb
+            - --maxmemory-policy
+            - allkeys-lru
+            - --appendonly
+            - "yes"
+            - --appendfsync
+            - everysec
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: REDIS_PASSWORD
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 300Mi
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -a
+                - $(REDIS_PASSWORD)
+                - ping
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -a
+                - $(REDIS_PASSWORD)
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+      volumes:
+        - name: redis-data
+          emptyDir: {}
+</pre>
+        </div>
+
+        <h4>Redis Service</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">redis-service.yaml</span></div>
+<pre>
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-svc
+  namespace: myapp
+  labels:
+    app: redis
+    tier: cache
+spec:
+  type: ClusterIP
+  selector:
+    app: redis
+    tier: cache
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+      protocol: TCP
+</pre>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- SECTION 3: Architecture Diagram -->
+        <!-- ============================================================ -->
+        <h2 id="architecture-diagram">3. Architecture Diagram</h2>
+
+        <div class="diagram">
+<pre>
+                         INTERNET
+                            |
+                            v
+                  +-------------------+
+                  |  Ingress (Nginx)  |
+                  |  myapp.example.com|
+                  +-------------------+
+                            |
+                            v
+               +-------------------------+
+               |    Frontend Service     |
+               |   (frontend-svc:80)     |
+               +-------------------------+
+                  /         |         \
+                 v          v          v
+          +-----------+-----------+-----------+
+          | frontend-0| frontend-1| frontend-2|  &lt;-- Deployment (3 replicas)
+          | (nginx)   | (nginx)   | (nginx)   |
+          +-----------+-----------+-----------+
+                  \         |         /
+                   v        v        v
+               +-------------------------+
+               |    Backend Service      |
+               | (backend-svc:3000)      |
+               +-------------------------+
+                  /         |         \
+                 v          v          v
+          +-----------+-----------+-----------+
+          | backend-0 | backend-1 | backend-2 |  &lt;-- Deployment (3 replicas, HPA)
+          | (node.js) | (node.js) | (node.js) |
+          +-----------+-----------+-----------+
+                  |                     |
+                  v                     v
+    +-------------------+    +-------------------+
+    |  PostgreSQL Svc   |    |    Redis Service   |
+    |(postgres-svc:5432)|    |  (redis-svc:6379)  |
+    +-------------------+    +-------------------+
+             |                        |
+             v                        v
+    +-------------------+    +-------------------+
+    |   postgres-0      |    |     redis-0       |
+    |  (StatefulSet)    |    |   (Deployment)    |
+    |  [PVC: 20Gi]      |    |   [emptyDir]      |
+    +-------------------+    +-------------------+
+
+    ============================================================
+    Namespace: myapp
+    NetworkPolicy: Each tier can only reach its adjacent tier
+    ============================================================
+</pre>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- SECTION 4: Networking Between Tiers -->
+        <!-- ============================================================ -->
+        <h2 id="networking">4. Networking Between Tiers</h2>
+
+        <h3>Service DNS Resolution</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>DNS Name</th>
+                    <th>Port</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Frontend (nginx proxy_pass)</td>
+                    <td>Backend</td>
+                    <td><code>backend-svc.myapp.svc.cluster.local</code></td>
+                    <td>3000</td>
+                </tr>
+                <tr>
+                    <td>Backend</td>
+                    <td>PostgreSQL</td>
+                    <td><code>postgres-svc.myapp.svc.cluster.local</code></td>
+                    <td>5432</td>
+                </tr>
+                <tr>
+                    <td>Backend</td>
+                    <td>PostgreSQL (direct pod)</td>
+                    <td><code>postgres-0.postgres-svc.myapp.svc.cluster.local</code></td>
+                    <td>5432</td>
+                </tr>
+                <tr>
+                    <td>Backend</td>
+                    <td>Redis</td>
+                    <td><code>redis-svc.myapp.svc.cluster.local</code></td>
+                    <td>6379</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="card card-info">
+            <h3>DNS Short Names</h3>
+            <p>Within the same namespace, you can use the short service name: <code>backend-svc</code> instead of <code>backend-svc.myapp.svc.cluster.local</code>. However, using the FQDN is recommended in production for clarity and to avoid namespace confusion.</p>
+        </div>
+
+        <h3>Network Policies for Tier Isolation</h3>
+
+        <p>Network Policies enforce that each tier can only communicate with its adjacent tier. This prevents a compromised frontend pod from directly accessing the database.</p>
+
+        <h4>Default Deny All (Baseline)</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">netpol-default-deny.yaml</span></div>
+<pre>
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: myapp
+spec:
+  podSelector: {}  # Applies to ALL pods in namespace
+  policyTypes:
+    - Ingress
+    - Egress
+</pre>
+        </div>
+
+        <h4>Allow DNS Egress (Required for all pods)</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">netpol-allow-dns.yaml</span></div>
+<pre>
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: myapp
+spec:
+  podSelector: {}  # All pods
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+</pre>
+        </div>
+
+        <h4>Frontend Network Policy</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">netpol-frontend.yaml</span></div>
+<pre>
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-netpol
+  namespace: myapp
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend
+      tier: presentation
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow traffic from Ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # Allow traffic to backend only
+    - to:
+        - podSelector:
+            matchLabels:
+              app: backend
+              tier: application
+      ports:
+        - protocol: TCP
+          port: 3000
+</pre>
+        </div>
+
+        <h4>Backend Network Policy</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">netpol-backend.yaml</span></div>
+<pre>
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-netpol
+  namespace: myapp
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+      tier: application
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Accept traffic from frontend only
+    - from:
+        - podSelector:
+            matchLabels:
+              app: frontend
+              tier: presentation
+      ports:
+        - protocol: TCP
+          port: 3000
+  egress:
+    # Allow traffic to PostgreSQL
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgres
+              tier: data
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Allow traffic to Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+              tier: cache
+      ports:
+        - protocol: TCP
+          port: 6379
+</pre>
+        </div>
+
+        <h4>Database Network Policy</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">netpol-postgres.yaml</span></div>
+<pre>
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-netpol
+  namespace: myapp
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+      tier: data
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Accept traffic from backend only
+    - from:
+        - podSelector:
+            matchLabels:
+              app: backend
+              tier: application
+      ports:
+        - protocol: TCP
+          port: 5432
+  egress: []  # No egress needed for database
+</pre>
+        </div>
+
+        <h4>Redis Network Policy</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">netpol-redis.yaml</span></div>
+<pre>
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-netpol
+  namespace: myapp
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+      tier: cache
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Accept traffic from backend only
+    - from:
+        - podSelector:
+            matchLabels:
+              app: backend
+              tier: application
+      ports:
+        - protocol: TCP
+          port: 6379
+  egress: []  # No egress needed for cache
+</pre>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- SECTION 5: Configuration Management -->
+        <!-- ============================================================ -->
+        <h2 id="configuration-management">5. Configuration Management</h2>
+
+        <h3>ConfigMaps vs Secrets</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Use For</th>
+                    <th>Storage</th>
+                    <th>Example</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>ConfigMap</td>
+                    <td>Non-sensitive configuration</td>
+                    <td>Plain text in etcd</td>
+                    <td>DB_HOST, LOG_LEVEL, API_PORT</td>
+                </tr>
+                <tr>
+                    <td>Secret</td>
+                    <td>Sensitive credentials</td>
+                    <td>Base64 in etcd (encrypt at rest!)</td>
+                    <td>DB_PASSWORD, JWT_SECRET, API_KEY</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Kustomize for Multi-Environment</h3>
+
+        <h4>Directory Structure</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="cmd">Project Layout</span></div>
+<pre>
+k8s/
+├── base/
+│   ├── kustomization.yaml
+│   ├── namespace.yaml
+│   ├── frontend/
+│   │   ├── deployment.yaml
+│   │   ├── service.yaml
+│   │   └── configmap.yaml
+│   ├── backend/
+│   │   ├── deployment.yaml
+│   │   ├── service.yaml
+│   │   ├── configmap.yaml
+│   │   └── hpa.yaml
+│   ├── postgres/
+│   │   ├── statefulset.yaml
+│   │   └── service.yaml
+│   └── redis/
+│       ├── deployment.yaml
+│       └── service.yaml
+├── overlays/
+│   ├── dev/
+│   │   ├── kustomization.yaml
+│   │   ├── backend-config-patch.yaml
+│   │   └── replica-patch.yaml
+│   ├── staging/
+│   │   ├── kustomization.yaml
+│   │   ├── backend-config-patch.yaml
+│   │   └── ingress-patch.yaml
+│   └── prod/
+│       ├── kustomization.yaml
+│       ├── backend-config-patch.yaml
+│       ├── replica-patch.yaml
+│       ├── ingress-patch.yaml
+│       └── hpa-patch.yaml
+</pre>
+        </div>
+
+        <h4>Base Kustomization</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">k8s/base/kustomization.yaml</span></div>
+<pre>
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: myapp
+
+resources:
+  - namespace.yaml
+  - frontend/deployment.yaml
+  - frontend/service.yaml
+  - frontend/configmap.yaml
+  - backend/deployment.yaml
+  - backend/service.yaml
+  - backend/configmap.yaml
+  - backend/hpa.yaml
+  - postgres/statefulset.yaml
+  - postgres/service.yaml
+  - redis/deployment.yaml
+  - redis/service.yaml
+
+commonLabels:
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/part-of: myapp
+</pre>
+        </div>
+
+        <h4>Production Overlay</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">k8s/overlays/prod/kustomization.yaml</span></div>
+<pre>
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: myapp-prod
+
+patches:
+  # Increase replicas for production
+  - target:
+      kind: Deployment
+      name: frontend
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 5
+  - target:
+      kind: Deployment
+      name: backend
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 5
+
+  # Production resource limits
+  - path: resource-patch.yaml
+
+  # Production ingress with real domain
+  - path: ingress-patch.yaml
+
+configMapGenerator:
+  - name: backend-config
+    behavior: replace
+    literals:
+      - DB_HOST=postgres-svc.myapp-prod.svc.cluster.local
+      - DB_PORT=5432
+      - DB_NAME=myappdb
+      - REDIS_HOST=redis-svc.myapp-prod.svc.cluster.local
+      - REDIS_PORT=6379
+      - LOG_LEVEL=warn
+      - NODE_ENV=production
+      - API_PORT=3000
+      - CORS_ORIGIN=https://myapp.example.com
+      - REQUEST_TIMEOUT_MS=30000
+
+images:
+  - name: myregistry.io/myapp-frontend
+    newTag: 1.2.0-stable
+  - name: myregistry.io/myapp-backend
+    newTag: 1.2.0-stable
+</pre>
+        </div>
+
+        <h4>Dev Overlay</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">k8s/overlays/dev/kustomization.yaml</span></div>
+<pre>
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: myapp-dev
+
+patches:
+  # Single replica in dev
+  - target:
+      kind: Deployment
+      name: frontend
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  - target:
+      kind: Deployment
+      name: backend
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  # Disable HPA in dev
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: backend-hpa
+    patch: |
+      $patch: delete
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: backend-hpa
+
+configMapGenerator:
+  - name: backend-config
+    behavior: replace
+    literals:
+      - DB_HOST=postgres-svc.myapp-dev.svc.cluster.local
+      - DB_PORT=5432
+      - DB_NAME=myappdb_dev
+      - REDIS_HOST=redis-svc.myapp-dev.svc.cluster.local
+      - REDIS_PORT=6379
+      - LOG_LEVEL=debug
+      - NODE_ENV=development
+      - API_PORT=3000
+      - CORS_ORIGIN=http://localhost:3000
+      - REQUEST_TIMEOUT_MS=60000
+
+images:
+  - name: myregistry.io/myapp-frontend
+    newTag: latest
+  - name: myregistry.io/myapp-backend
+    newTag: latest
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="cmd">Applying Overlays</span></div>
+<pre>
+# Preview what will be applied
+kubectl kustomize k8s/overlays/prod/
+
+# Apply to cluster
+kubectl apply -k k8s/overlays/dev/      # Development
+kubectl apply -k k8s/overlays/staging/  # Staging
+kubectl apply -k k8s/overlays/prod/     # Production
+</pre>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- SECTION 6: Scaling Strategies -->
+        <!-- ============================================================ -->
+        <h2 id="scaling-strategies">6. Scaling Strategies</h2>
+
+        <div class="diagram">
+<pre>
+Scaling Strategy per Tier:
+
++------------------+     +------------------+     +------------------+     +------------------+
+|    FRONTEND      |     |     BACKEND      |     |     DATABASE     |     |      CACHE       |
++------------------+     +------------------+     +------------------+     +------------------+
+|                  |     |                  |     |                  |     |                  |
+| HPA: CPU 60%    |     | HPA: CPU 70%    |     | VPA: Vertical    |     | Single instance  |
+| Min: 3, Max: 20 |     | Min: 3, Max: 20 |     | Scale UP memory  |     | (fast enough)    |
+|                  |     | + Custom metric: |     | and CPU          |     |                  |
+| Stateless =     |     |   req/sec &gt; 100  |     |                  |     | Or Redis Cluster |
+| easy horizontal  |     |                  |     | Read replicas    |     | for &gt;100K ops/s  |
+|                  |     | Scale fast,      |     | for read-heavy   |     |                  |
+| Scale in seconds |     | cool down slow   |     | Scale in minutes |     | maxmemory-policy |
++------------------+     +------------------+     +------------------+     +------------------+
+       |                        |                        |                        |
+       v                        v                        v                        v
+  3 ──&gt; 20 pods           3 ──&gt; 20 pods           1 ──&gt; bigger pod          1 instance
+  (horizontal)            (horizontal)            (vertical)               (or 6-node cluster)
+</pre>
+        </div>
+
+        <h3>Frontend Scaling (Stateless)</h3>
+        <div class="point">
+            <span class="point-num">1</span>
+            <div class="point-content">
+                <span class="point-title">Horizontal Pod Autoscaler on CPU</span>
+                <p>Frontend pods serve static files via Nginx. They are completely stateless and can scale horizontally with zero session concerns. Scale on CPU utilization at 60% threshold with aggressive scale-up and conservative scale-down.</p>
+            </div>
+        </div>
+
+        <h3>Backend Scaling (Stateless with connections)</h3>
+        <div class="point">
+            <span class="point-num">2</span>
+            <div class="point-content">
+                <span class="point-title">HPA on CPU + Custom Metrics</span>
+                <p>Backend pods are stateless but maintain DB connection pools. Scale on CPU (70%) and custom metrics (requests per second). Use connection pooling (PgBouncer) to prevent database connection exhaustion as pods scale. Scale-down window should be longer (5 min) to avoid flapping.</p>
+            </div>
+        </div>
+
+        <h3>Database Scaling (Stateful)</h3>
+        <div class="point">
+            <span class="point-num">3</span>
+            <div class="point-content">
+                <span class="point-title">Vertical Scaling + Read Replicas</span>
+                <p>Databases cannot simply add replicas like stateless services. Scale vertically first (VPA or manual resource increase). For read-heavy workloads, add read replicas with a separate read-only service. Consider managed databases (RDS, Cloud SQL) for production.</p>
+            </div>
+        </div>
+
+        <h3>Cache Scaling</h3>
+        <div class="point">
+            <span class="point-num">4</span>
+            <div class="point-content">
+                <span class="point-title">Single Instance or Cluster Mode</span>
+                <p>A single Redis instance handles 100K+ operations/second. Only scale to Redis Cluster if you need more memory than a single node provides or need &gt;100K ops/sec. Use maxmemory-policy (allkeys-lru) to handle memory pressure gracefully.</p>
+            </div>
+        </div>
+
+        <div class="card card-warning">
+            <h3>Connection Pool Exhaustion</h3>
+            <p>When the backend scales from 3 to 20 pods, each with a pool of 10 connections, you go from 30 to 200 database connections. PostgreSQL's default max_connections is 100. Always use a connection pooler like <strong>PgBouncer</strong> between backend and database to multiplex connections.</p>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- SECTION 7: Health Checks Across Tiers -->
+        <!-- ============================================================ -->
+        <h2 id="health-checks">7. Health Checks Across Tiers</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Tier</th>
+                    <th>Liveness Probe</th>
+                    <th>Readiness Probe</th>
+                    <th>What It Checks</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Frontend</td>
+                    <td>HTTP GET /health</td>
+                    <td>HTTP GET /health</td>
+                    <td>Nginx is serving (does NOT check backend)</td>
+                </tr>
+                <tr>
+                    <td>Backend</td>
+                    <td>HTTP GET /api/health/live</td>
+                    <td>HTTP GET /api/health/ready</td>
+                    <td>Liveness: process alive. Readiness: DB + Redis connected</td>
+                </tr>
+                <tr>
+                    <td>Database</td>
+                    <td>exec: pg_isready</td>
+                    <td>exec: pg_isready</td>
+                    <td>PostgreSQL accepting connections</td>
+                </tr>
+                <tr>
+                    <td>Redis</td>
+                    <td>exec: redis-cli ping</td>
+                    <td>exec: redis-cli ping</td>
+                    <td>Redis responding to commands</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Cascading Failure Scenario</h3>
+
+        <div class="diagram">
+<pre>
+What happens when PostgreSQL goes down:
+
+1. pg_isready fails on postgres-0
+   └──&gt; PostgreSQL readiness probe fails
+        └──&gt; postgres-0 removed from postgres-svc endpoints
+
+2. Backend's /api/health/ready checks DB connection
+   └──&gt; DB connection fails
+        └──&gt; Backend readiness probe fails
+             └──&gt; backend pods removed from backend-svc endpoints
+
+3. Frontend nginx proxy_pass to backend-svc gets no endpoints
+   └──&gt; Returns 502/503 to user
+        └──&gt; BUT frontend stays "Ready" (its own health check passes)
+             └──&gt; This is CORRECT: nginx is healthy, backend is not
+
+RECOVERY: When DB comes back, readiness cascades UP:
+   DB ready ──&gt; backend ready ──&gt; traffic flows again
+</pre>
+        </div>
+
+        <h3>Backend Health Check Implementation</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">health-check-example.js (Node.js)</span></div>
+<pre>
+// Liveness: Is the process alive? (lightweight, no dependencies)
+app.get('/api/health/live', (req, res) =&gt; {
+  res.status(200).json({ status: 'alive', uptime: process.uptime() });
+});
+
+// Readiness: Can this pod serve traffic? (checks dependencies)
+app.get('/api/health/ready', async (req, res) =&gt; {
+  try {
+    // Check database connection (with timeout)
+    await Promise.race([
+      db.query('SELECT 1'),
+      new Promise((_, reject) =&gt;
+        setTimeout(() =&gt; reject(new Error('DB timeout')), 2000)
+      )
+    ]);
+
+    // Check Redis connection
+    await Promise.race([
+      redis.ping(),
+      new Promise((_, reject) =&gt;
+        setTimeout(() =&gt; reject(new Error('Redis timeout')), 1000)
+      )
+    ]);
+
+    res.status(200).json({ status: 'ready', db: 'connected', redis: 'connected' });
+  } catch (error) {
+    res.status(503).json({ status: 'not ready', error: error.message });
+  }
+});
+</pre>
+        </div>
+
+        <div class="card card-warning">
+            <h3>Critical: Separate Liveness from Readiness</h3>
+            <p>Never check external dependencies in your <strong>liveness probe</strong>. If the database is down, your backend pod is still alive -- it just cannot serve traffic. If you check DB in liveness, Kubernetes will restart your pods, causing a cascade of restarts that makes recovery harder. Use liveness to detect process hangs only; use readiness to signal traffic-serving ability.</p>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- SECTION 8: Deployment Strategies for Multi-Tier -->
+        <!-- ============================================================ -->
+        <h2 id="deployment-strategies">8. Deployment Strategies for Multi-Tier</h2>
+
+        <h3>Deployment Order Matters</h3>
+
+        <div class="diagram">
+<pre>
+Correct deployment order for breaking changes:
+
+  Step 1: Database Migration (Job)
+    └── Run schema changes FIRST (add columns, create tables)
+    └── Must be backward-compatible with current backend version
+
+  Step 2: Backend Deployment (Rolling Update)
+    └── New backend version uses new schema
+    └── Wait until all pods are ready
+
+  Step 3: Frontend Deployment (Rolling Update)
+    └── New frontend uses new API endpoints
+    └── Old frontend continues working during rollout
+
+  Step 4: Cleanup Migration (Optional Job)
+    └── Remove deprecated columns/tables
+    └── Only AFTER all old backend pods are gone
+</pre>
+        </div>
+
+        <h4>Database Migration Job</h4>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">db-migration-job.yaml</span></div>
+<pre>
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migrate-v1-2-0
+  namespace: myapp
+  labels:
+    app: backend
+    tier: application
+    purpose: migration
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        app: backend
+        purpose: migration
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+        - name: migrate
+          image: myregistry.io/myapp-backend:1.2.0
+          command: ["node", "scripts/migrate.js", "--up"]
+          envFrom:
+            - configMapRef:
+                name: backend-config
+            - secretRef:
+                name: backend-secrets
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+      serviceAccountName: backend-sa
+</pre>
+        </div>
+
+        <h3>Rolling Update (Default Strategy)</h3>
+
+        <div class="grid-2">
+            <div class="point">
+                <span class="point-num">1</span>
+                <div class="point-content">
+                    <span class="point-title">maxSurge: 1, maxUnavailable: 0</span>
+                    <p>Creates one new pod before killing an old one. Ensures zero downtime but uses more resources temporarily. Best for production workloads.</p>
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num">2</span>
+                <div class="point-content">
+                    <span class="point-title">Independent per tier</span>
+                    <p>Each tier rolls independently. Backend can update without touching frontend. Use <code>kubectl rollout status</code> to gate subsequent tier deployments.</p>
+                </div>
+            </div>
+        </div>
+
+        <h3>Blue/Green at Ingress Level</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">blue-green-ingress.yaml</span></div>
+<pre>
+# Blue (current) - receives all traffic
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend-ingress
+  namespace: myapp
+  annotations:
+    nginx.ingress.kubernetes.io/canary: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: myapp.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-svc-blue  # Points to blue deployment
+                port:
+                  number: 80
+---
+# Switch to green: change service name
+# kubectl patch ingress frontend-ingress -n myapp \
+#   --type=json -p='[{"op":"replace","path":"/spec/rules/0/http/paths/0/backend/service/name","value":"frontend-svc-green"}]'
+</pre>
+        </div>
+
+        <h3>Canary with Traffic Splitting</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">canary-ingress.yaml</span></div>
+<pre>
+# Main ingress (90% traffic)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: backend-ingress-main
+  namespace: myapp
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api.myapp.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-svc
+                port:
+                  number: 3000
+---
+# Canary ingress (10% traffic)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: backend-ingress-canary
+  namespace: myapp
+  annotations:
+    nginx.ingress.kubernetes.io/canary: "true"
+    nginx.ingress.kubernetes.io/canary-weight: "10"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api.myapp.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-svc-canary
+                port:
+                  number: 3000
+</pre>
+        </div>
+
+        <h3>CI/CD Pipeline Order</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="cmd">deploy.sh - Multi-tier deployment script</span></div>
+<pre>
+#!/bin/bash
+set -euo pipefail
+
+NAMESPACE="myapp"
+TIMEOUT="300s"
+
+echo "=== Step 1: Run Database Migration ==="
+kubectl apply -f k8s/jobs/db-migrate.yaml -n $NAMESPACE
+kubectl wait --for=condition=complete job/db-migrate-v1-2-0 \
+  -n $NAMESPACE --timeout=$TIMEOUT
+echo "Migration complete."
+
+echo "=== Step 2: Deploy Backend ==="
+kubectl apply -f k8s/backend/ -n $NAMESPACE
+kubectl rollout status deployment/backend -n $NAMESPACE --timeout=$TIMEOUT
+echo "Backend deployed."
+
+echo "=== Step 3: Deploy Frontend ==="
+kubectl apply -f k8s/frontend/ -n $NAMESPACE
+kubectl rollout status deployment/frontend -n $NAMESPACE --timeout=$TIMEOUT
+echo "Frontend deployed."
+
+echo "=== All tiers deployed successfully ==="
+</pre>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- SECTION 9: Observability -->
+        <!-- ============================================================ -->
+        <h2 id="observability">9. Observability</h2>
+
+        <h3>RED Method per Tier</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Tier</th>
+                    <th>Rate</th>
+                    <th>Errors</th>
+                    <th>Duration</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Frontend (Nginx)</td>
+                    <td>Requests/sec (nginx_http_requests_total)</td>
+                    <td>5xx count (nginx_http_responses_total{status=~"5.."})</td>
+                    <td>Request duration (nginx_http_request_duration_seconds)</td>
+                </tr>
+                <tr>
+                    <td>Backend (Node.js)</td>
+                    <td>API calls/sec (http_requests_total)</td>
+                    <td>Error rate by endpoint (http_requests_total{status=~"5.."})</td>
+                    <td>p50/p95/p99 latency (http_request_duration_seconds)</td>
+                </tr>
+                <tr>
+                    <td>Database (PG)</td>
+                    <td>Queries/sec (pg_stat_statements_calls)</td>
+                    <td>Failed queries, deadlocks (pg_stat_database_deadlocks)</td>
+                    <td>Query duration (pg_stat_statements_mean_time)</td>
+                </tr>
+                <tr>
+                    <td>Cache (Redis)</td>
+                    <td>Commands/sec (redis_commands_processed_total)</td>
+                    <td>Rejected connections (redis_rejected_connections_total)</td>
+                    <td>Command latency (redis_commands_duration_seconds)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Structured Logging with Correlation ID</h3>
+        <div class="code-block">
+            <div class="code-header"><span class="filename">Correlation ID flow across tiers</span></div>
+<pre>
+# Flow of X-Request-ID through the system:
+
+1. Ingress generates X-Request-ID (or client sends it)
+   Header: X-Request-ID: abc-123-def-456
+
+2. Nginx frontend passes it to backend:
+   proxy_set_header X-Request-ID $http_x_request_id;
+
+3. Backend logs include correlation ID:
+   {"level":"info","requestId":"abc-123-def-456","msg":"Processing order","service":"backend"}
+
+4. Backend passes it in DB query comments (for slow query log correlation):
+   SELECT * FROM orders WHERE id = 1; /* requestId=abc-123-def-456 */
+
+5. All logs searchable by single request ID across tiers:
+   kubectl logs -l tier=application -n myapp | grep "abc-123-def-456"
+</pre>
+        </div>
+
+        <h3>Distributed Tracing</h3>
+
+        <div class="diagram">
+<pre>
+Trace: "GET /checkout" (total: 450ms)
+
+├── [Ingress]  SSL termination + routing ............ 5ms
+├── [Frontend] Nginx proxy_pass .................... 2ms
+├── [Backend]  Parse request + validate ............ 10ms
+│   ├── [Redis]  Cache lookup (HIT) ................ 1ms
+│   ├── [Backend] Business logic ................... 20ms
+│   ├── [Postgres] SELECT order .................... 15ms
+│   ├── [Postgres] UPDATE inventory ................ 25ms
+│   └── [Postgres] INSERT order_item ............... 20ms
+├── [Backend]  Serialize response .................. 5ms
+└── [Frontend] Serve response ...................... 2ms
+
+                                              Total: 105ms
+
+Tools: Jaeger, Zipkin, OpenTelemetry, AWS X-Ray
+Instrumentation: OpenTelemetry SDK in backend, pg-tracing for DB
+</pre>
+        </div>
+
+        <h3>Key Dashboards</h3>
+        <div class="grid-2">
+            <div class="point">
+                <span class="point-num">1</span>
+                <div class="point-content">
+                    <span class="point-title">Overview Dashboard</span>
+                    <p>All tiers at a glance: request rate, error rate, p95 latency. RED method per tier in a single Grafana dashboard. Alert when any tier exceeds SLO.</p>
+                </div>
+            </div>
+            <div class="point">
+                <span class="point-num">2</span>
+                <div class="point-content">
+                    <span class="point-title">Per-Tier Deep Dive</span>
+                    <p>Individual dashboards per tier showing: pod count, CPU/memory usage, connection pool stats, cache hit ratio, slow queries, and active connections.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- SECTION 10: Interview Q&A -->
+        <!-- ============================================================ -->
+        <h2 id="interview-qa">10. Interview Q&A</h2>
+
+        <div class="qa">
+            <div class="q">Q1: How would you design a 3-tier application on Kubernetes?</div>
+            <div class="a">
+                <p>I would create three logical layers in a dedicated namespace:</p>
+                <p><strong>Frontend:</strong> Deployment with Nginx serving static React files, exposed via Ingress with TLS. The nginx.conf includes a proxy_pass directive to route /api/ requests to the backend service.</p>
+                <p><strong>Backend:</strong> Deployment with the API server (Node.js/Java), using ConfigMaps for configuration and Secrets for credentials. Exposed via ClusterIP service (not accessible from outside). HPA for auto-scaling.</p>
+                <p><strong>Database:</strong> StatefulSet with a PersistentVolumeClaim for data durability. Exposed via a headless service for stable DNS. No external access.</p>
+                <p>Network Policies enforce that each tier can only communicate with its adjacent tier. This provides defense in depth -- a compromised frontend pod cannot directly access the database.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q2: How do tiers communicate with each other in Kubernetes?</div>
+            <div class="a">
+                <p>Tiers communicate via Kubernetes Services, which provide stable DNS names and load balancing:</p>
+                <p><strong>DNS resolution:</strong> <code>service-name.namespace.svc.cluster.local</code> resolves to the service's ClusterIP. Within the same namespace, just <code>service-name</code> works.</p>
+                <p><strong>Frontend to Backend:</strong> Nginx uses <code>proxy_pass http://backend-svc:3000/api/</code> to forward API requests.</p>
+                <p><strong>Backend to Database:</strong> Connection string uses the headless service DNS: <code>postgres-0.postgres-svc.myapp.svc.cluster.local:5432</code> for StatefulSet pods, or just <code>postgres-svc:5432</code> for the service.</p>
+                <p><strong>Service types:</strong> All internal communication uses ClusterIP (default). Only the frontend is exposed externally via Ingress.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q3: How do you handle database schema migrations in Kubernetes?</div>
+            <div class="a">
+                <p>Use a Kubernetes <strong>Job</strong> that runs before the backend deployment:</p>
+                <p>1. Create a Job with the same image as the backend but with a migration command (e.g., <code>node scripts/migrate.js --up</code>).</p>
+                <p>2. The Job uses the same ConfigMap/Secret as the backend for DB credentials.</p>
+                <p>3. In CI/CD, wait for the Job to complete: <code>kubectl wait --for=condition=complete job/db-migrate</code>.</p>
+                <p>4. Only then deploy the new backend version.</p>
+                <p><strong>Key principle:</strong> Migrations must be backward-compatible. Add new columns as nullable first, deploy new backend, then add NOT NULL constraint in a later migration. This allows rollback without breaking the old backend version.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q4: How do you implement network isolation between tiers?</div>
+            <div class="a">
+                <p>Using Kubernetes <strong>NetworkPolicies</strong>:</p>
+                <p>1. Start with a <strong>default-deny-all</strong> policy for both ingress and egress in the namespace.</p>
+                <p>2. Explicitly allow DNS egress for all pods (port 53 to kube-dns).</p>
+                <p>3. Frontend: Allow ingress from ingress-nginx namespace, allow egress only to backend pods on port 3000.</p>
+                <p>4. Backend: Allow ingress from frontend pods only, allow egress to postgres on 5432 and redis on 6379.</p>
+                <p>5. Database: Allow ingress from backend pods only, deny all egress.</p>
+                <p>This means even if an attacker compromises a frontend pod, they cannot reach the database directly. The CNI plugin must support NetworkPolicies (Calico, Cilium, etc.).</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q5: What is the scaling strategy for each tier?</div>
+            <div class="a">
+                <p><strong>Frontend:</strong> HPA on CPU (60%). Completely stateless, can scale from 3 to 20 pods in seconds. No session state, no connection concerns.</p>
+                <p><strong>Backend:</strong> HPA on CPU (70%) + custom metrics (requests/sec). Scale-up quickly (30s stabilization), scale-down slowly (5min stabilization) to handle traffic bursts. Watch database connection pool -- use PgBouncer to avoid exhausting connections.</p>
+                <p><strong>Database:</strong> Vertical scaling (VPA) or manual resource increase. For read-heavy workloads, add streaming replicas with a read-only service. Cannot scale horizontally without sharding. Consider managed DB (RDS) for production.</p>
+                <p><strong>Cache:</strong> Single Redis handles 100K ops/sec. Only scale to Redis Cluster if memory exceeds single node capacity. Use maxmemory-policy=allkeys-lru to handle pressure gracefully.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q6: What happens when the database goes down in a multi-tier app?</div>
+            <div class="a">
+                <p>A cascading failure occurs through the readiness probe chain:</p>
+                <p>1. PostgreSQL's <code>pg_isready</code> fails, pod marked NotReady, removed from service endpoints.</p>
+                <p>2. Backend's readiness probe (which checks DB connection) fails after timeout. Backend pods marked NotReady.</p>
+                <p>3. Frontend's nginx proxy_pass gets no healthy endpoints, returns 502/503 to users.</p>
+                <p>4. Frontend remains Ready (its own health check passes) -- this is correct behavior.</p>
+                <p><strong>Recovery:</strong> When DB comes back, readiness cascades upward: DB ready, backend ready, traffic flows. No pod restarts needed.</p>
+                <p><strong>Key:</strong> Never check DB in liveness probe. If you do, Kubernetes restarts backend pods when DB is down, causing a restart storm that makes recovery harder.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q7: How do you achieve zero-downtime deployment for a multi-tier app?</div>
+            <div class="a">
+                <p>Several practices together ensure zero downtime:</p>
+                <p>1. <strong>Rolling update</strong> with maxSurge=1, maxUnavailable=0. New pod starts before old pod terminates.</p>
+                <p>2. <strong>Readiness probes</strong> ensure traffic only goes to ready pods. New pod must pass readiness before old pod receives SIGTERM.</p>
+                <p>3. <strong>preStop hook</strong> with sleep (5-10s) to allow in-flight requests to drain before container stops.</p>
+                <p>4. <strong>Backward-compatible migrations:</strong> New schema works with both old and new code.</p>
+                <p>5. <strong>Deploy order:</strong> DB migration first, then backend (handles both old and new schema), then frontend.</p>
+                <p>6. <strong>PodDisruptionBudget:</strong> Ensure at least N pods remain available during voluntary disruptions.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q8: Blue/green vs canary for multi-tier applications?</div>
+            <div class="a">
+                <p><strong>Blue/Green:</strong> Deploy entire new stack (all tiers) alongside existing one. Switch traffic at ingress level. Pros: instant rollback (switch back), full testing of new version. Cons: 2x resources, database schema must be shared or migrated carefully.</p>
+                <p><strong>Canary:</strong> Route a percentage of traffic (e.g., 10%) to new version of a single tier (usually backend). Pros: less resource usage, gradual validation, can catch issues before full rollout. Cons: two versions running simultaneously must be compatible, harder to implement for stateful tiers.</p>
+                <p><strong>In practice for multi-tier:</strong> Use canary at the backend level (where business logic changes) and rolling update for frontend (less risky). Database changes must be backward-compatible regardless of strategy -- you cannot canary a schema change.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q9: How do you manage secrets across tiers?</div>
+            <div class="a">
+                <p>Multiple approaches in order of maturity:</p>
+                <p>1. <strong>Kubernetes Secrets</strong> (basic): Create Secret objects, reference via envFrom/secretRef. Enable encryption at rest in etcd. RBAC restricts who can read secrets.</p>
+                <p>2. <strong>Sealed Secrets</strong> (GitOps-friendly): Encrypt secrets with a cluster-specific key. Encrypted version is safe to commit to git. Controller decrypts in-cluster.</p>
+                <p>3. <strong>External Secrets Operator</strong> (production): Syncs secrets from external stores (AWS Secrets Manager, HashiCorp Vault, Azure Key Vault) into Kubernetes Secrets automatically. Supports rotation.</p>
+                <p>4. <strong>CSI Secrets Store</strong>: Mount secrets directly as volumes from external providers. No Kubernetes Secret object created.</p>
+                <p><strong>Cross-tier sharing:</strong> Shared credentials (like DB password used by both the migration Job and backend) should reference the same Secret object. Use RBAC to restrict which ServiceAccounts can access which Secrets.</p>
+            </div>
+        </div>
+
+        <div class="qa">
+            <div class="q">Q10: How do you debug latency in a multi-tier application on Kubernetes?</div>
+            <div class="a">
+                <p>Systematic approach using observability data:</p>
+                <p>1. <strong>Identify which tier:</strong> Check the distributed trace (Jaeger/Zipkin) to see where time is spent. Is it frontend, backend processing, DB query, or network?</p>
+                <p>2. <strong>Per-tier investigation:</strong></p>
+                <p>&nbsp;&nbsp;- Frontend slow: Check nginx access logs for upstream_response_time. If high, issue is backend.</p>
+                <p>&nbsp;&nbsp;- Backend slow: Check application metrics -- is it CPU-bound (scale up) or waiting on DB (check queries)?</p>
+                <p>&nbsp;&nbsp;- DB slow: Check pg_stat_statements for slow queries. Look at lock waits, table bloat, missing indexes.</p>
+                <p>&nbsp;&nbsp;- Network slow: Check inter-node latency. Are pods on different AZs? Is the CNI saturated?</p>
+                <p>3. <strong>Resource pressure:</strong> <code>kubectl top pods</code> to check CPU/memory. Pods hitting limits get throttled (CPU) or OOMKilled (memory).</p>
+                <p>4. <strong>Connection pooling:</strong> Check if backend is waiting for connections (pool exhaustion). <code>pg_stat_activity</code> shows active connections.</p>
+                <p>5. <strong>DNS resolution:</strong> Rarely, CoreDNS can be a bottleneck. Check if ndots:5 in resolv.conf causes excessive DNS queries.</p>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- SECTION 11: Real-World Scenarios -->
+        <!-- ============================================================ -->
+        <h2 id="real-world-scenarios">11. Real-World Scenarios</h2>
+
+        <div class="scenario">
+            <div class="scenario-header">Scenario 1: Backend Cannot Connect to Database After Deployment</div>
+            <div class="scenario-body">
+                <p><strong>Symptoms:</strong> Backend pods are in Running state but readiness probe fails. Logs show <code>ECONNREFUSED</code> or <code>authentication failed for user</code>.</p>
+
+                <p><strong>Root Causes:</strong></p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Cause</th>
+                            <th>Diagnosis</th>
+                            <th>Fix</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Secret mismatch (new deploy references wrong secret name)</td>
+                            <td><code>kubectl describe pod</code> shows warning about missing secret</td>
+                            <td>Fix secret name in deployment YAML</td>
+                        </tr>
+                        <tr>
+                            <td>Network Policy blocking traffic</td>
+                            <td><code>kubectl exec backend-pod -- nc -zv postgres-svc 5432</code> times out</td>
+                            <td>Update NetworkPolicy to allow backend-&gt;postgres</td>
+                        </tr>
+                        <tr>
+                            <td>DB not ready yet (StatefulSet slower to start)</td>
+                            <td><code>kubectl get pods -l app=postgres</code> shows 0/1 Ready</td>
+                            <td>Add initContainer or startup probe with longer timeout</td>
+                        </tr>
+                        <tr>
+                            <td>Wrong DB_HOST in ConfigMap after namespace change</td>
+                            <td><code>kubectl get configmap backend-config -o yaml</code> shows old namespace</td>
+                            <td>Update ConfigMap with correct FQDN for new namespace</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="code-block">
+                    <div class="code-header"><span class="cmd">Debugging Commands</span></div>
+<pre>
+# Check if backend can reach postgres
+kubectl exec -it deploy/backend -n myapp -- \
+  sh -c "nc -zv postgres-svc 5432"
+
+# Check what environment variables the pod sees
+kubectl exec -it deploy/backend -n myapp -- env | grep DB_
+
+# Check network policy effects
+kubectl get networkpolicies -n myapp -o yaml
+
+# Check postgres pod is ready
+kubectl get pods -l app=postgres -n myapp
+
+# Check events for clues
+kubectl get events -n myapp --sort-by=.lastTimestamp | tail -20
+</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">Scenario 2: Frontend Showing Stale Data</div>
+            <div class="scenario-body">
+                <p><strong>Symptoms:</strong> Users see old content. Refreshing does not help. API returns correct data when called directly.</p>
+
+                <p><strong>Root Causes:</strong></p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Cause</th>
+                            <th>Diagnosis</th>
+                            <th>Fix</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Nginx caching responses from backend</td>
+                            <td>Check nginx.conf for proxy_cache directives or aggressive Cache-Control headers</td>
+                            <td>Add <code>proxy_cache_bypass</code> or set <code>Cache-Control: no-cache</code> for API routes</td>
+                        </tr>
+                        <tr>
+                            <td>Frontend deployment not rolled (old image)</td>
+                            <td><code>kubectl get deploy frontend -o jsonpath='{.spec.template.spec.containers[0].image}'</code></td>
+                            <td>Update image tag, ensure imagePullPolicy is not IfNotPresent with :latest</td>
+                        </tr>
+                        <tr>
+                            <td>CDN or browser cache serving old static files</td>
+                            <td>Check response headers for age, x-cache-hit</td>
+                            <td>Use content-hashed filenames (app.abc123.js) or invalidate CDN</td>
+                        </tr>
+                        <tr>
+                            <td>Redis cache not invalidated after DB write</td>
+                            <td>GET key from Redis shows old value, DB has new value</td>
+                            <td>Implement cache invalidation on write or reduce TTL</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="code-block">
+                    <div class="code-header"><span class="cmd">Debugging Commands</span></div>
+<pre>
+# Check which image frontend is running
+kubectl get deploy frontend -n myapp -o jsonpath='{.spec.template.spec.containers[0].image}'
+
+# Check if response is cached (from inside cluster)
+kubectl exec -it deploy/frontend -n myapp -- \
+  curl -sI http://localhost:8080/api/data | grep -i cache
+
+# Check Redis cache content
+kubectl exec -it deploy/redis -n myapp -- \
+  redis-cli -a $REDIS_PASSWORD GET "cache:user:123"
+
+# Force frontend rollout (if stuck on old image)
+kubectl rollout restart deployment/frontend -n myapp
+</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">Scenario 3: Database Migration Failed Mid-Deploy</div>
+            <div class="scenario-body">
+                <p><strong>Symptoms:</strong> Migration Job failed (status: Failed). Backend is partially deployed. Some users getting errors.</p>
+
+                <p><strong>Recovery Steps:</strong></p>
+                <div class="point">
+                    <span class="point-num">1</span>
+                    <div class="point-content">
+                        <span class="point-title">Stop the deployment pipeline immediately</span>
+                        <p>Cancel any in-progress backend rollout: <code>kubectl rollout undo deployment/backend -n myapp</code></p>
+                    </div>
+                </div>
+                <div class="point">
+                    <span class="point-num">2</span>
+                    <div class="point-content">
+                        <span class="point-title">Assess migration state</span>
+                        <p>Check migration logs: <code>kubectl logs job/db-migrate-v1-2-0 -n myapp</code>. Determine which migrations ran successfully and which failed. Check the migration tracking table.</p>
+                    </div>
+                </div>
+                <div class="point">
+                    <span class="point-num">3</span>
+                    <div class="point-content">
+                        <span class="point-title">Rollback the failed migration</span>
+                        <p>Run a rollback Job: <code>node scripts/migrate.js --down --to=last-known-good</code>. Ensure the rollback is idempotent -- it should be safe to run multiple times.</p>
+                    </div>
+                </div>
+                <div class="point">
+                    <span class="point-num">4</span>
+                    <div class="point-content">
+                        <span class="point-title">Fix and retry</span>
+                        <p>Fix the migration script, test in staging, then re-run the full deployment pipeline from the beginning.</p>
+                    </div>
+                </div>
+
+                <div class="card card-warning">
+                    <h3>Prevention: Use Transactional Migrations</h3>
+                    <p>Wrap each migration in a transaction (where possible). If a statement fails, the entire migration rolls back atomically. Note: DDL statements in MySQL are not transactional, but PostgreSQL supports transactional DDL. Always test migrations against a copy of production data before deploying.</p>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header"><span class="filename">rollback-migration-job.yaml</span></div>
+<pre>
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-rollback-v1-2-0
+  namespace: myapp
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 120
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: rollback
+          image: myregistry.io/myapp-backend:1.1.0  # Previous known-good version
+          command: ["node", "scripts/migrate.js", "--down", "--to", "20240101_001"]
+          envFrom:
+            - configMapRef:
+                name: backend-config
+            - secretRef:
+                name: backend-secrets
+</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">Scenario 4: One Tier Scaling Causes Resource Pressure on Node</div>
+            <div class="scenario-body">
+                <p><strong>Symptoms:</strong> Backend HPA scales to 15 pods. Other pods on same nodes start getting OOMKilled or throttled. Database latency spikes.</p>
+
+                <p><strong>Root Causes and Solutions:</strong></p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Issue</th>
+                            <th>Solution</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Backend pods not setting resource requests/limits</td>
+                            <td>Always set requests (for scheduling) and limits (for enforcement). Without requests, scheduler cannot make good decisions.</td>
+                        </tr>
+                        <tr>
+                            <td>Backend pods scheduled on same node as database</td>
+                            <td>Use <strong>pod anti-affinity</strong> or <strong>taints/tolerations</strong> to keep database on dedicated nodes.</td>
+                        </tr>
+                        <tr>
+                            <td>HPA maxReplicas too high for cluster capacity</td>
+                            <td>Set maxReplicas based on actual cluster capacity. Use Cluster Autoscaler to add nodes when needed.</td>
+                        </tr>
+                        <tr>
+                            <td>No PriorityClass -- all pods equally preemptible</td>
+                            <td>Set higher PriorityClass for database and lower for frontend. Ensures database is never evicted for frontend pods.</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="code-block">
+                    <div class="code-header"><span class="filename">priority-classes.yaml</span></div>
+<pre>
+# Database gets highest priority -- never evict
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: database-critical
+value: 1000000
+globalDefault: false
+description: "Reserved for database workloads. Never preempted."
+---
+# Backend gets medium priority
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: backend-high
+value: 500000
+globalDefault: false
+description: "Backend API tier."
+---
+# Frontend gets standard priority
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: frontend-standard
+value: 100000
+globalDefault: false
+description: "Frontend tier. Can be preempted if needed."
+</pre>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header"><span class="filename">Database node affinity (keep DB on dedicated nodes)</span></div>
+<pre>
+# Add to PostgreSQL StatefulSet spec.template.spec:
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: node-role
+              operator: In
+              values:
+                - database
+tolerations:
+  - key: "dedicated"
+    operator: "Equal"
+    value: "database"
+    effect: "NoSchedule"
+</pre>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header"><span class="cmd">Debugging Resource Pressure</span></div>
+<pre>
+# Check node resource usage
+kubectl top nodes
+
+# Check which pods are on the pressured node
+kubectl get pods -n myapp -o wide | grep &lt;node-name&gt;
+
+# Check if pods are being evicted
+kubectl get events -n myapp --field-selector reason=Evicted
+
+# Check resource requests vs actual usage
+kubectl top pods -n myapp --sort-by=memory
+
+# Check if any pods are pending due to insufficient resources
+kubectl get pods -n myapp --field-selector=status.phase=Pending
+</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- Summary / Quick Reference -->
+        <!-- ============================================================ -->
+        <h2 id="quick-reference">Quick Reference: Deploy Checklist</h2>
+
+        <div class="card card-info">
+            <h3>Multi-Tier Deployment Checklist</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Step</th>
+                        <th>Action</th>
+                        <th>Verify</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>Create namespace with labels</td>
+                        <td><code>kubectl get ns myapp</code></td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>Apply NetworkPolicies (default deny + allow rules)</td>
+                        <td><code>kubectl get netpol -n myapp</code></td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>Create Secrets (DB creds, API keys)</td>
+                        <td><code>kubectl get secrets -n myapp</code></td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>Deploy Database (StatefulSet + headless Service)</td>
+                        <td><code>kubectl get pods -l app=postgres -n myapp</code> shows 1/1 Ready</td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td>Deploy Redis (Deployment + Service)</td>
+                        <td><code>kubectl exec deploy/redis -- redis-cli ping</code> returns PONG</td>
+                    </tr>
+                    <tr>
+                        <td>6</td>
+                        <td>Run DB migration Job</td>
+                        <td><code>kubectl wait --for=condition=complete job/db-migrate</code></td>
+                    </tr>
+                    <tr>
+                        <td>7</td>
+                        <td>Deploy Backend (Deployment + Service + HPA)</td>
+                        <td><code>kubectl rollout status deploy/backend -n myapp</code></td>
+                    </tr>
+                    <tr>
+                        <td>8</td>
+                        <td>Deploy Frontend (Deployment + Service + Ingress)</td>
+                        <td><code>kubectl rollout status deploy/frontend -n myapp</code></td>
+                    </tr>
+                    <tr>
+                        <td>9</td>
+                        <td>Verify end-to-end connectivity</td>
+                        <td><code>curl -s https://myapp.example.com/api/health</code></td>
+                    </tr>
+                    <tr>
+                        <td>10</td>
+                        <td>Monitor dashboards for errors</td>
+                        <td>Check Grafana for error rate spike post-deploy</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            Complete Kubernetes, DevOps & SRE Reference | Built for study & interview preparation | 2026
+        </footer>
+
+    </div>
+
+</body>
+</html>
