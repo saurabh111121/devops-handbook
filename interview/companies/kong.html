@@ -9,28 +9,94 @@
 </head>
 <body>
 
-    <nav class="topnav">
+        <nav class="topnav">
         <a href="../../index.html" class="brand">DevOps Handbook</a>
+
         <div class="nav-item">
             <a href="../../containers/index.html">Containers</a>
+            <div class="nav-dropdown">
+                <a href="../../containers/docker.html">Docker, Compose \&amp; Images</a>
+            </div>
         </div>
+
         <div class="nav-item">
             <a href="../../kubernetes-core/index.html">Kubernetes Core</a>
+            <div class="nav-dropdown">
+                <a href="../../kubernetes-core/architecture.html">Architecture</a>
+                <a href="../../kubernetes-core/workloads.html">Workloads</a>
+                <a href="../../kubernetes-core/networking.html">Networking</a>
+                <a href="../../kubernetes-core/storage.html">Storage</a>
+                <a href="../../kubernetes-core/scaling.html">Scaling \&amp; Scheduling</a>
+                <a href="../../kubernetes-core/security.html">Security</a>
+                <a href="../../kubernetes-core/observability.html">Observability</a>
+            </div>
         </div>
+
         <div class="nav-item">
             <a href="../../kubernetes-advanced/index.html">K8s Advanced</a>
+            <div class="nav-dropdown">
+                <a href="../../kubernetes-advanced/advanced-topics.html">Strategies, Helm \&amp; Operators</a>
+                <a href="../../kubernetes-advanced/service-mesh.html">Service Mesh (Istio)</a>
+                <a href="../../kubernetes-advanced/argocd-gitops.html">ArgoCD \&amp; GitOps</a>
+                <a href="../../kubernetes-advanced/multi-tier-deployment.html">Multi-Tier Deployment</a>
+                <a href="../../kubernetes-advanced/troubleshooting.html">Troubleshooting</a>
+                <a href="../../kubernetes-advanced/yaml-reference.html">YAML Reference</a>
+            </div>
         </div>
+
         <div class="nav-item">
             <a href="../../devops/index.html">DevOps</a>
+            <div class="nav-dropdown">
+                <a href="../../devops/git.html">Git</a>
+                <a href="../../devops/cicd.html">CI/CD \&amp; Pipelines</a>
+                <a href="../../devops/sre.html">SRE Principles</a>
+                <a href="../../devops/observability.html">Observability</a>
+                <a href="../../devops/terraform.html">Terraform</a>
+                <a href="../../devops/ansible.html">Ansible</a>
+            </div>
         </div>
+
         <div class="nav-item">
             <a href="../../infrastructure/index.html">Infrastructure</a>
+            <div class="nav-dropdown">
+                <a href="../../infrastructure/linux-networking.html">Linux \&amp; Networking</a>
+                <a href="../../infrastructure/aws-cloud.html">AWS Cloud</a>
+                <a href="../../infrastructure/tls-certificates.html">TLS \&amp; Certificates</a>
+                <a href="../../infrastructure/databases.html">Databases</a>
+                <a href="../../infrastructure/message-queues.html">Message Queues</a>
+                <a href="../../infrastructure/cost-finops.html">Cost \&amp; FinOps</a>
+                <a href="../../infrastructure/disaster-recovery.html">Disaster Recovery</a>
+            </div>
         </div>
+
         <div class="nav-item">
             <a href="../../application/index.html">Application</a>
+            <div class="nav-dropdown">
+                <a href="../../application/microservices.html">Microservices</a>
+                <a href="../../application/api-rest.html">API \&amp; REST</a>
+                <a href="../../application/scripting.html">Bash \&amp; Python</a>
+                <a href="../../application/prometheus-grafana.html">Prometheus \&amp; Grafana</a>
+                <a href="../../application/logging-stacks.html">Logging Stacks</a>
+            </div>
         </div>
+
         <div class="nav-item">
             <a href="../../interview/index.html" class="active">Interview</a>
+            <div class="nav-dropdown">
+                <a href="../../interview/interview-prep.html">Interview Prep</a>
+                <a href="../../interview/companies/index.html">Company Interviews</a>
+            </div>
+        </div>
+
+        <div class="topnav-controls">
+            <div class="search-wrapper">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" class="search-input" placeholder="Search... ( / )">
+                <div class="search-results"></div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">&#9788;</span> Light
+            </button>
         </div>
     </nav>
 
@@ -54,6 +120,61 @@
             <strong>Shift:</strong> 4 PM – 1 AM IST (EST coverage)<br>
             <strong>Company Values (COURAGE):</strong> Customer Champions, Owners, Unstoppable, Real, Accelerators, Global, Explorers
         </div>
+
+        <!-- JD Dropdown -->
+        <details class="jd-dropdown">
+            <summary class="jd-toggle">
+                <i class="fa-solid fa-file-lines"></i> View Full Job Description
+                <i class="fa-solid fa-chevron-down jd-arrow"></i>
+            </summary>
+            <div class="jd-content">
+                <h4>Are you ready to unlock intelligence?</h4>
+                <p>If you don't think you meet all of the criteria below but are still interested in the job, please apply. Nobody checks every box - we're looking for candidates that are particularly strong in a few areas, and have some interest and capabilities in others.</p>
+
+                <h4>About the role:</h4>
+                <p>You will be working at a hectic and fast paced Startup as an engineer in the Technical Support Engineering (TSE) team. This team is responsible for assisting Kong customers in resolving complex technical issues in production and pre-production environments.</p>
+                <p>You will have the opportunity to work with your teammates and our customers to support many new, leading-edge technologies that solve real challenges. You will work to provide robust feedback and guidance to our Product and Engineering teams while being a voice for our customers. You want to make our customers and partners successful while strengthening their relationship with Kong. You can make a huge impact and have real ownership for the work you do.</p>
+                <p><strong>This opportunity requires the candidates to be able to work 4 PM - 1 AM ( India Time) to support the EST shift.</strong></p>
+
+                <h4>What you'll be doing:</h4>
+                <ul>
+                    <li>Working with top developers from around the world; helping to implement Kong Products and Technologies including our API Gateway and ServiceMesh solutions.</li>
+                    <li>Leading the investigation of complex technical puzzles and working collaboratively to understand and resolve customer issues via live troubleshooting calls and emails in an enterprise environment.</li>
+                    <li>Creating knowledge articles to compliment our documentation and enable customers to better understand product use cases.</li>
+                    <li>Work closely with engineering and product by providing real-time feedback about product performance and customer needs.</li>
+                    <li>Collaborate closely with other customer facing teams including Education, Technical Account Managers, CSMs and PS for customer issues.</li>
+                    <li>Participate in bringing innovation within the support team, the company and with our customers, by looking for better ways to do the work we do, improve the tools we use and the how we raise the bar on the service we deliver to our Global customers.</li>
+                    <li>Provide technical mentorship to other team members and participate in any ad-hoc projects.</li>
+                </ul>
+
+                <h4>What you bring:</h4>
+                <ul>
+                    <li>You are a voracious learner who loves to dig into technical mysteries and has the creativity to solve complex technical problems.</li>
+                    <li>You can build relationships with like-minded teammates, smart customers, and global partners.</li>
+                    <li>Share a growth mindset, learn and adapt quickly.</li>
+                </ul>
+                <p>Some of the skills that you will regularly use include:</p>
+                <ul>
+                    <li>REST and RESTful APIs</li>
+                    <li>Coding skills- (at a minimum, read and troubleshoot code).</li>
+                    <li>Cloud technologies, Containers, cluster deployment and management tools like Docker, Docker Swarm, Kubernetes and others.</li>
+                    <li>You know your way around web architectures, including HTTP.</li>
+                    <li>5+ years of experience in a customer-facing technical role.</li>
+                </ul>
+
+                <h4>Bonus Points:</h4>
+                <ul>
+                    <li>Familiarity with DNS, Linux/Unix-type systems and/or databases.</li>
+                    <li>GoLang and/or Lua experience.</li>
+                    <li>Experience with scripting languages such as Perl, Ruby, Shell.</li>
+                </ul>
+
+                <p><em>#LI-PC1</em></p>
+
+                <h4>About Kong:</h4>
+                <p>Kong Inc., a leading developer of API and AI connectivity technologies, is building the infrastructure that powers the agentic era. Trusted by the Fortune 500 and startups alike, Kong's unified API and AI platform, Kong Konnect, enables organizations to secure, manage, accelerate, govern, and monetize the flow of intelligence across APIs and AI models. For more information, visit <a href="https://www.konghq.com" target="_blank">www.konghq.com</a>.</p>
+            </div>
+        </details>
 
         <!-- Interview Process -->
         <h3>Interview Process (5-6 Rounds)</h3>
@@ -443,7 +564,6 @@ openssl s_client -connect host:443 -servername host
 
         <hr>
 
-        <p style="color: var(--text-muted); text-align: center; margin-top: 2rem;"><em>More company interviews will be added here as you prepare for them.</em></p>
 
         <footer>
             DevOps Handbook | Company Interview Prep | 2026
