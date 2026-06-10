@@ -128,14 +128,17 @@
 
         <!-- Assignment -->
         <h3>Coding / Debugging Assignment (Expected Format)</h3>
+        <div class="card card-warning">
+            <strong>What research could and couldn't confirm:</strong> No verified candidate report (Glassdoor / Blind / Reddit) confirms that this role has a JS take-home or live coding assignment, its content, or its duration. A rumored "Auth0 1-2 week take-home" was <strong>actively refuted</strong>. So <strong>don't assume a formal take-home</strong> — but the <em>technical surface area</em> below is well-established from Okta's own docs and is exactly what a hands-on round would draw on. <strong>Ask your recruiter</strong> whether there's a coding/debugging component.
+        </div>
         <div class="card">
-            <p>For a <strong>support</strong> role the exercise is integration/debugging-flavored, <strong>not</strong> LeetCode. Most likely:</p>
+            <p>For a <strong>support</strong> role any exercise is integration/debugging-flavored, <strong>not</strong> LeetCode. Most likely:</p>
             <ul>
                 <li><strong>Live shared-screen debugging</strong> of a broken auth integration (the highest-probability format)</li>
                 <li>Read a customer's JavaScript snippet and explain/fix what's wrong</li>
                 <li>"Write a basic HTML/JS structure to integrate the Okta Sign-In Widget" (a reported question)</li>
                 <li>Decode &amp; validate a JWT; trace a broken OAuth/OIDC/SAML login from a HAR file</li>
-                <li>Possibly a small take-home: build a login + protected-API call (note: the <em>frontend</em> roles had a Next.js take-home — a different track)</li>
+                <li>Integrate / debug the Okta SDKs in a React SPA — misconfigured <code>issuer</code>, <code>clientId</code>, <code>redirectUri</code>, <code>scopes</code>, or CORS/Trusted Origins (note: the <em>frontend</em> roles had a Next.js take-home — a different track)</li>
             </ul>
             <p><strong>They grade your process</strong> (read → reproduce → hypothesize → fix one thing → verify → narrate) as much as the fix.</p>
         </div>
@@ -555,16 +558,48 @@ const isExpired = payload.exp * 1000 &lt; Date.now();
 &lt;/script&gt;
 // SDK alternative: @okta/okta-auth-js — new OktaAuth({issuer, clientId, redirectUri,
 //   scopes, pkce:true}); signInWithRedirect(); token.parseFromUrl() on /callback.
+// Identity Engine (Widget v7+, default): authClient.idx.authenticate({username,password})
+//   + handleTransaction() switch on PENDING/FAILURE/SUCCESS; getUserInfo() for profile.
+//   @okta/okta-react &lt;LoginCallback&gt; runs handleLoginRedirect() to store tokens + redirect.
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="filename">Debug a broken SAML login from a HAR (Okta's documented procedure)</span></div>
+<pre>
+# 1. Open DevTools Network tab, reproduce the login, export the HAR
+# 2. Filter requests for the ACS endpoint (e.g. "samlconsumer")
+# 3. Copy the SAMLResponse from Form Data (exclude RelayState), then decode:
+echo "&lt;SAMLResponse&gt;" | base64 --decode | xmllint --format -
+
+# 4. Validate IdP vs SP values match EXACTLY:
+#    Audience · Destination/ACS · Issuer/entityID · X509 cert
+#    NameID (often username, NOT email) · NotBefore / NotOnOrAfter (clock skew)
+# Pitfall: IdPs that open a NEW TAB after redirect are not captured in the HAR.
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="filename">Okta error schema — know the two shapes</span></div>
+<pre>
+// API errors (JSON):   { errorCode, errorSummary, errorLink, errorId, errorCauses[] }
+//   E0000004  authentication failed            (401)
+//   E0000207  bad username/password            (401)
+//   E0000064  password expired                 (401)
+//   E0000047  rate limit exceeded              (429)
+// OAuth/OIDC errors (redirect query params):  ?error=...&error_description=...
+//   access_denied · invalid_scope · login_required · invalid_client · invalid_grant
 </pre>
         </div>
 
         <div class="card">
-            <h4>Practice tasks before the interview (hands-on)</h4>
+            <h4>Practice tasks before the interview (hands-on, all verified)</h4>
             <ol>
-                <li>Spin up a <strong>free Okta Developer org</strong> (or Auth0 free tenant) and get a real Sign-In Widget login working.</li>
-                <li>Decode the real JWT at jwt.io; identify <code>iss/aud/exp/scope</code>.</li>
-                <li><strong>Break it on purpose, then fix it:</strong> change <code>redirect_uri</code>, drop the <code>openid</code> scope, send JSON to <code>/token</code> — watch each error in the Network tab.</li>
-                <li>Capture a <strong>HAR</strong> of a full login and trace every redirect + the token exchange.</li>
+                <li>Clone Okta's runnable sample <code>okta-auth-js/samples/generated/static-spa</code> (runs on <code>http://localhost:8080</code>) and exercise the full sign-in/token flow.</li>
+                <li>Spin up a <strong>free Okta Developer org</strong>, create an <strong>OIDC SPA</strong> app (Refresh Token + Interaction Code grants, PKCE, redirect <code>http://localhost:8080/login/callback</code>, Trusted Origins/CORS), and get a Sign-In Widget login working in a React SPA.</li>
+                <li><strong>Break it on purpose, then fix it:</strong> wrong <code>issuer</code>/<code>clientId</code>, mismatched <code>redirectUri</code>, drop the <code>openid</code> scope, missing CORS/Trusted Origin — watch each error in the Network tab.</li>
+                <li>Use <strong>oidcdebugger.com</strong> to fire and inspect an authorization request; decode the JWT at jwt.io (<code>iss/aud/exp/scope</code>).</li>
+                <li>Capture a <strong>HAR</strong> of a full login and a SAML response; decode both. Reproduce the token exchange with <code>curl</code>.</li>
                 <li>Write the plain-JS JWT decoder from memory; redo the spot-the-bug drills until instant.</li>
             </ol>
         </div>
