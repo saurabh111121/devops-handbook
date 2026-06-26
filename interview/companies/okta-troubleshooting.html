@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Okta Troubleshooting Scenario Bank - DevOps Handbook</title>
+    <link rel="stylesheet" href="../../css/style.css">
+    <script src="../../js/app.js"></script>
+</head>
+<body>
+    <div id="topnav"></div>
+
+    <div class="container">
+        <nav class="breadcrumb">
+            <a href="../../index.html">Home</a> &gt; <a href="../index.html">Interview</a> &gt; <a href="okta.html">Okta</a> &gt; <span>Troubleshooting Scenario Bank</span>
+        </nav>
+
+        <h1>Okta — Troubleshooting Scenario Bank</h1>
+        <p class="subtitle">Senior DSE interview prep — realistic customer-ticket scenarios across 10 support domains. Each one: symptom → deep-dive methodology → ranked root causes → remediation → panel one-liner.</p>
+
+        <div class="card card-info">
+            <strong>Companion page:</strong> This extends the main <a href="okta.html">Okta interview prep</a> page. Use that for protocol theory (OAuth/OIDC/SAML/JWT) and the JS/debugging assignment; use this for deep troubleshooting drills. Difficulty is tagged per scenario:
+            <span class="tag tag-green">warmup</span>
+            <span class="tag tag-blue">mid</span>
+            <span class="tag tag-purple">senior</span>
+            <span class="tag tag-red">curveball / P1</span>
+        </div>
+
+        <div class="card card-warning">
+            <strong>Accuracy note:</strong> Every Okta-specific detail below (System Log <code>eventType</code> strings, headers, error codes, endpoints, limits) was adversarially fact-checked. A few specifics are flagged "verify against current Okta docs" — Okta relabels Admin Console UI and rotates schedules, so confirm exact strings live before quoting them as gospel in an interview.
+        </div>
+
+        <!-- Framework -->
+        <h3>How to attack ANY Okta ticket (4-line framework)</h3>
+        <div class="card card-info">
+            <div class="point">
+                <div class="point-num">1</div>
+                <div class="point-content"><span class="point-title">Capture evidence</span> — reproduce; grab the exact error string/HTTP status, timestamp, user/app, the <code>X-Okta-Request-Id</code> response header <strong>and</strong> the body's <code>errorId</code> (they are <em>separate</em> identifiers — capture both).</div>
+            </div>
+            <div class="point">
+                <div class="point-num">2</div>
+                <div class="point-content"><span class="point-title">System Log filter</span> — <strong>Reports &gt; System Log</strong>; search the request id, or filter <code>eventType eq "..."</code> + <code>actor</code>/<code>target</code> + time window to find the authoritative event.</div>
+            </div>
+            <div class="point">
+                <div class="point-num">3</div>
+                <div class="point-content"><span class="point-title">debugContext pivot</span> — open the event's <code>debugContext.debugData</code> for <code>requestId</code>, policy context, client/zone, and <code>outcome.result</code>/<code>outcome.reason</code> to see <em>what was evaluated and why</em>.</div>
+            </div>
+            <div class="point">
+                <div class="point-num">4</div>
+                <div class="point-content"><span class="point-title">Scope + remediate</span> — identify blast radius (one user vs cohort vs org) and the acting policy/config; fix at the right layer and re-test with exponential backoff on any retried API/agent calls.</div>
+            </div>
+        </div>
+
+        <!-- Quick index -->
+        <div class="card">
+            <h4>Domains</h4>
+            <p>
+                <a href="#saml">SAML SSO</a> ·
+                <a href="#oidc">OIDC / OAuth tokens</a> ·
+                <a href="#scim">SCIM provisioning</a> ·
+                <a href="#mfa">MFA / Factors</a> ·
+                <a href="#api">API errors</a> ·
+                <a href="#policy">Sign-on policies</a> ·
+                <a href="#ad">AD / LDAP</a> ·
+                <a href="#network">Network zones &amp; ThreatInsight</a> ·
+                <a href="#hooks">Hooks &amp; Workflows</a> ·
+                <a href="#sessions">Sessions &amp; cookies</a>
+            </p>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- SAML -->
+        <!-- ============================================================ -->
+        <h3 id="saml">SAML SSO</h3>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-green">warmup</span>
+                <span class="title">App tile bounces to SP error ("Invalid SAML response") but the Okta dashboard loads fine — "Okta is broken."</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Dashboard loads → org session healthy; this is app/assertion-level, not an outage.</li>
+                    <li>Pull <code>eventType eq "user.authentication.sso"</code> — a SUCCESS is a <em>strong indication</em> Okta initiated/redirected SSO, <strong>not</strong> proof the assertion was byte-valid; then look SP-side.</li>
+                    <li>Rule out an app-policy denial: <code>policy.evaluate_sign_on</code> with <code>outcome.result = DENY</code> (app access under <code>app.access.*</code>).</li>
+                    <li>Capture the SAMLResponse (SAML-tracer / HAR), decode, compare <code>Destination</code> / <code>Recipient</code> / <code>Audience</code> vs the SP's expectation.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>ACS URL / Audience (entityID) mismatch</strong> — <em>most common</em></li>
+                    <li>NameID format/value the SP doesn't recognize (expects email, gets login)</li>
+                    <li>App sign-on policy DENY</li>
+                    <li>SP clock skew / stale metadata</li>
+                </ul>
+                <p><strong>Remediation:</strong> align ACS/Audience/NameID in the Okta SAML app, re-exchange metadata both directions, re-test.</p>
+                <p><em>Panel one-liner: "Dashboard loads but the tile fails → it's the assertion or the App Sign-On Policy, not the org; I decode the SAMLResponse and reconcile ACS/Audience/NameID against the SP."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-blue">mid</span>
+                <span class="title">All users of one SAML app fail with a signature-validation error at the SP.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Every user of one app → per-app cert/config, not user-specific.</li>
+                    <li><code>user.authentication.sso</code> shows Okta minted/redirected (confirm the SP-side rejection separately — signatures are validated by the SP).</li>
+                    <li>Decode the response, inspect <code>&lt;ds:Signature&gt;</code> + embedded <code>X509Certificate</code> fingerprint vs what the SP trusts.</li>
+                    <li>Was Okta's signing cert rotated/regenerated, and did the SP get the new public cert?</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>Okta signing cert rotated; SP still trusts the old public cert</strong> — <em>most common</em></li>
+                    <li>SP requires assertion <em>and</em> response signing while Okta signs only one</li>
+                    <li>Algorithm mismatch (SHA-1 vs SHA-256)</li>
+                </ul>
+                <p><strong>Remediation:</strong> export Okta's current signing cert, install at the SP (or re-share metadata); align signing scope + digest/signature algorithm; re-test for the cohort.</p>
+                <p><em>Panel one-liner: "All-users signature failure = certificate/trust drift; Okta 'initiating SSO' isn't proof the bytes validated, so I match the signing cert fingerprint and algorithm at the SP."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-purple">senior</span>
+                <span class="title">~5% intermittent rejects at the SP: "response not yet valid / expired."</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Intermittent + time-condition wording → clock skew, not config.</li>
+                    <li>Correlate failing <code>user.authentication.sso</code> timestamps; compare the response's <code>NotBefore</code> / <code>NotOnOrAfter</code> window to the SP's clock.</li>
+                    <li>Do failures cluster on a subset of load-balanced SP nodes (one drifted host)?</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>SP host NTP drift</strong> on one node — <em>most common</em></li>
+                    <li>Assertion validity window too tight for SP processing latency</li>
+                    <li>Caching proxy holding/replaying responses past validity</li>
+                </ul>
+                <p><strong>Remediation:</strong> fix NTP on SP hosts; if Okta-side, confirm assertion lifetime; add SP-side skew tolerance per SP guidance.</p>
+                <p><em>Panel one-liner: "Intermittent 'not yet valid' = clock skew on a subset of SP nodes; I correlate failing timestamps against the assertion's NotBefore/NotOnOrAfter."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-red">curveball</span>
+                <span class="title">Newly assigned user gets "you are not assigned this app" — but is in fact assigned.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Verify the assignment actually exists; distinguish "not assigned" from "assigned but denied."</li>
+                    <li>Pull <code>policy.evaluate_sign_on</code> (one token, <strong>underscore</strong> — not <code>evaluate.sign_on</code> with a dot, which fails the filter); read <code>outcome.result = DENY</code> + <code>outcome.reason</code>. Optionally correlate <code>app.access.*</code>.</li>
+                    <li>Inspect the matched App Sign-On rule conditions (network zone, device, user-type, group).</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>App Sign-On rule denies the context</strong> (off-network, unmanaged device, missing factor) — assigned-but-denied — <em>most common</em></li>
+                    <li>Group-driven assignment lag / user assigned via a group the policy excludes</li>
+                    <li>Rule ordering — a broad DENY rule above the intended ALLOW</li>
+                </ul>
+                <p><strong>Remediation:</strong> adjust the offending rule or the user's context; fix rule order; re-test and confirm <code>policy.evaluate_sign_on</code> flips to ALLOW.</p>
+                <p><em>Panel one-liner: "'Not assigned' usually means assigned-but-denied; I read <code>policy.evaluate_sign_on</code> DENY and the App Sign-On Policy rule that fired."</em></p>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- OIDC / OAuth -->
+        <!-- ============================================================ -->
+        <h3 id="oidc">OIDC / OAuth Tokens</h3>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-green">warmup</span>
+                <span class="title">SPA <code>POST /token</code> returns <code>400 invalid_grant</code> "authorization code is invalid or has expired."</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li><code>invalid_grant</code> = bad/expired/already-used code (treat <code>error_description</code> as representative, not verbatim — wording varies).</li>
+                    <li>Okta auth codes are <strong>single-use and valid for 300 s (5 minutes)</strong> — confirm you're not past 5 min or replaying a code.</li>
+                    <li>Check for double-exchange (double-submit, React StrictMode double-render, retry logic).</li>
+                    <li>Verify PKCE: the <code>code_verifier</code> at <code>/token</code> must match the <code>code_challenge</code> sent to <code>/authorize</code>.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>Code reused / double-exchanged</strong> (single-use violated) — <em>most common</em></li>
+                    <li>PKCE <code>code_verifier</code>/<code>code_challenge</code> mismatch</li>
+                    <li>Code exchanged after the 300 s window</li>
+                    <li>Wrong <code>redirect_uri</code>/<code>client_id</code> on the token call vs the authorize call</li>
+                </ul>
+                <p><strong>Remediation:</strong> exchange the code exactly once, persist the verifier across the redirect, complete the exchange well within 5 minutes; fix StrictMode/retry double-fire.</p>
+                <p><em>Panel one-liner: "<code>invalid_grant</code> on <code>/token</code> = single-use code reused, PKCE mismatch, or the 5-minute (300s) window blown — not a 60-second window."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-blue">mid</span>
+                <span class="title">Resource server starts <code>401</code> "unable to find a signing key matching kid" after months stable.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Which AS issued it — <strong>org AS vs custom AS</strong> — changes everything.</li>
+                    <li><strong>Custom-AS</strong> JWT: decode header <code>kid</code>, fetch JWKS from <code>/oauth2/{authServerId}/v1/keys</code>, confirm <code>kid</code> present — locally verifiable.</li>
+                    <li><strong>Org-AS</strong> token: do <strong>not</strong> locally JWT-verify against <code>/oauth2/v1/keys</code>; org-AS tokens are opaque, structure can change without notice — validate via <code>/introspect</code>.</li>
+                    <li>"Worked for months" → automatic key rotation (documented as roughly quarterly, <em>subject to change — verify in docs</em>).</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>RS cached an old key, didn't refresh JWKS on rotation</strong> — <em>most common</em></li>
+                    <li>RS trying to locally verify an <strong>org-AS</strong> token that should be introspected</li>
+                    <li>Wrong JWKS URI (org vs custom AS)</li>
+                </ul>
+                <p><strong>Remediation:</strong> don't hardcode keys — cache JWKS with TTL and refresh on an unknown <code>kid</code> (self-heals, since Okta publishes new keys ahead of use); custom-AS → verify against <code>/oauth2/{id}/v1/keys</code>; org-AS → <code>/introspect</code>.</p>
+                <p><em>Panel one-liner: "Unknown-<code>kid</code> after months = key rotation; refresh JWKS for custom-AS tokens, but org-AS tokens are opaque — introspect them, don't JWKS-verify."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-blue">mid</span>
+                <span class="title"><code>GET /authorize</code> errors that <code>redirect_uri</code> doesn't match a registered value.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Compare the exact <code>redirect_uri</code> param vs the app's registered Sign-in redirect URIs.</li>
+                    <li>Okta requires <strong>exact match</strong> on scheme/host/port/string and allows <strong>no path wildcards</strong>.</li>
+                    <li>Hunt the invisible diff: <code>http</code> vs <code>https</code>, trailing slash, explicit <code>:443</code> vs default, stray query/<code>#fragment</code>. <em>(Don't lead with "path case" — scheme/host are case-insensitive per RFC 3986 and Okta path-case sensitivity is unverified.)</em></li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong><code>http</code> vs <code>https</code> or trailing-slash mismatch</strong> — <em>most common</em></li>
+                    <li>Explicit vs default port difference</li>
+                    <li>Stray query/fragment appended</li>
+                    <li>URI simply not registered on the right app/client</li>
+                </ul>
+                <p><strong>Remediation:</strong> register the exact URI string the client uses; standardize one canonical form; re-test.</p>
+                <p><em>Panel one-liner: "<code>redirect_uri</code> mismatch = an invisible diff — scheme, trailing slash, port, or query/fragment; exact match, no wildcards."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-purple">senior</span>
+                <span class="title">After a "hardening" release, access tokens are missing scopes/claims → downstream <code>403</code>.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Decode the access token — granted scopes are in the <code>scp</code> claim (custom-AS access tokens).</li>
+                    <li>Pull the custom-AS grant: <code>app.oauth2.as.token.grant</code> (children <code>.access_token</code>/<code>.id_token</code>/<code>.refresh_token</code>; the <code>.as.</code> segment = custom-AS, vs org-AS <code>app.oauth2.token.grant</code>).</li>
+                    <li>Check <strong>Security &gt; API &gt; Authorization Servers &gt; [server] &gt; Access Policies</strong> + <strong>Claims</strong> — custom claims like <code>groups</code> emit only when a rule grants them and per the claim's include conditions.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>Hardening release tightened an Access Policy rule</strong>, so requested scopes aren't granted — <em>most common</em></li>
+                    <li>A claim's "include in token type / scope" condition changed</li>
+                    <li>Client now requesting fewer scopes / wrong AS</li>
+                </ul>
+                <p><strong>Remediation:</strong> adjust the AS Access Policy rule to grant needed scopes, fix the claim's include condition, confirm the client requests the right scopes against the right AS.</p>
+                <p><em>Panel one-liner: "Missing scopes/claims after a release = an Access Policy/Claims change on the custom AS; <code>scp</code> carries scopes, and <code>groups</code>-style claims are policy-gated."</em></p>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- SCIM -->
+        <!-- ============================================================ -->
+        <h3 id="scim">SCIM Provisioning &amp; Lifecycle</h3>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-green">warmup</span>
+                <span class="title">"Automatic provisioning failed" banner when assigning a user to a SCIM app.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Capture <code>X-Okta-Request-Id</code>, correlate via <code>debugContext.debugData.requestId</code> (<strong>not</strong> <code>dtHash</code> — that's the Device Token Hash for session/device correlation).</li>
+                    <li>Filter <code>application.provision.user.push</code> (+ related <code>application.lifecycle</code> events) with <code>outcome.result = FAILURE</code>.</li>
+                    <li>Read <code>debugData</code> for the SCIM response code/body from the downstream app.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>Required SCIM attribute missing/invalid</strong> (e.g. no <code>userName</code>/email) → app returns 400 — <em>most common</em></li>
+                    <li>Mapping produces a value the target rejects (format/uniqueness conflict)</li>
+                    <li>SCIM bearer token expired → 401 from the app</li>
+                </ul>
+                <p><strong>Remediation:</strong> fix the mapping or supply the missing required attribute; refresh the provisioning credential; re-push the user.</p>
+                <p><em>Panel one-liner: "Provisioning-failed banner → correlate by <code>requestId</code> (not <code>dtHash</code>) and read the SCIM response in <code>debugData</code>; usually a missing required attribute or expired token."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-blue">mid</span>
+                <span class="title">Group Push to the SCIM app is broken — members aren't showing up / "Push group failed."</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Correlate via <code>debugContext.debugData.requestId</code> (again, not <code>dtHash</code>).</li>
+                    <li>Filter the <strong>real</strong> events under the <code>application.provision.group_push.*</code> prefix — e.g. <code>.mapping.created</code>, <code>.pushed</code>, <code>.push_memberships</code>, <code>.updated</code>/<code>.removed</code>, and failures like <code>.mapping.update.or.delete.failed</code>. <em>(There is no <code>group.push.mapping.create</code> or <code>group.push.mapping.update</code>.)</em></li>
+                    <li>Confirm the pushed group's <em>members</em> are also assigned to the app.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>Group is pushed but its members aren't assigned to the app</strong>, so users never provision — <em>most common</em></li>
+                    <li>Naming conflict with an existing group at the target</li>
+                    <li>Required attributes missing for member users</li>
+                </ul>
+                <p><strong>Remediation:</strong> ensure pushed-group members are also assigned to the app (parallel assignment group or direct assignment). <strong>Do not reuse the same group for both app assignment and Group Push</strong> — Okta explicitly doesn't support it; keep them separate.</p>
+                <p><em>Panel one-liner: "Group Push events live under <code>application.provision.group_push.*</code>; and never reuse one group for both assignment and push — Okta says keep them separate."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-purple">senior</span>
+                <span class="title">Deprovisioning out of sync — deactivated Okta users remain active in the downstream app.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Correlate the deactivation via <code>debugContext.debugData.requestId</code>.</li>
+                    <li>Filter <code>application.provision.user.deactivate</code> (+ <code>user.lifecycle.deactivate</code>) with <code>outcome.result</code>.</li>
+                    <li>Check the app's <strong>To App</strong> provisioning settings: is "Deactivate Users" enabled?</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>"Deactivate Users" not enabled</strong>, so no SCIM <code>PATCH active:false</code> is sent — <em>most common</em></li>
+                    <li>Downstream app doesn't honor SCIM deactivation (returns success but doesn't disable)</li>
+                    <li>User was <em>removed</em> from the app rather than deactivated → orphaned downstream account</li>
+                </ul>
+                <p><strong>Remediation:</strong> enable Deactivate Users in the app's To-App settings; verify the app processes <code>active:false</code>; reconcile orphaned accounts.</p>
+                <p><em>Panel one-liner: "Stale downstream accounts after deactivation = 'Deactivate Users' not enabled in the app's To-App settings; confirm the <code>active:false</code> PATCH actually fires."</em></p>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- MFA -->
+        <!-- ============================================================ -->
+        <h3 id="mfa">MFA / Factors / Authenticators</h3>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-blue">mid</span>
+                <span class="title">User taps Approve on Okta Verify push but the browser keeps spinning; office-WiFi users affected, cellular users fine.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Scope split (office fails, cellular works) → corporate network/egress problem — classic SSL-inspection / MITM proxy breaking the push round-trip.</li>
+                    <li>Confirm which event fires: classic factors use <code>system.push.send_factor_verify_push</code>, but <strong>modern Okta Verify on OIE</strong> push / number-matching is typically surfaced via <code>user.authentication.auth_via_mfa</code> — <em>confirm Classic vs OIE first</em>.</li>
+                    <li>Key split: push <em>send</em> SUCCESS vs the <em>auth</em> event timing out → the approval isn't completing the loopback.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>SSL inspection / proxy on office WiFi breaking the device→Okta callback</strong> — <em>most common</em></li>
+                    <li>Egress firewall blocking Okta push/OIE endpoints</li>
+                    <li>Device time/connectivity issue only on that WiFi</li>
+                </ul>
+                <p><strong>Remediation:</strong> exempt Okta push/auth domains from SSL inspection, open required egress on corporate WiFi, re-test; confirm against the eventType that actually fires in this org's engine.</p>
+                <p><em>Panel one-liner: "Push approve but spin, office-only = SSL inspection/egress on corporate WiFi; I confirm Classic <code>system.push.*</code> vs OIE <code>user.authentication.auth_via_mfa</code> before quoting an event."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-blue">mid</span>
+                <span class="title">Okta Verify rejects the 6-digit TOTP code as invalid every time, though SMS works.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>SMS works, TOTP fails → not delivery; TOTP is time-based, so suspect device clock drift.</li>
+                    <li>Find enrollment via <code>user.mfa.factor.activate</code> (and <code>reset_all</code>/<code>deactivate</code> for re-enrollment) — <strong>there is no <code>user.mfa.factor.update</code> event</strong>, so don't filter on it.</li>
+                    <li>Check the phone's automatic-time setting; TOTP tolerance is small.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>Device clock drift</strong> on the phone generating TOTP (manual time, dead NTP) — <em>most common</em></li>
+                    <li>Wrong/duplicate enrollment — code from a stale enrollment</li>
+                    <li>Typo / expired window on entry</li>
+                </ul>
+                <p><strong>Remediation:</strong> set the device to automatic network time; if needed reset the factor (<code>reset_all</code>/<code>deactivate</code>) and re-enroll; re-test.</p>
+                <p><em>Panel one-liner: "TOTP fails but SMS works = device clock drift; I find enrollment via <code>user.mfa.factor.activate</code>/<code>reset_all</code> — there's no <code>factor.update</code> event."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-purple">senior</span>
+                <span class="title">A subset of users is stuck in a loop, re-prompted to enroll MFA every sign-in despite already enrolling Okta Verify.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Subset → group/policy or repeated-reset pattern, not org-wide.</li>
+                    <li>Look for repeated <code>user.mfa.factor.activate</code>/<code>deactivate</code> (a bulk reset shows as <code>user.mfa.factor.reset_all</code>, <em>not</em> the nonexistent <code>factor.update</code>).</li>
+                    <li>Check: a factor reset job, a conflicting MFA Enrollment Policy assigning a different required authenticator, or the enrolled factor not satisfying the required authenticator.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>An automation/policy repeatedly resetting factors</strong> — <em>most common</em></li>
+                    <li>Enrollment Policy requires an authenticator the user <em>isn't</em> enrolling</li>
+                    <li>Multiple policies with conflicting required authenticators</li>
+                </ul>
+                <p><strong>Remediation:</strong> stop the resetting automation; align the Enrollment Policy's required authenticator with what users actually enroll; resolve overlapping policy assignment.</p>
+                <p><em>Panel one-liner: "Enroll loop for a subset = factors getting reset (<code>reset_all</code>/<code>deactivate</code>) or an Enrollment Policy demanding an authenticator they aren't enrolling — and there's no <code>factor.update</code> event."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-red">curveball</span>
+                <span class="title">Security-key enrollment fails "You do not have permission..." — teammates enrolled the same key fine yesterday.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>"Permission" wording + worked-yesterday → an <strong>Authenticator Enrollment Policy</strong> change, not a hardware fault.</li>
+                    <li>Locate the denial via enrollment events — <code>user.mfa.factor.activate</code> with <code>outcome.result = FAILURE</code>, or the authenticator-enrollment-policy evaluation events. <strong>Do not</strong> point to <code>policy.evaluate_sign_on</code> — that's the <em>Sign-On</em> policy, not Enrollment. (Verify the exact enrollment-evaluation eventType in current docs.)</li>
+                    <li>Identify which Enrollment Policy rule the user matches and whether the authenticator was disabled/removed.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>Enrollment Policy changed so the security key isn't permitted for this group</strong> — <em>most common</em></li>
+                    <li>Authenticator set optional→disabled org-wide</li>
+                    <li>User moved into a group with a stricter enrollment rule</li>
+                </ul>
+                <p><strong>Remediation:</strong> re-enable the authenticator for the affected group's Enrollment Policy rule (or move the user back), then re-test enrollment.</p>
+                <p><em>Panel one-liner: "Enroll 'permission denied' that worked yesterday = an Authenticator Enrollment Policy change; I read it from the enrollment-evaluation/<code>factor.activate</code> FAILURE events, not <code>policy.evaluate_sign_on</code>."</em></p>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- API errors -->
+        <!-- ============================================================ -->
+        <h3 id="api">API Errors &amp; Status Codes (beyond 429)</h3>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-green">warmup</span>
+                <span class="title">Nightly user-provisioning job fails with <code>HTTP 401</code> / <code>E0000011</code> "Invalid token provided."</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Capture <strong>both</strong> the <code>X-Okta-Request-Id</code> response header <strong>and</strong> the body's <code>errorId</code> — these are two <em>separate</em> documented identifiers (different formats/values), and <strong>either</strong> can locate the System Log event. Don't assert they're equal.</li>
+                    <li><code>E0000011</code> = the API token (SSWS) or OAuth token is invalid/revoked/expired.</li>
+                    <li>Search the request id in <strong>Reports &gt; System Log</strong> to find the matching auth failure.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>SSWS API token deactivated/expired</strong> (Okta API tokens expire after 30 days of non-use — verify) or rotated and not updated in the job — <em>most common</em></li>
+                    <li>Token belongs to a deactivated service account</li>
+                    <li>Wrong org URL/environment (sandbox token hitting prod)</li>
+                </ul>
+                <p><strong>Remediation:</strong> issue/refresh a valid token, store it securely, add monitoring for token age; re-run.</p>
+                <p><em>Panel one-liner: "<code>401</code>/<code>E0000011</code> = dead API token; capture both the <code>X-Okta-Request-Id</code> header and the body <code>errorId</code> (separate values) and pivot to the System Log."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-blue">mid</span>
+                <span class="title">Browser SPA calls to the Okta org fail with CORS errors ("No 'Access-Control-Allow-Origin' header").</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>CORS errors are browser-enforced — the request may reach Okta but the response lacks the allow-origin header for that origin.</li>
+                    <li>Confirm the calling origin is registered as a <strong>Trusted Origin</strong> (Security &gt; API &gt; Trusted Origins) with <strong>CORS</strong> enabled.</li>
+                    <li>Capture <code>X-Okta-Request-Id</code> (and <code>errorId</code> if a body returns) to correlate — distinct fields; either correlates.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>Origin not added as a Trusted Origin with CORS type enabled</strong> — <em>most common</em></li>
+                    <li>Calling a non-CORS-enabled endpoint from the browser</li>
+                    <li>Origin mismatch (port/scheme) vs the registered Trusted Origin</li>
+                </ul>
+                <p><strong>Remediation:</strong> add/repair the Trusted Origin (exact scheme+host+port) with CORS enabled; re-test.</p>
+                <p><em>Panel one-liner: "Okta CORS failure = missing Trusted Origin with CORS enabled; I correlate via the request id and confirm the exact origin is registered."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-purple">senior</span>
+                <span class="title">A data-export integration only returns the "first 200 users" and silently misses the rest.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li><code>GET /api/v1/users</code> default page size is <strong>200</strong> (and 200 is the max for that endpoint) — the integration reads one page and stops. (Endpoint-specific; other list endpoints differ.)</li>
+                    <li>Confirm the client isn't following the <code>Link: ...; rel="next"</code> response header.</li>
+                    <li>Use cursor pagination: <code>/api/v1/users?limit=200&amp;after=&lt;cursor&gt;</code> driven by the <code>next</code> Link.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>Client ignores the <code>Link rel="next"</code> header and never paginates</strong> — <em>most common</em></li>
+                    <li>Client assumes total &lt; 200</li>
+                    <li>Client uses an unstable offset approach instead of the cursor</li>
+                </ul>
+                <p><strong>Remediation:</strong> implement cursor pagination by following <code>Link rel="next"</code> until absent; handle 429 with backoff.</p>
+                <p><em>Panel one-liner: "'Only 200 users' = not following the <code>Link: rel=next</code> cursor; default and max page size for List Users is 200, so you must paginate."</em></p>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- Sign-on policies -->
+        <!-- ============================================================ -->
+        <h3 id="policy">Sign-on &amp; Authentication Policies</h3>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-green">warmup</span>
+                <span class="title">User is prompted for MFA every time on Salesforce while other apps don't re-prompt.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Per-app behavior → the <strong>app's Authentication Policy</strong> rule, not the Global Session Policy.</li>
+                    <li>Pull <code>policy.evaluate_sign_on</code> for the launch, read the matched rule in <code>debugData</code>. (For OIDC apps the precise app-SSO event is <code>app.oauth2.signon</code>; <code>user.authentication.sso</code> is broader/legacy.)</li>
+                    <li>Inspect re-authentication frequency: the force-every-time option is labeled <strong>"Every sign-in attempt"</strong> (API value <code>PT0S</code>, an ISO-8601 zero-duration — not literally "0 minutes").</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>Salesforce rule set to "Every sign-in attempt"</strong> — <em>most common</em></li>
+                    <li>Other apps inherit a longer re-auth frequency, masking the contrast</li>
+                    <li>A factor/session constraint specific to that rule</li>
+                </ul>
+                <p><strong>Remediation:</strong> set a sensible re-auth frequency (or "once per session") on the Salesforce rule; re-test.</p>
+                <p><em>Panel one-liner: "Per-app re-prompt = that app's Authentication Policy rule set to 'Every sign-in attempt' (<code>PT0S</code>); I confirm via <code>policy.evaluate_sign_on</code>."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-blue">mid</span>
+                <span class="title">Users sign in to Okta but are denied at one app; both a Global Session and an app policy are in play.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Distinguish the two evaluations: the <strong>Global Session Policy</strong> (org session) vs the <strong>app Authentication/Access Policy</strong> (per-app).</li>
+                    <li>Pull <code>policy.evaluate_sign_on</code> and read the policy context in <code>debugData</code>. <em>(The policy types are real; the exact <code>policyType</code> enum strings — e.g. <code>OKTA_SIGN_ON</code> vs <code>ACCESS_POLICY</code> — are unverified, confirm against a live entry.)</em></li>
+                    <li>Identify which evaluation produced the DENY and the matched rule/reason.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>App Authentication Policy rule denies the context</strong> (zone/device/assurance) — <em>most common</em></li>
+                    <li>Global Session satisfied but app policy stricter</li>
+                    <li>Rule ordering — a DENY above the intended ALLOW</li>
+                </ul>
+                <p><strong>Remediation:</strong> edit the offending rule (or its order); confirm the user's context meets the app rule; re-test.</p>
+                <p><em>Panel one-liner: "Sign-in OK, app denied = the app Authentication Policy, not the Global Session Policy; I read which evaluation in <code>policy.evaluate_sign_on</code> produced the DENY."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-purple">senior</span>
+                <span class="title">After enabling IdP Discovery, some users are routed to the wrong IdP (or always to Okta).</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>IdP Discovery uses <strong>Routing Rules</strong>, configured under <strong>Security &gt; Identity Providers</strong> (Routing Rules section — verify the exact tab label in the current Admin Console).</li>
+                    <li>Rules evaluate in order, <strong>first applicable rule wins</strong>, and the <strong>default rule (Okta as IdP) is evaluated last</strong> as the catch-all.</li>
+                    <li>Identify which rule matched the affected users (domain/IP/device/attribute).</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>An overly broad rule above the intended one matches first</strong> — <em>most common</em></li>
+                    <li>The intended rule's condition (email domain/zone) doesn't match the users</li>
+                    <li>Users fall through to the default Okta rule because no rule matched</li>
+                </ul>
+                <p><strong>Remediation:</strong> reorder/tighten the Routing Rules so the intended rule matches first; re-test the cohort.</p>
+                <p><em>Panel one-liner: "Wrong-IdP routing = Routing Rule order; first applicable wins and the Okta default is last, so I find which rule matched under Security &gt; Identity Providers."</em></p>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- AD / LDAP -->
+        <!-- ============================================================ -->
+        <h3 id="ad">AD / LDAP Directory Integration</h3>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-red">P1</span>
+                <span class="title">All AD-sourced users suddenly can't log in to Okta; cloud-only users are fine.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Scope split (AD-sourced fail, cloud-only fine) → AD <strong>delegated authentication</strong> path is down (the AD agent).</li>
+                    <li>Filter the dedicated event <code>user.authentication.auth_via_AD_agent</code> with <code>outcome.result eq "FAILURE"</code> — the decisive AD-specific signal (<code>user.session.start</code>/<code>user.authentication.sso</code> aren't AD-specific).</li>
+                    <li>Check agent health/connect events: <code>system.agent.ad.connect</code>, <code>system.agent.ad.start</code>, <code>.reactivate</code>/<code>.deactivate</code> + Admin Console health. <strong>There is no <code>system.agent.ad.disconnect</code> event</strong> — don't alert on it (LDAP has <code>system.agent.ldap.disconnect</code>/<code>.reconnect</code>; AD has no equivalent).</li>
+                    <li>Pull the AD agent logs on the host (default <code>C:\Program Files\Okta\Okta AD Agent</code>, <code>logs</code> subfolder — exact filenames approximate; verify).</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>AD agent service down/unreachable on all hosts</strong> (crash, host patching, network) — <em>most common</em></li>
+                    <li>Service-account password expired / agent can't bind to AD</li>
+                    <li>Firewall/proxy change blocking agent→Okta connectivity</li>
+                </ul>
+                <p><strong>Remediation:</strong> restart/repair the AD agent service, fix service-account creds/connectivity; install redundant agents for HA; monitor via <code>system.agent.ad.connect</code>/<code>.start</code> and agent health (not a nonexistent disconnect event).</p>
+                <p><em>Panel one-liner: "AD-only login failure = the AD agent path; I filter <code>user.authentication.auth_via_AD_agent</code> FAILURE and check <code>system.agent.ad.connect</code>/health — there's no AD <code>disconnect</code> event."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-blue">mid</span>
+                <span class="title">Desktop SSO / Windows IWA stopped working for a new-laptop cohort.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Scope = new laptops only → those hosts aren't on the trusted/domain path or are missing config.</li>
+                    <li>Filter <code>user.authentication.auth_via_iwa</code> (lowercase <code>iwa</code>; "Authenticate user via IWA").</li>
+                    <li>Check whether the laptops are domain-joined, in the IWA network zone, pointed at the IWA endpoint; confirm the browser sends Kerberos/NTLM.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>New laptops not domain-joined or not in the IWA-trusted network zone</strong> — <em>most common</em></li>
+                    <li>Browser not configured to send integrated auth to the IWA URL</li>
+                    <li>IWA server/SPN config not covering the new cohort</li>
+                </ul>
+                <p><strong>Remediation:</strong> domain-join + add to IWA zone + push browser integrated-auth config; re-test.</p>
+                <p><em>Panel one-liner: "New-laptop IWA failures = not domain-joined / not in the IWA zone; I filter <code>user.authentication.auth_via_iwa</code> to confirm the path."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-blue">mid</span>
+                <span class="title">Nightly AD import is failing / stuck / pulling zero new users.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Bracket import lifecycle events: <code>system.import.start</code> → <code>system.import.complete</code>, plus per-user <code>system.import.user.create</code>/<code>.update</code> <em>(all verified-real eventTypes)</em>.</li>
+                    <li>Did the import start but never complete (agent stall), or complete with zero creates?</li>
+                    <li>Inspect import settings: OU scope, filters, matching rules (confirm/auto-confirm).</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>Import scope/OU filter excludes the new users</strong> — <em>most common</em></li>
+                    <li>Agent stalled mid-import (no <code>system.import.complete</code>)</li>
+                    <li>New users pending manual confirmation, so they never activate</li>
+                </ul>
+                <p><strong>Remediation:</strong> fix OU/scope filters, restart the agent if stalled, enable/auto-confirm matching as appropriate; re-run.</p>
+                <p><em>Panel one-liner: "Zero new users on import = OU/scope filter or a stalled agent; I bracket <code>system.import.start</code>→<code>complete</code> and check <code>system.import.user.create</code>."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-purple">senior</span>
+                <span class="title">Intermittent ~1-in-10 AD login failures with two AD agents, all showing "Connected."</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Intermittent with multiple agents → one agent unhealthy but still "Connected"; failures distribute across agents.</li>
+                    <li>Filter the AD-specific <code>user.authentication.auth_via_AD_agent</code> with <code>outcome.result eq "FAILURE"</code> (prefer over generic <code>user.session.start</code>).</li>
+                    <li>Attribute each failed vs successful transaction to a specific agent host — <em>verify which field carries agent identity</em> (<code>debugData</code> vs the <code>system.agent.ad.*</code> events) rather than assuming.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>One agent host degraded</strong> (DNS, time skew, intermittent AD bind) while still reporting Connected — <em>most common</em></li>
+                    <li>Load-balanced agents with one on a flaky network segment</li>
+                    <li>Service-account lockout intermittently on one agent's path</li>
+                </ul>
+                <p><strong>Remediation:</strong> identify and restart/repair the bad agent; rebalance/add agents; monitor per-agent.</p>
+                <p><em>Panel one-liner: "1-in-10 AD failures with 'all Connected' = one sick agent; I attribute failures per agent using <code>user.authentication.auth_via_AD_agent</code> and verify which log field names the host."</em></p>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- Network / ThreatInsight -->
+        <!-- ============================================================ -->
+        <h3 id="network">Network Zones, IP &amp; ThreatInsight</h3>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-blue">mid</span>
+                <span class="title">ThreatInsight is blocking remote/VPN users — intermittent "suspicious activity" clustering on a few egress IPs.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Cluster on shared egress IPs → those IPs flagged by Okta ThreatInsight reputation scoring.</li>
+                    <li>ThreatInsight has <strong>three</strong> settings: <strong>"No action"</strong>; <strong>"Log authentication attempts from malicious IPs"</strong> (audit-only); <strong>"Log and enforce security based on threat level"</strong> (logs + restricts — high-threat blocked, lower-threat may be rate-limited).</li>
+                    <li>Differentiate from rate limiting: real rate-limit events are <code>system.rate.limit.warning</code>/<code>.violation</code>/<code>.burst</code> + <code>core.concurrency.org.limit.violation</code> — <strong>there is no <code>system.org.rate_limit.*</code></strong>.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>Shared VPN/egress IP scored malicious by ThreatInsight in "Log and enforce" mode</strong> — <em>most common</em></li>
+                    <li>Genuinely bad neighbor on a shared NAT IP</li>
+                    <li>Misattribution — the egress IP isn't in a trusted zone</li>
+                </ul>
+                <p><strong>Remediation:</strong> add the trusted corporate egress to the ThreatInsight exclusion list (next scenario); verify the mode label.</p>
+                <p><em>Panel one-liner: "ThreatInsight blocking VPN users = a shared egress IP scored malicious in 'Log and enforce' mode; rate limiting is a different signal (<code>system.rate.limit.*</code>, not <code>system.org.rate_limit.*</code>)."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-blue">mid</span>
+                <span class="title">ThreatInsight remediation — exempting the trusted corporate zone.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Identify the trusted egress IPs and define them as an <strong>IP-type</strong> Network Zone.</li>
+                    <li>Exclude that zone — "Exclude IP zones from Okta ThreatInsight," under <strong>Security &gt; General &gt; Okta ThreatInsight</strong> (verify exact UI label).</li>
+                    <li>Constraint: only <strong>IP-type</strong> zones (not dynamic) can be selected for exclusion — confirm against current docs.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>Trusted egress not excluded</strong>, so ThreatInsight still scores it — <em>most common</em></li>
+                    <li>Zone defined as dynamic rather than IP, so it can't be selected for exclusion</li>
+                </ul>
+                <p><strong>Remediation:</strong> define the corporate egress as an IP Zone and add it to the ThreatInsight exclusion list; re-test.</p>
+                <p><em>Panel one-liner: "Exempt trusted corp IPs by excluding the IP Zone under Security &gt; General &gt; Okta ThreatInsight — IP-type zones only (verify the exact label)."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-red">curveball</span>
+                <span class="title">An "office-bypass" MFA rule challenges everyone on-site, while the "block anonymizer/Tor" rule never fires.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Two problems: the office zone isn't matching, and the anonymizer block isn't matching.</li>
+                    <li>For the office bypass, verify the office IP Zone CIDRs match the real egress and the rule references the right zone with correct precedence.</li>
+                    <li>Zone types precisely: a <strong>classic Dynamic Zone</strong>'s IP type (<code>proxyType</code>) enum has only <code>Any</code>, <code>TorAnonymizer</code>, <code>NotTorAnonymizer</code> — <strong>no "Proxy"/"Anonymizer" value</strong>. Broader proxy/VPN/anonymizer detection (IP service categories) is a feature of <strong>Enhanced Dynamic Zones</strong>.</li>
+                    <li>Static IP Zones can't detect anonymizers — that comes from Okta's <strong>IP-intelligence data</strong> feeding Dynamic/Enhanced zones (distinct from ThreatInsight, which scores reputation for credential-stuffing/brute-force).</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>Anonymizer block built as a static IP Zone</strong>, which can't detect anonymizers — <em>most common</em></li>
+                    <li>Classic Dynamic Zone expected to catch "proxy/VPN" but only <code>TorAnonymizer</code> exists there</li>
+                    <li>Office bypass zone CIDRs stale, so on-site users don't match</li>
+                </ul>
+                <p><strong>Remediation:</strong> use a Dynamic Zone with IP type <code>TorAnonymizer</code> for Tor, or an Enhanced Dynamic Zone for proxy/VPN/anonymizer categories; fix the office IP Zone CIDRs + rule precedence; re-test both rules.</p>
+                <p><em>Panel one-liner: "Tor/anonymizer blocking lives in Dynamic (<code>TorAnonymizer</code>) or Enhanced Dynamic Zones (IP-intelligence data) — not static zones and not ThreatInsight; classic Dynamic Zones only know <code>Any</code>/<code>TorAnonymizer</code>/<code>NotTorAnonymizer</code>."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-blue">mid</span>
+                <span class="title">Legacy/basic-auth mail clients (IMAP/POP/SMTP/EWS) fail after a security tightening on Office 365.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Modern-auth clients work, legacy fail → a policy distinguishing client/auth type now denies basic auth.</li>
+                    <li>For the O365 WS-Fed/SAML app, the capability is an <strong>Office 365 sign-on policy with a client condition</strong> (Modern vs Legacy/ActiveSync) — "Office 365 client access policies." <em>Verify the exact label; Classic vs OIE wording differs.</em></li>
+                    <li>Identify the rule that DENIES legacy/basic-auth clients and which users it covers.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>A new rule denies legacy-auth clients org-wide</strong> as intended, breaking required legacy apps — <em>most common</em></li>
+                    <li>The legacy client genuinely uses basic auth and can't be exempted</li>
+                    <li>Rule scope broader than intended</li>
+                </ul>
+                <p><strong>Remediation:</strong> scope the deny-legacy rule to the right users, migrate clients to modern auth, or carve a controlled exception; verify the exact client-condition label.</p>
+                <p><em>Panel one-liner: "Legacy mail clients break = an Office 365 client-access policy denying legacy/basic auth; I confirm the exact client-condition label (Classic vs OIE wording differs)."</em></p>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- Hooks / Workflows -->
+        <!-- ============================================================ -->
+        <h3 id="hooks">Inline/Event Hooks &amp; Okta Workflows</h3>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-purple">senior</span>
+                <span class="title">Token Inline Hook custom claims "randomly missing" from access tokens, causing intermittent <code>403</code>s.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Confirm the hook fires <em>and responds in time</em> — inspect <code>system.inline_hook.*</code> events + the external endpoint's latency (Okta enforces a hook response timeout).</li>
+                    <li>Verify the response shape: <code>com.okta.access.patch</code> (access token) or <code>com.okta.identity.patch</code> (ID token), JSON Patch <code>op:"add"</code>, <code>path:"/claims/&lt;name&gt;"</code>.</li>
+                    <li>"Random" usually = the hook endpoint intermittently times out / 500s, so Okta mints the token <em>without</em> the patched claims.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>Hook endpoint intermittent timeout/error</strong> → token issued without the claim — <em>most common</em></li>
+                    <li>Patch op malformed for some inputs (bad path/value), silently failing to add the claim</li>
+                    <li>Attempting to patch a reserved claim — a token hook can <strong>only</strong> add custom claims + adjust lifetime; it cannot touch reserved claims (<code>iss</code>/<code>sub</code>/<code>aud</code>/<code>exp</code>/<code>iat</code>) or scopes (rejected outright)</li>
+                </ul>
+                <p><strong>Remediation:</strong> harden the hook endpoint (fast, idempotent, retried with backoff); validate the patch JSON; only target custom claims; add alerting on hook errors/timeouts.</p>
+                <p><em>Panel one-liner: "Randomly missing claims = the inline hook endpoint timing out/erroring so the token mints without the patch; the hook can only add custom claims via <code>com.okta.access.patch</code>, never reserved ones."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-red">curveball</span>
+                <span class="title">Okta Workflows Slack provisioning stopped; suspect an event-hook rate cap.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Confirm scope: did <em>all</em> event-driven automation stop, or just Slack flows?</li>
+                    <li>Event-hook cap: an org is capped at <strong>400,000 events / 24-hour period</strong>, with a <strong>System Log warning around 280,000</strong>, after which event hooks stop triggering until the window resets <em>(thresholds confirmed)</em>.</li>
+                    <li>Caveat to verify before stating as fact: that cap is documented for <strong>event hooks generally</strong>. Workflows event-card flows are event-hook-backed, but Workflows also has its own execution/throughput and flo-pack limits — verify which limit is binding before concluding.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>Org exceeded the event-hook cap</strong> (look for the ~280k warning) — <em>most common</em></li>
+                    <li>A separate Workflows-side execution/throughput limit was hit</li>
+                    <li>The Slack connector/auth broke (token expiry), unrelated to caps</li>
+                </ul>
+                <p><strong>Remediation:</strong> reduce event-hook volume (tighten subscriptions/filters), watch for the ~280k warning, confirm whether the binding limit is event-hook-side or Workflows-side; fix connector auth if that's the real cause.</p>
+                <p><em>Panel one-liner: "Workflows stopping can be the 400k/24h event-hook cap (warning ~280k), but verify whether the binding limit is event-hook-side or a separate Workflows throughput limit before blaming the cap."</em></p>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- Sessions / cookies -->
+        <!-- ============================================================ -->
+        <h3 id="sessions">Sessions, SSO &amp; Cookies</h3>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-blue">mid</span>
+                <span class="title">Users are re-prompted for MFA on one specific SAML app while other apps SSO cleanly.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Per-app re-prompt → that app's Authentication Policy / sign-on rule re-auth frequency.</li>
+                    <li>Find the change: write the OR filter with the field on each side — <code>eventType eq "app.policy.sign_on.update" or eventType eq "policy.rule.update"</code> (the abbreviated <code>... or "policy.rule.update"</code> won't parse).</li>
+                    <li>Read the rule's <strong>re-authentication frequency</strong> (describe it as that — the surfaced <code>debugContext</code> keys are more like <code>authnRequestId</code>/policy-evaluation fields).</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>That app's rule set to re-authenticate every access</strong> ("Every sign-in attempt") — <em>most common</em></li>
+                    <li>A recent <code>policy.rule.update</code>/<code>app.policy.sign_on.update</code> tightened the frequency</li>
+                    <li>Factor/assurance constraint specific to the rule</li>
+                </ul>
+                <p><strong>Remediation:</strong> set a sensible re-auth frequency on the app's rule; re-test.</p>
+                <p><em>Panel one-liner: "Per-app MFA re-prompt = that app's sign-on rule re-auth frequency; I find the change via <code>app.policy.sign_on.update</code>/<code>policy.rule.update</code> (full SEL syntax, field repeated)."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-purple">senior</span>
+                <span class="title">A deactivated employee still accessed a downstream app; separately, logout of one app doesn't sign the user out of others.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>For deactivation: confirm <code>user.lifecycle.deactivate</code> fired — it clears Okta sessions + blocks new SSO, but <strong>don't count on a correlated <code>user.session.end</code></strong> (may appear as <code>user.session.clear</code>/<code>delete</code> or no explicit end event).</li>
+                    <li>The downstream SP likely still had its <strong>own</strong> active local session — Okta deactivation doesn't terminate SP sessions unless SLO is configured.</li>
+                    <li>For the logout problem: Okta logout ends the Okta session, but each SP maintains an independent session; without <strong>Single Logout (SLO)</strong> they persist.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>SP local session still valid after Okta deactivation</strong> (no SLO / no session-revocation integration) — <em>most common</em></li>
+                    <li>Long SP session lifetime independent of Okta</li>
+                    <li>No SLO configured, so per-app logout doesn't cascade</li>
+                </ul>
+                <p><strong>Remediation:</strong> configure SLO where supported; shorten SP session lifetimes / use SCIM deactivation to disable the downstream account; for the logout gap, implement SLO or accept independent SP sessions.</p>
+                <p><em>Panel one-liner: "Deactivation clears the Okta session but not independent SP sessions; without SLO, logout and deactivation don't cascade — and don't count on a correlated <code>user.session.end</code>."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-purple">senior</span>
+                <span class="title">An embedded Okta-protected app in a cross-site iframe shows a login loop after a Chrome/Safari upgrade.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Browser-upgrade + cross-site iframe → <strong>third-party cookie blocking</strong> (Chrome 3p-cookie changes / Safari ITP).</li>
+                    <li>The relevant cookies are <code>sid</code> (session) and <code>DT</code> (device-token); in a cross-site iframe the browser may refuse to send them unless <code>SameSite=None; Secure</code>, and ITP/3p-blocking can drop them entirely.</li>
+                    <li>Conceptually "is the session alive?" = <code>GET /api/v1/sessions/me</code> (needs <code>sid</code>) — but treat that as the <em>concept</em>; in the iframe HAR you'll actually see the app's redirect/<code>/authorize</code> calls (and <code>/sessions/me</code> is itself CORS-restricted from a browser).</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>Third-party cookie blocking dropping <code>sid</code>/<code>DT</code></strong> on the cross-site iframe — <em>most common</em></li>
+                    <li>Cookies not set <code>SameSite=None; Secure</code></li>
+                    <li>ITP partitioning the org cookie away from the iframe</li>
+                </ul>
+                <p><strong>Remediation:</strong> move off the cross-site iframe pattern (top-level redirect / popup / first-party hosting), or use storage-access / partitioned-cookie approaches per browser guidance; ensure cookies are <code>SameSite=None; Secure</code>.</p>
+                <p><em>Panel one-liner: "Iframe login loop after a browser upgrade = third-party cookie blocking dropping <code>sid</code>/<code>DT</code>; <code>/sessions/me</code> is the conceptual session check, but the redirect/<code>authorize</code> calls are what fail in the HAR."</em></p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="tag tag-purple">senior</span>
+                <span class="title">Users are "randomly logged out" / re-login too often — some get hours, some minutes.</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Deep-dive:</strong></p>
+                <ol>
+                    <li>Variable session length → different users matching different <strong>Global Session Policy</strong> rules (idle vs max-lifetime), not randomness.</li>
+                    <li>Find ends via <code>user.session.end</code> — but Okta has <strong>no clean "reason" field</strong> that labels idle-timeout vs max-lifetime vs manual logout; don't claim it does.</li>
+                    <li><strong>Correlate timing</strong> against the matched Global Session Policy rule's idle-timeout and max-lifetime, and check which rule each affected user matches.</li>
+                </ol>
+                <p><strong>Likely root causes (ranked):</strong></p>
+                <ul>
+                    <li><strong>Affected users match a rule with a short idle timeout or short max session lifetime</strong> — <em>most common</em></li>
+                    <li>Overlapping Global Session Policy rules with conflicting timeouts by group</li>
+                    <li>Persistent-cookie / "remember device" disabled, shortening the effective session</li>
+                </ul>
+                <p><strong>Remediation:</strong> align the Global Session Policy rule timeouts for the affected groups; confirm rule matching/order; set idle and max-lifetime intentionally.</p>
+                <p><em>Panel one-liner: "'Random' logouts = different Global Session Policy rules (idle vs max-lifetime); I infer the timer from timing vs the matched rule, since <code>user.session.end</code> has no clean reason field."</em></p>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- Cheat sheet -->
+        <!-- ============================================================ -->
+        <h3>The "Gotcha" Facts the Fact-Check Caught</h3>
+        <div class="card card-info">
+            <p>These are exactly the details a panel probes — get them right and you sound like you've actually used the product:</p>
+            <ul>
+                <li><strong>Auth code TTL is 300 s (5 min)</strong>, single-use — not ~60 s.</li>
+                <li><strong><code>X-Okta-Request-Id</code> ≠ <code>errorId</code></strong> — separate identifiers; and <strong><code>dtHash</code> is the Device Token Hash, not the request id.</strong></li>
+                <li><strong>No <code>user.mfa.factor.update</code></strong> (use <code>activate</code>/<code>reset_all</code>/<code>deactivate</code>), <strong>no <code>system.agent.ad.disconnect</code></strong> (LDAP-only), <strong>no <code>system.org.rate_limit.*</code></strong> (it's <code>system.rate.limit.*</code>).</li>
+                <li><strong>Org-AS tokens are opaque → introspect</strong>; only <strong>custom-AS</strong> tokens are locally JWKS-verifiable.</li>
+                <li><strong>Group Push events</strong> are <code>application.provision.group_push.*</code>; don't reuse one group for assignment + push.</li>
+                <li>The force-MFA-every-time option is <strong>"Every sign-in attempt"</strong> = API value <code>PT0S</code> (not "0 minutes").</li>
+                <li><strong>Classic Dynamic Zone</strong> <code>proxyType</code> = only <code>Any</code>/<code>TorAnonymizer</code>/<code>NotTorAnonymizer</code>; broader proxy/VPN detection is <strong>Enhanced Dynamic Zones</strong>.</li>
+                <li>Event-hook cap = <strong>400,000 / 24h</strong>, warning ~<strong>280,000</strong>.</li>
+            </ul>
+        </div>
+
+        <hr>
+        <div id="footer"></div>
+    </div>
+
+</body>
+</html>
