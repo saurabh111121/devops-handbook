@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Interviews - DevOps Handbook</title>
+    <link rel="stylesheet" href="../../css/style.css">
+    <script src="../../js/app.js"></script>
+</head>
+<body>
+    <div id="topnav"></div>
+
+    <div class="container">
+        <nav class="breadcrumb">
+            <a href="../../index.html">Home</a> &gt; <a href="../index.html">Interview</a> &gt; <span>Salesforce — Senior DevOps Engineer</span>
+        </nav>
+
+        <h1>Company-Specific Interview Prep</h1>
+        <p class="subtitle">Targeted preparation for specific companies — process, expectations, technical topics, and scenarios.</p>
+
+        <!-- ============================================================ -->
+        <!-- SALESFORCE -->
+        <!-- ============================================================ -->
+
+        <h2 id="salesforce">Salesforce — Senior DevOps Engineer</h2>
+
+        <div class="card card-info">
+            <strong>Role:</strong> Senior DevOps Engineer — the title resolves to <strong>two very different jobs</strong> that job boards constantly conflate. Read the JD's tooling list to tell which one you're interviewing for.<br>
+            <strong>Company Values (ranked):</strong> Trust (always #1) · Customer Success · Innovation · Equality · Sustainability<br>
+            <strong>Culture vocabulary:</strong> Ohana · V2MOM · 1-1-1 model (Pledge 1%) · Trailhead / Trailblazer Community
+        </div>
+
+        <div class="card card-warning">
+            <strong>Reality check — which "Salesforce DevOps Engineer" is this?</strong> There are two, and the skill sets barely overlap beyond Git and CI/CD concepts:
+            <ul>
+                <li><strong>Flavor 1 — Infrastructure DevOps / SRE <em>at Salesforce Inc.</em></strong> Engineering on Salesforce's own runtime (Hyperforce + legacy first-party data centers): Kubernetes at scale, Istio, Terraform, Spinnaker/ArgoCD, Prometheus, Python/Go on AWS/GCP. Titled on the MTS ladder — a "Senior" role is <strong>SMTS</strong>, "Lead" is <strong>LMTS</strong> — often posted as "Senior/Lead Site Reliability Engineer." <span class="tag tag-blue">Kubernetes/Terraform/Spinnaker → Flavor 1</span></li>
+                <li><strong>Flavor 2 — "Salesforce DevOps" (ecosystem release management).</strong> Hired by any company that <em>uses</em> Salesforce (or by SIs/ISVs) to version and promote org <strong>metadata</strong> between sandboxes with SFDX, Git, and Copado/Gearset/Flosum/AutoRABIT. <span class="tag tag-green">Copado/Gearset/change sets/Apex → Flavor 2</span></li>
+            </ul>
+            The interview-critical distinction: Flavor 1 treats <strong>Salesforce's infrastructure</strong> as the product (containers, IaC, reliability); Flavor 2 treats the <strong>org's configuration metadata</strong> as the artifact being versioned and promoted — uniquely hard because environments are living orgs, not rebuildable servers. This page covers both.
+        </div>
+
+        <!-- JD Dropdown -->
+        <details class="jd-dropdown">
+            <summary class="jd-toggle">
+                <i class="fa-solid fa-file-lines"></i> View Synthesized Job Descriptions (both flavors)
+                <i class="fa-solid fa-chevron-down jd-arrow"></i>
+            </summary>
+            <div class="jd-content">
+                <h4>Flavor 1 — Senior/Lead SRE-DevOps at Salesforce Inc. (Hyperforce infrastructure)</h4>
+                <p><em>Synthesized from real Salesforce careers postings (Senior/Lead SRE, San Francisco &amp; Hyderabad/India), which describe owning availability across a multi-substrate Kubernetes fleet of 1000+ clusters powering Core CRM.</em></p>
+                <p><strong>Responsibilities</strong></p>
+                <ul>
+                    <li>Design, build, and operate services on Hyperforce across AWS/GCP with infrastructure defined entirely as code.</li>
+                    <li>Own availability/SLOs of microservices on a multi-substrate Kubernetes fleet (1000+ clusters) including Istio service mesh and ingress gateways.</li>
+                    <li>Build and extend CI/CD with Terraform, Spinnaker, ArgoCD, and Jenkins.</li>
+                    <li>Build observability with Prometheus, Grafana, Splunk, and Elasticsearch.</li>
+                    <li>Automate toil away in Python/Go (AIOps, self-healing) to cut MTTR.</li>
+                    <li>Participate in on-call, lead incident response and blameless postmortems.</li>
+                    <li>Drive zero-trust and just-in-time (JIT) access security patterns.</li>
+                </ul>
+                <p><strong>Requirements</strong></p>
+                <ul>
+                    <li>5+ yrs (SMTS) / 8+ (LMTS) in SRE/DevOps/systems engineering.</li>
+                    <li>Production Kubernetes and Docker at scale; service mesh / ingress.</li>
+                    <li>Strong Linux internals and networking (TCP/IP, DNS, TLS, load balancers).</li>
+                    <li>Coding proficiency in Python or Go.</li>
+                    <li>Terraform plus a deployment orchestrator (Spinnaker/Argo).</li>
+                    <li>A major public cloud (AWS preferred); distributed-systems debugging; CS degree or equivalent.</li>
+                </ul>
+
+                <h4>Flavor 2 — Senior Salesforce DevOps Engineer (ecosystem / release management)</h4>
+                <p><em>Synthesized from real senior postings (e.g., a Copado-certified role requiring 5+ yrs, and a Sr. Copado role at $142K–$176K requiring 8+ yrs plus Apex).</em></p>
+                <p><strong>Responsibilities</strong></p>
+                <ul>
+                    <li>Own the Salesforce release process end-to-end — sprint and hotfix releases across dev/QA/UAT/prod orgs.</li>
+                    <li>Design and run CI/CD pipelines with Copado or Gearset (or Flosum/AutoRABIT/Jenkins+SFDX).</li>
+                    <li>Define and enforce the Git branching strategy for metadata; resolve XML merge conflicts; run rollbacks.</li>
+                    <li>Manage the sandbox landscape — refresh schedules, back-promotion, test-data seeding and masking.</li>
+                    <li>Drive adoption of source-driven development (Salesforce CLI, scratch orgs, unlocked packages) over change sets.</li>
+                    <li>Enforce compliance: segregation of duties, audit trails, deployment approvals.</li>
+                    <li>Automate quality gates — static analysis (PMD/CodeScan), Apex tests meeting the 75% coverage floor.</li>
+                </ul>
+                <p><strong>Requirements</strong></p>
+                <ul>
+                    <li>5–8+ yrs in Salesforce DevOps / development / release management.</li>
+                    <li>Deep Metadata API and SFDX knowledge; Git (GitHub/Bitbucket/GitLab).</li>
+                    <li>One major Salesforce DevOps tool at expert level (Copado certification often required).</li>
+                    <li>Apex/LWC ability for pipeline automation; Agile delivery.</li>
+                    <li>Certifications: Salesforce Administrator, Platform Developer I (II preferred), Development Lifecycle &amp; Deployment Architect; Copado Fundamentals I/II when Copado-based.</li>
+                </ul>
+
+                <h4>Compensation reference (a common source of confusion)</h4>
+                <ul>
+                    <li><strong>Flavor 1 (at Salesforce Inc., US):</strong> Senior/Lead SRE base ~$200,800–$276,100; levels.fyi median TC ~$253K (SMTS), ~$304K+ (LMTS). India SMTS ~₹35–65L (levels.fyi median ~₹76L).</li>
+                    <li><strong>Flavor 2 (ecosystem):</strong> US market average ~$116K–$140K; senior Copado-specialist roles ~$142K–$176K. India role average ~₹5.5–16.6L; senior Copado experts in Bangalore ~₹19L.</li>
+                </ul>
+            </div>
+        </details>
+
+        <!-- Interview Process -->
+        <h3>Interview Process — Flavor 1 (Salesforce Inc. SRE/Infra, 4–5 stages)</h3>
+        <div class="card card-info">
+            Salesforce hiring is <strong>decentralized</strong> — you interview for a specific "Cloud"/team, not a generic pipeline, and team-matching can precede offer numbers. Tell the recruiter early if you're primarily back-end/infra so they route you correctly.
+        </div>
+        <div class="card">
+            <div class="point">
+                <div class="point-num">1</div>
+                <div class="point-content">
+                    <span class="point-title">Recruiter Screen (~30 min)</span> — Background, projects, motivation, comp range. Know which team/Cloud you're targeting; avoid volunteering salary history.
+                </div>
+            </div>
+            <div class="point">
+                <div class="point-num">2</div>
+                <div class="point-content">
+                    <span class="point-title">Hiring Manager Round (~45–60 min)</span> — Role expectations, team fit, ownership, on-call/incident mindset, and values/culture alignment. HM-led hiring decision. Some loops fold behavioral here.
+                </div>
+            </div>
+            <div class="point">
+                <div class="point-num">3</div>
+                <div class="point-content">
+                    <span class="point-title">Technical Screen / Online Assessment (60–90 min)</span> — Most consistently a timed <strong>HackerRank</strong> OA (~2 questions, any language). Format ranges from a quick in-browser algorithmic screen to a more take-home-style <strong>remote programming test</strong> (work locally, submit a full project graded on design/readability). Some report a ~90-min proctored DSA test with harder DP/competitive problems.
+                </div>
+            </div>
+            <div class="point">
+                <div class="point-num">4</div>
+                <div class="point-content">
+                    <span class="point-title">Onsite Coding (~2 × 45–60 min)</span> — The most heavily weighted part. Live coding in a shared editor (e.g., CoderPad / HackerRank CodePair). Salesforce weighs concrete, idiomatic language proficiency; LeetCode-style problems are less common than at FAANG and skew easy-to-medium (trees, linked lists, strings, hash tables; SRE candidates may get "design an in-memory data structure").
+                </div>
+            </div>
+            <div class="point">
+                <div class="point-num">5</div>
+                <div class="point-content">
+                    <span class="point-title">System Design (~45 min–1 hr, SMTS+)</span> — Prominent at senior level. Ranges from DB/SQL and low-level design (design TinyURL, an LFU cache) to distributed HLD (Google Drive), scalability, and reliability. For SRE: resilient design, capacity/scaling, failure modes, observability.
+                </div>
+            </div>
+            <div class="point">
+                <div class="point-num">6</div>
+                <div class="point-content">
+                    <span class="point-title">Behavioral / Values (~1 hr)</span> — Anchored on the five ranked values + Ohana culture. May be standalone or folded into the HM/panel round. (See Behavioral &amp; Values section below.)
+                </div>
+            </div>
+        </div>
+        <p><strong>Difficulty:</strong> Medium overall (some OAs are medium-hard). <strong>Timeline:</strong> ~3–5 weeks once interviews start.</p>
+
+        <h4>Flavor 2 — Ecosystem "Salesforce DevOps Engineer" flow (Copado/Gearset shops)</h4>
+        <div class="card">
+            <p>A fundamentally <strong>different, less-DSA loop</strong> (at consulting partners, SIs, ISVs) focused on the release lifecycle, not backend distributed-systems SRE:</p>
+            <ul>
+                <li>Recruiter/screening call → a technical round on Salesforce DevOps concepts → heavy <strong>scenario-based</strong> questioning (often client-facing at partners).</li>
+                <li>Core topics: Copado (user stories vs pipelines, back-promotion, release management) and/or Gearset (metadata comparison, automated deploy, backup, one-click rollback); Git branching; metadata deployment of Apex/LWC/Flows; destructive changes and mid-release rollback; sandbox pipeline design (e.g., Dev → Common Dev → SIT → UAT → Prod + Hotfix); scratch vs non-scratch orgs.</li>
+                <li><strong>Certifications carry real weight here</strong> (Copado Fundamentals I/II, Salesforce Admin, Platform Developer) — unlike core SRE hiring.</li>
+            </ul>
+        </div>
+
+        <!-- Practical / Assignment -->
+        <h3>Practical / Take-Home Expectations</h3>
+        <div class="card card-warning">
+            <p>Practical rounds are usually a short take-home (runnable-ish pipeline/IaC + a README of trade-offs), a live pairing/debug session, or a whiteboard design. Interviewers score <strong>reasoning and trade-offs over a polished artifact</strong>, plus security (headless JWT auth, least-privilege, no creds in code), idempotency, awareness of platform gotchas, and rollback/failure handling.</p>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>Platform-DevOps exercise</h4>
+                    <ul>
+                        <li>Build an <strong>SFDX + GitHub Actions/Jenkins</strong> CI/CD pipeline: headless JWT auth → PR validate-only deploy against a scratch org/CI sandbox with <code>RunLocalTests</code> → static analysis → merge deploys or Quick Deploys.</li>
+                        <li>Design a <strong>branching + sandbox promotion</strong> strategy (git as source of truth, source format, back-promotion).</li>
+                        <li>Write a deploy script and correctly assemble <code>package.xml</code> + <code>destructiveChanges.xml</code>.</li>
+                        <li>Bonus: <strong>delta deploys</strong> via <code>sfdx-git-delta</code>.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>Infra-DevOps exercise</h4>
+                    <ul>
+                        <li>Design a <strong>Jenkins/Spinnaker</strong> (or Argo) pipeline: build+test+bake, immutable artifact promoted dev→stage→prod, approval gates, automated rollback, canary analysis (Kayenta).</li>
+                        <li>Write <strong>Terraform</strong> for a VPC + EKS (remote state + locking, modules, IRSA, least-privilege IAM).</li>
+                        <li>Containerize an app (multi-stage, non-root, scanned image; K8s Deployment with probes + resource limits).</li>
+                        <li>Design <strong>blue-green / canary</strong>; whiteboard an HA, auto-scaling, observable system.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- FLAVOR 1: INFRASTRUCTURE (HYPERFORCE) -->
+        <!-- ============================================================ -->
+        <h3>Salesforce Infrastructure — Hyperforce (Flavor 1)</h3>
+
+        <div class="card card-info">
+            <strong>Hyperforce</strong> (announced Dec 2, 2020) is Salesforce's re-architecture of its platform to run natively on public cloud — <strong>AWS, GCP, and Alibaba Cloud</strong> (Alibaba serves China) — replacing/augmenting its first-party data centers. <em>AWS is the primary, most mature substrate</em>; the architecture is deliberately substrate-agnostic. <strong>Note:</strong> despite some secondary write-ups mentioning Azure, official Salesforce Engineering docs name only AWS, GCP, and Alibaba as substrates. Salesforce still runs on both first-party data centers and Hyperforce and migrates orgs itself at no charge.
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">Hyperforce — Public-Cloud Architecture</div>
+<pre>
+                         Client / Integration
+                                │  (My Domain URL, SNI, mTLS)
+                                ▼
+              ┌─────────────────────────────────────────┐
+              │   Ingress / Edge Gateway (Envoy-based)   │
+              │   TLS termination · SNI · DDoS defense   │
+              └───────────────────┬─────────────────────┘
+                                  │
+        ┌─────────────────────────┼─────────────────────────┐
+        │        Service Mesh: Envoy (data) + Istio (control)│
+        │        zero-trust · mTLS everywhere · golden signals│
+        └─────────────────────────┼─────────────────────────┘
+                                  ▼
+   ┌──────────────┐    ┌──────────────┐    ┌──────────────┐   Multi-AZ region
+   │ K8s cluster  │    │ K8s cluster  │    │ K8s cluster  │   + out-of-region DR
+   │  (AZ-a)      │    │  (AZ-b)      │    │  (AZ-c)      │   (Advanced Cross-
+   │ 8000+ svcs   │    │ Istio sidecar│    │  immutable   │    Region Continuity)
+   └──────────────┘    └──────────────┘    └──────────────┘
+
+  Substrates: AWS (primary) · GCP · Alibaba (China)      Everything is Terraform/IaC
+  Access: Just-in-Time (no standing prod creds) · least privilege · encryption by default
+</pre>
+        </div>
+
+        <h4>Why Hyperforce exists — the drivers to name in interviews</h4>
+        <div class="card">
+            <ul>
+                <li><strong>Data residency / sovereignty</strong> — store customer data in a chosen region for GDPR / local laws (EU Operating Zone, etc.).</li>
+                <li><strong>Elastic scale</strong> — public-cloud elasticity vs. slow physical provisioning.</li>
+                <li><strong>Security &amp; Trust</strong> — secure-by-default, zero-trust, least privilege, encryption everywhere (co-equal top driver — Trust is the #1 value).</li>
+                <li><strong>Compliance</strong> — standardized, code-defined controls meet certifications consistently across regions.</li>
+                <li><strong>Agility</strong> — infrastructure-as-code enables rapid provisioning of new regions.</li>
+            </ul>
+        </div>
+
+        <h4>Core technology pillars</h4>
+        <table>
+            <tr><th>Pillar</th><th>What it means</th></tr>
+            <tr><td><strong>Infrastructure-as-Code</strong></td><td>Everything is Terraform; no hand-tuned hosts. Reproducible across regions/clouds.</td></tr>
+            <tr><td><strong>Immutable infrastructure</strong></td><td>Never patch in place — bake a new image, roll out, destroy the old. Eliminates config drift.</td></tr>
+            <tr><td><strong>Multi-AZ + out-of-region DR</strong></td><td>Multiple AZs per region with automatic failover; cross-region continuity for region-switch.</td></tr>
+            <tr><td><strong>Zero-trust service mesh</strong></td><td>Envoy (data plane) + Istio (control plane), CNCF projects Salesforce contributes to. mTLS on every call; control-plane sharding limits blast radius.</td></tr>
+            <tr><td><strong>Just-in-Time access</strong></td><td>No standing production credentials; access is scoped, approved, time-boxed, audited, auto-revoked.</td></tr>
+            <tr><td><strong>Release automation</strong></td><td>Heavy Spinnaker use, then an internal <strong>Managed Releases</strong> platform (canary + staggered groups + risk scoring, "follow the moon"). ~250k weekly prod changes.</td></tr>
+        </table>
+
+        <h4>Migration gotchas (frequently probed)</h4>
+        <div class="card card-danger">
+            <ul>
+                <li>Enable <strong>My Domain</strong>; remove hardcoded instance URLs (<code>na123.salesforce.com</code>) — they break on migration. In Apex use <code>System.DomainCreator.getOrgMyDomainHostname()</code>.</li>
+                <li>Switch from <strong>IP allowlisting to domain-based allowlisting</strong> — public-cloud IPs are dynamic and change without notice. Salesforce: "Do not use hard-coded IP Allowlists."</li>
+                <li>Clients must send <strong>SNI</strong> in the TLS ClientHello, or Hyperforce returns a default cert covering only <code>*.my.salesforce.com</code>/<code>*.sandbox.my.salesforce.com</code>. Prefer <strong>mTLS</strong> for integration auth.</li>
+            </ul>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- FLAVOR 2: PLATFORM DEVOPS -->
+        <!-- ============================================================ -->
+        <h3>Salesforce Platform DevOps — Release Management (Flavor 2)</h3>
+
+        <div class="card card-info">
+            The deployable artifact is <strong>org metadata</strong> (XML describing objects, fields, flows, Apex, permissions), not a binary. DevOps means extracting metadata into Git, promoting it through sandbox tiers, and deploying via the Metadata API. The ecosystem has shifted from the <strong>org development model</strong> (org = source of truth; change sets) to the <strong>package development model</strong> (Git = source of truth; source-driven, introduced with Salesforce DX in 2017).
+        </div>
+
+        <div class="diagram">
+            <div class="diagram-label">Salesforce Release Pipeline (source-driven)</div>
+<pre>
+  Git (source format, source of truth)
+       │
+       │  feature branch per user story
+       ▼
+  ┌──────────┐   PR: validate-only deploy + RunLocalTests + PMD/Code Analyzer
+  │ Scratch  │──────────────────────────────────────────────────────┐
+  │ org /Dev │                                                        │
+  │ sandbox  │                                                        ▼
+  └──────────┘                                              ┌──────────────────┐
+       │  merge                                             │  Integration/CI  │
+       ▼                                                    │     sandbox      │
+  ┌──────────┐      ┌──────────┐      ┌──────────────┐      └──────────────────┘
+  │  UAT     │ ───► │ Staging  │ ───► │  PRODUCTION  │  ◄── Quick Deploy validated
+  │ (Partial)│      │ (Full)   │      │              │       package (≤10 days)
+  └──────────┘      └──────────┘      └──────────────┘
+       ▲                                     │
+       └───────── back-promote hotfixes ─────┘   (prevents org drift)
+
+  Delta deploys: sfdx-git-delta builds package.xml + destructiveChanges.xml from git diff
+</pre>
+        </div>
+
+        <h4>Sandbox tiers</h4>
+        <table>
+            <tr><th>Type</th><th>Storage</th><th>Refresh</th><th>Data</th><th>Use case</th></tr>
+            <tr><td><strong>Developer</strong></td><td>200 MB</td><td>1 day</td><td>Metadata only</td><td>Per-developer isolated build</td></tr>
+            <tr><td><strong>Developer Pro</strong></td><td>1 GB</td><td>1 day</td><td>Metadata only</td><td>Dev/QA with larger seeded datasets</td></tr>
+            <tr><td><strong>Partial Copy</strong></td><td>5 GB</td><td>5 days</td><td>Template-sampled sample</td><td>QA / UAT against realistic data</td></tr>
+            <tr><td><strong>Full</strong></td><td>Prod-size</td><td>29 days</td><td>Complete replica</td><td>Staging, perf testing, final UAT</td></tr>
+        </table>
+        <p><strong>Note:</strong> Dev/Dev Pro get no production data — seed via <code>sf data tree</code>, Data Loader, or SFDMU. Sandbox templates apply only to Partial/Full. Refresh wipes all sandbox changes; unused sandboxes are deleted after 180 days.</p>
+
+        <h4>Deployment mechanisms</h4>
+        <table>
+            <tr><th>Mechanism</th><th>Notes</th></tr>
+            <tr><td><strong>Change Sets</strong></td><td>Legacy, point-and-click. Same production family only; <strong>cannot delete/rename</strong>; manual rebuild per hop; no versioning. 60%+ of teams still use them (2024 survey).</td></tr>
+            <tr><td><strong>Salesforce CLI (sf/SFDX)</strong></td><td>Modern. <code>sf</code> v2 GA July 2023 (<code>sfdx-cli</code> no longer updated). Source format, source tracking, scratch orgs.</td></tr>
+            <tr><td><strong>Metadata API</strong></td><td>The bulk transport under everything: SOAP <code>deploy()</code>/<code>retrieve()</code> of a zip described by <code>package.xml</code>. Limits: 10,000 files, ~39 MB compressed / 600 MB uncompressed.</td></tr>
+            <tr><td><strong>Unlocked packages (2GP)</strong></td><td>Source-driven containers for internal apps; metadata stays editable in-org. Promote to Released requires 75% coverage.</td></tr>
+            <tr><td><strong>Managed packages (2GP vs 1GP)</strong></td><td>For ISV/AppExchange. 2GP: no packaging org, VCS is source of truth, Dev Hub owns packages, namespaces shareable. New packages should be 2GP.</td></tr>
+            <tr><td><strong>DevOps Center</strong></td><td>Free, first-party, GA Dec 2022. GitHub-backed work items promoted through pipeline stages — the intended change-set replacement. Gaps: no CI test automation, rollback, or back-promotion.</td></tr>
+            <tr><td><strong>ANT Migration Tool</strong></td><td>Legacy Java/Ant wrapper around Metadata API. Superseded by the CLI.</td></tr>
+        </table>
+
+        <h4>Apex test requirements (the deployment gate)</h4>
+        <div class="card card-danger">
+            <p>Any production deploy containing Apex runs tests. Test levels:</p>
+            <ul>
+                <li><code>NoTestRun</code> — dev environments only; <strong>not allowed for production</strong>.</li>
+                <li><code>RunSpecifiedTests</code> — only named tests; <strong>each</strong> deployed class AND trigger must independently hit 75% (risky).</li>
+                <li><code>RunLocalTests</code> — all tests except installed managed/unlocked package tests. <strong>The standard prod choice</strong>: org-wide ≥75% aggregate + every trigger covered.</li>
+                <li><code>RunAllTestsInOrg</code> — includes managed-package tests.</li>
+            </ul>
+            <p><strong>Quick Deploy:</strong> run a validate-only (<code>checkOnly</code>) deploy ahead of the window; tests pass once; then deploy the validated package within <strong>10 days</strong> without re-running tests. Deployment tests run synchronously and serially, so this shrinks the release window dramatically.</p>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- TECHNICAL Q&A -->
+        <!-- ============================================================ -->
+        <h3>Top Technical Questions — Orientation</h3>
+
+        <div class="qa">
+            <div class="q">1. There are two roles both called "Salesforce DevOps Engineer." What's the difference?</div>
+            <div class="a">Flavor 1 is infrastructure DevOps at Salesforce the company: SRE-style work on Hyperforce and first-party data centers — Kubernetes fleets of 1000+ clusters, Istio, Terraform, Spinnaker/ArgoCD, Prometheus, Python/Go on AWS/GCP. Flavor 2 is the ecosystem role: release management for the Salesforce SaaS platform — versioning org metadata in Git and promoting it through sandboxes with Copado, Gearset, or SFDX. The quickest tell is the JD's tooling list: <strong>Kubernetes/Terraform → Flavor 1; Copado/change sets/Apex → Flavor 2.</strong> The skill sets barely overlap beyond Git and CI/CD.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">2. Why is CI/CD for the Salesforce platform harder than for a typical web app?</div>
+            <div class="a">Because the artifact is org metadata, not a rebuildable binary: environments are long-lived orgs where admins make declarative changes directly in the UI, so drift and back-promotion are constant concerns. Deployments go through the Metadata API and must pass Apex tests with ≥75% coverage, and "rollback" means deploying the prior metadata state, not swapping an artifact. That's why a specialized tool ecosystem (Copado, Gearset, Flosum, AutoRABIT, DevOps Center) exists, and why Salesforce pushes source-driven development — CLI, scratch orgs, unlocked packages — over change sets.</div>
+        </div>
+
+        <h3>Top Technical Questions — Platform DevOps (Flavor 2)</h3>
+
+        <div class="qa">
+            <div class="q">3. Explain the org development model vs the package development model. Which would you choose?</div>
+            <div class="a">In the <strong>org model</strong>, the org is the source of truth: you build in sandboxes and promote deltas with change sets or Metadata API deploys. In the <strong>package model</strong>, version control is the source of truth: metadata lives in Git in DX source format, work happens in scratch orgs or source-tracked sandboxes, and releases are versioned artifacts like unlocked packages. I'd choose package/source-driven for repeatable deployments, real code review, and Git-history rollback — but adopt it incrementally, since migrating a large legacy org to unlocked packages is a multi-quarter effort. A pragmatic middle ground is Git-backed org development (DevOps Center or Gearset/Copado pipelines) first, then carve out packages.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">4. Scratch org vs sandbox?</div>
+            <div class="a">A scratch org is a disposable, source-driven org created from a Dev Hub in minutes, configured entirely by a definition file (edition, features, settings), living 1–30 days (7 default), starting empty. A sandbox is a copy of a specific production org (metadata, plus data for Partial/Full), refreshed on 1/5/29-day cycles. Scratch orgs are for isolated feature dev, CI runs, and package builds where you want a clean, reproducible environment; sandboxes are for integration/UAT/staging where you must mirror the real org's shape, data, and installed packages.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">5. Explain package.xml and destructiveChanges.xml, including pre/post.</div>
+            <div class="a"><code>package.xml</code> is the manifest of types and members (wildcards allowed for many types) plus the API version. Deletions use a separate manifest with the same schema but <strong>no wildcards</strong> — every deleted component is named. <code>destructiveChangesPre.xml</code> deletes before the additive changes; <code>destructiveChangesPost.xml</code> deletes after — which matters for dependencies (e.g., update an Apex class to drop a reference, then delete the field post-deploy). Even a delete-only deploy needs a <code>package.xml</code> carrying the API version. Generate both from a git diff with <code>sfdx-git-delta</code>.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">6. Why prefer permission sets over profiles for deployments?</div>
+            <div class="a">Profiles are monolithic and <strong>contextual</strong>: a retrieved profile only contains permissions for components in the same manifest, so it's easy to deploy a new field but silently omit its field-level security, leaving it invisible to users ("deployment succeeded but users see nothing"). Profile XML is also enormous and touches everything, causing constant merge conflicts. Permission sets are self-contained, additive, feature-scoped files that deploy predictably alongside the components they grant access to, and permission set groups compose them per persona. Permission-set-based access is Salesforce's strategic direction.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">7. How would you build a Salesforce CI/CD pipeline with GitHub Actions and the sf CLI?</div>
+            <div class="a">Create a Connected App with a self-signed certificate per target org and authenticate non-interactively with <code>sf org login jwt</code> (client ID + private key from CI secrets). On PR: install <code>@salesforce/cli</code>, use <code>sfdx-git-delta</code> to generate <code>package.xml</code>/<code>destructiveChanges.xml</code> from the diff, run Salesforce Code Analyzer, and <code>sf project deploy validate</code> against an integration sandbox with the right test level. On merge: deploy for real, or Quick Deploy the recorded validation for production. Add scheduled drift detection (org-vs-git diff) and full <code>RunLocalTests</code> regression runs, and pin the CLI version.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">8. Compare Copado, Gearset, Flosum, AutoRABIT, and DevOps Center.</div>
+            <div class="a"><strong>DevOps Center:</strong> free, native, GitHub-only, work-item promotion — right for small admin-heavy teams graduating from change sets, but no CI testing, rollback, or data deployment. <strong>Gearset:</strong> external SaaS with the best metadata comparison/diff engine, data deployment, backup, drift monitoring — fastest time-to-value for mid-size teams and ISVs. <strong>Copado:</strong> itself a Salesforce-native managed package with the deepest pipeline orchestration, quality gates, governance, and test automation — suits 100+ dev multi-org enterprises. <strong>Flosum:</strong> 100% on-platform so metadata never leaves Salesforce — appealing under strict data-residency rules. <strong>AutoRABIT:</strong> strongest compliance story (masking, SOX/HIPAA reporting, Vault backup, CodeScan) — common in regulated industries.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">9. Your org's deployments take 90 minutes because of Apex tests. Speed up releases safely.</div>
+            <div class="a">Levers: (1) validate ahead of the window and use <strong>Quick Deploy</strong> — the validation's tests count for 10 days, so the prod window shrinks to commit time; (2) <strong>delta deployments</strong> with <code>sfdx-git-delta</code> plus <code>RunSpecifiedTests</code> for interim environments (accepting the per-class 75% rule) while keeping full <code>RunLocalTests</code> for the prod validation; (3) fix the suite — remove <code>SeeAllData</code>, add <code>@testSetup</code> factories, eliminate DML/SOQL in loops, enable parallel test execution for non-deploy CI runs; (4) run full regression nightly instead of per-PR. This keeps the 75% compliance bar while decoupling it from the release critical path.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">10. How do you seed data into scratch orgs and Developer sandboxes?</div>
+            <div class="a">They contain no production data, so seeding is deliberate. For small reference datasets, <code>sf data export tree</code>/<code>import tree</code> uses the SObject Tree API (up to 200 records, 5 object types, 5 levels deep, with plan files preserving references) — ideal for versioning seed data in the repo. For volume or complex relational graphs, use Data Loader (up to 5M records, Bulk API, upsert on external IDs) or the open-source <strong>SFDMU</strong> plugin, which migrates related object graphs resolving lookups automatically. Snowfakery generates large synthetic datasets from YAML; compliance-sensitive teams mask Full-sandbox data with Salesforce Data Mask.</div>
+        </div>
+
+        <h3>Top Technical Questions — Infra / SRE (Flavor 1)</h3>
+
+        <div class="qa">
+            <div class="q">11. What is Hyperforce, why did Salesforce build it, and what changes for engineers?</div>
+            <div class="a">Hyperforce (Dec 2020) is Salesforce's re-architecture to run natively on public cloud — AWS, GCP, and Alibaba — instead of only first-party data centers, as a code-defined, standardized deployment model. Drivers: data residency (in-region data for GDPR/sovereignty), elastic scale, security/Trust, and compliance. For engineers, everything is IaC (Terraform) and immutable — you don't SSH-patch servers, you rebuild and redeploy images; you design multi-AZ with cross-region DR; you operate under zero-trust with just-in-time access. For integrations, the gotchas are enabling My Domain, removing hardcoded instance URLs, and moving from IP allowlisting to domain-based allowlisting/mTLS.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">12. Design a CI/CD pipeline for a microservice deployed to Kubernetes.</div>
+            <div class="a">Source commit triggers CI. Build: unit tests, static analysis, SAST + dependency scanning, then build a container image, scan it, tag immutably (git SHA), push to ECR. Package: render Helm charts with the new tag. Deploy via GitOps (ArgoCD) or progressive delivery: promote dev→test→staging→prod with gates. In prod, <strong>canary</strong> — shift 1–5% of traffic, watch SLIs (error rate, p99 latency, saturation) via Prometheus, auto-rollback on regression, then ramp to 100%. Safety: required approvals, automated evidence gates, secrets from Vault/Secrets Manager (never baked in), full audit logging. This mirrors Salesforce's Managed Releases: canary + staggered groups + risk scoring across dev→test→stage→prod.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">13. Blue-green vs canary — when would you choose each?</div>
+            <div class="a"><strong>Blue-green:</strong> two full environments; deploy to the idle one, validate, flip 100% of traffic at the LB/DNS, instant rollback by flipping back. Choose it for fast clean rollback when you can't easily split traffic and can afford ~2× infra — but cutover exposes all users at once and DB migrations are tricky. <strong>Canary:</strong> route a small % to the new version, watch metrics, ramp progressively with automated rollback. Choose it to limit blast radius and validate on real traffic when you have strong observability and traffic-splitting (service mesh/ingress) — the tradeoff is it's slower and more complex. At Salesforce scale, canary/staggered rollout with risk scoring is preferred because blast-radius reduction protects Trust.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">14. How does Terraform state locking work and why does it matter?</div>
+            <div class="a">State is the source of truth mapping config to real infrastructure. Concurrent applies against the same state can corrupt it. Locking prevents that: with a remote backend, Terraform acquires a lock before write operations and releases it after. With the S3 backend you traditionally used a DynamoDB lock table (newer Terraform supports S3-native lockfiles); Terraform Cloud/HCP locks automatically. Best practice: remote backend (never local or committed to git) with encryption at rest, versioning to recover corrupted state, and least-privilege access. A stuck lock can be cleared with <code>force-unlock</code> using the lock ID — carefully, after confirming no apply is running.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">15. A pod is in CrashLoopBackOff. Troubleshoot it.</div>
+            <div class="a">It means the container keeps starting and exiting, with backoff between restarts. Steps: <code>kubectl describe pod</code> for events, exit code, restart count; <code>kubectl logs</code> and <code>--previous</code> to see why the last run died. Common causes: app error/bad config or missing env var/secret (exit 1); a failing liveness probe killing a slow-starting app (fix with readiness/startup probes); <strong>OOMKilled</strong> (exit 137) — memory limit too low; missing dependency at startup; bad image/command. Fix the root cause — raise memory, add a startupProbe, correct config — rather than just bumping restarts.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">16. Explain SLI, SLO, SLA, and error budgets, and how they change behavior.</div>
+            <div class="a">An <strong>SLI</strong> is a measured signal (success rate, p99 latency). An <strong>SLO</strong> is your internal target over a window (e.g., 99.9% success over 28 days). An <strong>SLA</strong> is the external contractual promise, usually looser, with penalties. The <strong>error budget</strong> is 1 − SLO (99.9% ⇒ ~0.1% ≈ 43 min/month). It aligns dev and SRE: budget remaining ⇒ ship fast; budget exhausted ⇒ freeze features and invest in reliability. It turns "how reliable should we be?" into a data-driven, blameless conversation and directly supports the Trust value.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">17. How does the Hyperforce zero-trust service mesh work, and what powers it?</div>
+            <div class="a">A service mesh built on <strong>Envoy</strong> (data plane) and <strong>Istio</strong> (control plane), CNCF projects Salesforce contributes to. Sidecar proxies handle security, observability, and reliability so app teams don't. Zero-trust means no implicit trust even inside the private network — every service-to-service call is authenticated, authorized, and encrypted with <strong>mTLS</strong> by default. Blast-radius reduction is engineered via control-plane sharding (a control-plane failure hits only a subset of services) and per-cluster isolation, plus circuit breakers. Salesforce even added WebAssembly extensions to inject custom logic into the data path. It started on AWS but is substrate-agnostic.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">18. What is Just-in-Time (JIT) access and why does it matter in a Trust-first company?</div>
+            <div class="a">JIT means engineers hold no standing production credentials. Access is requested on demand, scoped to a resource/task, approved, time-boxed, fully audited, and auto-revoked when the window expires (e.g., temporary read access to debug a live incident). It's a pillar of zero-trust and least privilege: it shrinks the attack surface (no long-lived keys to steal), limits blast radius, and produces an audit trail. In a company whose #1 value is Trust, protecting customer data outranks convenience — so JIT plus least-privilege IAM, short-lived credentials, and mTLS workload identity are the norm.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">19. How do you manage secrets across CI/CD and Kubernetes?</div>
+            <div class="a">Never commit secrets, bake them into images, or leave them in plaintext Terraform state. Use a dedicated system: HashiCorp Vault (dynamic, short-lived, leased secrets) or cloud-native AWS Secrets Manager / SSM Parameter Store backed by KMS. In Kubernetes, avoid raw Secrets in manifests; inject at runtime via the External Secrets Operator, Vault Agent, or the Secrets Store CSI driver, and enable etcd encryption-at-rest. Principles: encrypt in transit and at rest, rotate automatically, scope by least privilege, audit access. Best of all, prefer identity-based auth (IRSA on EKS, SPIFFE-style workload identity, mTLS) so services authenticate cryptographically instead of passing static keys.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">20. How does Salesforce run ~250k weekly production changes, and what happened to Spinnaker?</div>
+            <div class="a">Salesforce leaned heavily on Spinnaker for multi-cloud CD, but as Hyperforce grew (2,000+ prod services, fleets over 10,000 instances, ~3 changes/second) they built an internal <strong>Managed Releases (MR)</strong> platform purpose-fit to Hyperforce. MR enforces dev→test→stage→prod with automated evidence gates (coverage, validation) instead of manual sign-off, and uses layered strategies: canary, staggered groups, and a "global" path for emergency break-fixes. A reputation/risk-scoring system orders rollouts so lower-risk instances go first, and a "follow the moon" model releases in off-peak regions first — all to shrink blast radius. Result: only one or two production incidents since 2021 across tens of thousands of releases.</div>
+        </div>
+
+        <!-- Troubleshooting Framework -->
+        <h3>Troubleshooting Framework</h3>
+        <div class="card card-info">
+            <p><strong>Use this structure in EVERY scenario answer:</strong></p>
+            <div class="point">
+                <div class="point-num">1</div>
+                <div class="point-content"><span class="point-title">Read the exact error</span> — Deploy result / component errors / log line. Don't guess before reading.</div>
+            </div>
+            <div class="point">
+                <div class="point-num">2</div>
+                <div class="point-content"><span class="point-title">Reproduce</span> — Full run in a sandbox (not the Developer Console cache); can you trigger it consistently?</div>
+            </div>
+            <div class="point">
+                <div class="point-num">3</div>
+                <div class="point-content"><span class="point-title">Isolate</span> — Metadata dependency? Coverage? Auth? Drift? Diff prod vs git/sandbox for the failing components.</div>
+            </div>
+            <div class="point">
+                <div class="point-num">4</div>
+                <div class="point-content"><span class="point-title">Fix &amp; validate</span> — Correct the root cause; run a <strong>check-only</strong> deploy to confirm before committing.</div>
+            </div>
+            <div class="point">
+                <div class="point-num">5</div>
+                <div class="point-content"><span class="point-title">Deploy safely</span> — Quick Deploy the validated package; forward-fix (Salesforce has no native rollback).</div>
+            </div>
+            <div class="point">
+                <div class="point-num">6</div>
+                <div class="point-content"><span class="point-title">Prevent recurrence</span> — Drift detection, back-promotion, permission-set hygiene, runbooks.</div>
+            </div>
+        </div>
+
+        <!-- Common Scenarios -->
+        <h3>Common Troubleshooting Scenarios</h3>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">Production deploy blocked by Apex coverage &lt; 75%</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> "Average test coverage across all Apex Classes and Triggers is XX%, at least 75% test coverage is required." New classes/triggers show 0%, or tests fail during the run.</p>
+                <p><strong>Causes:</strong></p>
+                <ul>
+                    <li>New Apex without tests, or tests that run lines but contain no <code>System.assert</code> calls</li>
+                    <li><code>RunSpecifiedTests</code> used — each class/trigger must independently reach 75%</li>
+                    <li>Test data setup fails in prod (validation rules, required fields, duplicate rules, triggers behave differently)</li>
+                    <li>Async code not wrapped in <code>Test.startTest()/stopTest()</code>, so it never runs</li>
+                    <li><code>@isTest(SeeAllData=true)</code> tests that passed on sandbox data fail on prod data</li>
+                </ul>
+                <p><strong>Fix:</strong> Full run in sandbox — <code>sf apex run test --test-level RunLocalTests --code-coverage</code>; query <code>ApexCodeCoverageAggregate</code> for uncovered lines. Add real assertions, <code>@testSetup</code> data, and <code>Test.startTest()/stopTest()</code> around async. Ensure org-wide ≥75% AND every trigger &gt;0%. Validate check-only first, then Quick Deploy. Never disable failing required tests to force a pass.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">Deployment fails: "component not found" / missing dependency</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> "In field: field — no CustomField named Account.Foo__c found", or a layout/flow/profile references metadata not in the package or target org.</p>
+                <p><strong>Causes:</strong></p>
+                <ul>
+                    <li>Dependent metadata omitted (a layout referencing a field, but the field isn't included)</li>
+                    <li>Child deployed before parent (field without its object; record type without its value set)</li>
+                    <li>Target org missing a required feature/edition (Person Accounts, Field Service…) or managed package</li>
+                    <li>Profile/permission set references a class/field not being deployed and not already present</li>
+                    <li>API version too low to recognize a newer type; name/case mismatch</li>
+                </ul>
+                <p><strong>Fix:</strong> Assemble a complete, dependency-aware package using tool dependency analysis (Gearset/Copado) or <code>sfdx-git-delta</code>, not a hand-picked change set. Include all referenced metadata; enable required features and install managed packages first; deploy atomically (or use pre/post ordering). Bump the API version. Validate check-only to surface all missing references first.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">Git merge conflict in metadata XML (profiles, flexipages)</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> Two branches touch the same <code>.profile-meta.xml</code>/<code>.flexipage-meta.xml</code> and git leaves conflict markers. Even non-overlapping changes conflict because the platform reorders XML on retrieve.</p>
+                <p><strong>Causes:</strong></p>
+                <ul>
+                    <li>Profiles aggregate FLS, object perms, layout assignments, tab visibility into one giant file</li>
+                    <li>Non-deterministic element ordering between retrieves creates spurious diffs</li>
+                    <li>Developers retrieve full, unscoped profiles instead of only their slice</li>
+                </ul>
+                <p><strong>Fix:</strong> Migrate permissions to <strong>permission sets / permission set groups</strong> (small, single-purpose, rarely collide). Use decomposed source format so each object/field/flexipage is its own file. Add a deterministic XML sort on pre-commit (Gearset/Copado normalize this). Retrieve only what you changed; deploy deltas with <code>sfdx-git-delta</code>. Resolve remaining conflicts understanding XML semantics (usually keep both sides' <code>fieldPermissions</code>) and re-validate check-only.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">Sandbox refresh wiped data / broke integrations</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> After refresh, custom data is gone, integrations fail (or hit production endpoints), scheduled jobs stopped, email isn't sent, users can't log in.</p>
+                <p><strong>Causes:</strong></p>
+                <ul>
+                    <li>Developer/Dev Pro sandboxes copy <strong>metadata only</strong>; only Partial/Full include data — refresh replaces the org</li>
+                    <li>Named Credentials, Remote Site Settings, Custom Settings still point at production systems</li>
+                    <li>Refresh appends <code>.invalid</code> to usernames, resets email to "System only", deactivates scheduled Apex</li>
+                </ul>
+                <p><strong>Fix:</strong> Automate with a <code>SandboxPostCopy</code> Apex class that re-points endpoints to sandbox, fixes usernames, sets email deliverability, seeds data, reactivates jobs. Keep environment-specific config in Custom Metadata/Settings keyed by environment. Pick the right sandbox type when data is needed. Back up/export before refresh; maintain a documented post-refresh runbook.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">Copado/Gearset promotion fails (validation / back-promotion drift)</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> Promoting UAT→prod fails validation; green in a lower env but red in prod; tool warns "component will be overwritten"; target has newer changes than the branch (drift).</p>
+                <p><strong>Causes:</strong></p>
+                <ul>
+                    <li>Tests pass in a light sandbox but fail in prod (prod-only validation/duplicate rules, data volume, active automation)</li>
+                    <li>Incomplete user story / change set — a dependency left out</li>
+                    <li><strong>Back-promotion drift</strong> — a prod hotfix never merged back, so the older branch would overwrite newer prod state</li>
+                    <li>Expired org credential; target missing a feature/managed package</li>
+                </ul>
+                <p><strong>Fix:</strong> Run a validation-only promotion and read per-component errors. Include ALL related metadata via dependency analysis. Perform regular back-promotions (Copado Back Promotion; Gearset compare prod→lower and merge) after every hotfix so drift disappears. Refresh org credentials; validate against a Full-copy staging sandbox mirroring prod data before promoting.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">Config drift from manual production changes</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> Deployments overwrite prod changes or fail; fields/profiles/flows differ between sandbox and prod; a comparison tool reports dozens of differences not in version control.</p>
+                <p><strong>Causes:</strong></p>
+                <ul>
+                    <li>Admins make declarative "clicks" changes directly in prod that never reach git</li>
+                    <li>Emergency hotfixes applied straight to prod, bypassing the pipeline</li>
+                    <li>Lower sandboxes not refreshed; managed-package upgrades applied unevenly</li>
+                </ul>
+                <p><strong>Fix:</strong> Make git the single source of truth — all changes flow through the pipeline, and any emergency prod edit is immediately back-promoted. Run scheduled org comparisons as a drift-detection CI job that fails on unexpected differences. Lock down who can modify prod metadata (limit Customize Application / Modify Metadata). Prefer permission sets over profiles to shrink noisy diffs.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">CI pipeline SFDX auth fails (JWT bearer flow)</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> <code>sf org login jwt</code> fails with "invalid_grant", "user hasn't approved this consumer", "invalid_client_id", or "audience is invalid"; every downstream deploy step is blocked.</p>
+                <p><strong>Causes:</strong></p>
+                <ul>
+                    <li>Cert/key mismatch — public cert on the connected app doesn't match the signing <code>server.key</code>, or expired</li>
+                    <li>Connected app not pre-authorized — needs "Admin approved users are pre-authorized" AND the user's profile/perm set assigned ⇒ "user hasn't approved this consumer"</li>
+                    <li>Wrong Consumer Key; wrong instance/audience (using <code>login.salesforce.com</code> for a sandbox instead of <code>test.salesforce.com</code>) ⇒ "audience is invalid"</li>
+                    <li>Private key corrupted in the CI secret (newline/base64 mangling); profile IP/login-hour restrictions; clock skew on the runner</li>
+                </ul>
+                <p><strong>Fix:</strong> Verify the cert is unexpired and matches the key (<code>openssl</code>). Set OAuth policy to "Admin approved users are pre-authorized" and assign the integration user; grant <code>api</code>/<code>refresh_token</code> scopes. Pass the correct Consumer Key and <code>--instance-url</code>/audience. Store the PEM as a file-based secret. Relax IP restrictions or trust the runner IPs; confirm the user is active and API-enabled.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">Failed production release — no native rollback</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> A deploy succeeded but introduced regressions; the team wants to "roll back," but Salesforce has no built-in undo for metadata already committed to production.</p>
+                <p><strong>Causes:</strong></p>
+                <ul>
+                    <li>Deployments are atomic on failure, but there's <strong>no automatic reversal of a successful deploy</strong> — no metadata snapshot/undo</li>
+                    <li>Some changes are irreversible: deleting a field destroys its data; changing a field type can lose data</li>
+                    <li>No prior-release artifact or data backup retained</li>
+                </ul>
+                <p><strong>Fix:</strong> <strong>Forward-fix</strong> is primary: redeploy the previous known-good metadata from a git tag through a fast path (validate + Quick Deploy, valid ~10 days). Use <code>destructiveChanges.xml</code> to remove components that shouldn't exist. For data, restore from backups (Salesforce Backup / Own / Gearset / Weekly Export) — a metadata deploy won't restore records. De-risk future releases with <strong>feature flags</strong> (Custom Metadata/Custom Permissions) so risky changes toggle off without a redeploy; validate against a Full-copy staging sandbox first.</p>
+            </div>
+        </div>
+
+        <!-- Key Commands -->
+        <h3>Key Commands</h3>
+
+        <div class="code-block">
+            <div class="code-header"><span class="filename">Salesforce CLI (sf v2) — deploy, test, auth</span></div>
+<pre>
+# Headless CI auth (JWT bearer flow — connected app + certificate)
+sf org login jwt --client-id &lt;ConsumerKey&gt; --jwt-key-file server.key \
+  --username ci@example.com --instance-url https://test.salesforce.com
+
+# Validate-only (check-only) deploy with local tests — the pre-release gate
+sf project deploy validate --source-dir force-app --test-level RunLocalTests
+
+# Quick Deploy the validated package (skips re-running tests, within 10 days)
+sf project deploy quick --job-id &lt;validationId&gt;
+
+# Delta deploy: build package.xml + destructiveChanges.xml from a git diff
+sfdx sgd:source:delta --to HEAD --from HEAD~1 --output-dir changed/ --generate-delta
+
+# Run Apex tests with coverage; inspect uncovered lines
+sf apex run test --test-level RunLocalTests --code-coverage --result-format human
+
+# Retrieve / seed data
+sf project retrieve start --metadata "CustomObject:Account"
+sf data export tree --query "SELECT Id,Name FROM Account" --plan
+sf data import tree --plan Account-plan.json
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="filename">Infra (Flavor 1) — Terraform, Kubernetes, debugging</span></div>
+<pre>
+# Terraform remote state with locking (S3 + DynamoDB) — never local, never in git
+terraform init      # configures backend
+terraform plan      # run in CI as drift detection
+terraform force-unlock &lt;LOCK_ID&gt;   # only after confirming no apply is running
+
+# Kubernetes triage
+kubectl describe pod &lt;pod&gt;         # events, exit code, restart count
+kubectl logs &lt;pod&gt; --previous      # why the last run died (CrashLoopBackOff)
+# exit 137 = OOMKilled → right-size memory requests/limits
+
+# TLS / cert checks (Hyperforce integrations need SNI; prefer mTLS)
+openssl s_client -connect host:443 -servername host
+</pre>
+        </div>
+
+        <!-- Behavioral -->
+        <h3>Behavioral &amp; Values Round</h3>
+        <div class="card card-info">
+            Salesforce behavioral interviewing is explicitly <strong>values-driven</strong>. The company recommends <strong>STAR</strong> (Situation, Task, Action, Result — use "I", ~60% on Action, quantify the Result). Best practice for Salesforce specifically: <strong>name the value your story demonstrates</strong>, and end with a metric (mirroring the "Measures" discipline of V2MOM). Prepare ~2 stories per value. These mappings are recommended prep, not an official rubric — but candidates commonly lose ground by treating this as a generic behavioral round.
+        </div>
+
+        <table>
+            <tr><th>Value</th><th>What they probe</th><th>Story that lands</th></tr>
+            <tr><td><strong>Trust</strong> (#1)</td><td>Integrity, admitting mistakes, transparency, handling sensitive data</td><td>You surfaced bad news early and proactively, before it was discovered, then built a safeguard</td></tr>
+            <tr><td><strong>Customer Success</strong></td><td>Going above and beyond; owning the outcome end-to-end</td><td>Result anchored in the <em>customer's</em> measurable outcome, not your effort</td></tr>
+            <tr><td><strong>Innovation</strong></td><td>Challenging the status quo; acting on feedback</td><td>An iterative story with a wrong turn — you spotted an inefficiency, prototyped, and shipped it</td></tr>
+            <tr><td><strong>Equality</strong></td><td>Inclusive behavior, amplifying quiet voices, mentoring</td><td>You created space for a teammate being talked over, or mentored someone nontraditional</td></tr>
+            <tr><td><strong>Sustainability</strong></td><td>Rarely a direct question</td><td>Cite it in "Why Salesforce?" to show research depth</td></tr>
+        </table>
+
+        <div class="card">
+            <h4>High-frequency questions (with the value they map to)</h4>
+            <ul>
+                <li>"Tell me about a time you made a mistake at work." <span class="tag tag-blue">Trust</span> — disclose early, fix it, add a safeguard. Never a fake mistake ("I work too hard").</li>
+                <li>"Describe going above and beyond for a customer." <span class="tag tag-green">Customer Success</span> — Result = the customer's outcome (renewal saved, adoption up).</li>
+                <li>"Tell me about challenging the status quo / an innovative solution." <span class="tag tag-purple">Innovation</span> — sought feedback and iterated, not lone-genius.</li>
+                <li>"How did you make your team more inclusive / advocate for someone unheard?" <span class="tag tag-orange">Equality</span> — concrete action + outcome for the person.</li>
+                <li>"Tell me about a conflict with a coworker." <span class="tag tag-blue">Trust</span>/Ohana — direct, respectful, understand their view first; warmth under disagreement.</li>
+                <li>"How do you set goals and prioritize when everything's important?" — the moment to show you know <strong>V2MOM</strong> (Vision, Values, Methods, Obstacles, Measures).</li>
+                <li>"Tell me about difficult feedback you received." — Trailblazer/lifelong-learner: feedback → concrete change → measurable growth.</li>
+                <li>"Tell me about giving back / volunteering." <span class="tag tag-green">1-1-1</span> — authentic give-back; mentoring/open-source counts.</li>
+                <li>"Why Salesforce?" — name the five values (Trust first), connect 2–3 to your experience; reference Trailhead badges you earned preparing. Don't over-lean on "Ohana" as a buzzword.</li>
+            </ul>
+        </div>
+
+        <div class="card card-warning">
+            <strong>Culture vocabulary — know it, use it knowledgeably (not performatively):</strong>
+            <ul>
+                <li><strong>V2MOM</strong> — Vision, Values, Methods, Obstacles, Measures. Benioff's 1999 <em>internal</em> alignment framework that every employee still writes annually. It is <strong>not</strong> a candidate-evaluation rubric — reference it for goal-setting/prioritization questions, not "V2MOM alignment."</li>
+                <li><strong>Ohana</strong> — "family" (employees, customers, partners, communities). Note: quietly de-emphasized since the 2023 layoffs, so use it knowledgeably.</li>
+                <li><strong>1-1-1 model (Pledge 1%)</strong> — 1% equity, 1% product, 1% employee time (paid Volunteer Time Off), pioneered in 1999.</li>
+                <li><strong>Trailhead / Trailblazer Community</strong> — free gamified learning (badges, superbadges, Ranger rank). Completing relevant badges is concrete "lifelong learner" evidence.</li>
+            </ul>
+        </div>
+
+        <!-- Skills -->
+        <h3>Skills to Demonstrate</h3>
+        <div class="grid-2">
+            <div class="card">
+                <h4>Flavor 1 — Infra / SRE</h4>
+                <ul>
+                    <li>Kubernetes at scale (Helm, HPA, requests vs limits, CrashLoopBackOff/OOM triage)</li>
+                    <li>Terraform (remote state + locking, modules, drift detection)</li>
+                    <li>CI/CD orchestration (Spinnaker/ArgoCD), blue-green &amp; canary</li>
+                    <li>Service mesh (Istio/Envoy), mTLS, zero-trust, JIT access</li>
+                    <li>Observability (Prometheus/Grafana/Splunk), SLI/SLO/error budgets</li>
+                    <li>AWS (EC2/EKS/S3/IAM/VPC/CloudWatch), Python/Go, Linux internals</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Flavor 2 — Platform DevOps</h4>
+                <ul>
+                    <li>SFDX / sf CLI, source format, scratch orgs, source tracking</li>
+                    <li>Metadata API, <code>package.xml</code> / <code>destructiveChanges.xml</code>, delta deploys</li>
+                    <li>Sandbox strategy &amp; seeding; branching &amp; back-promotion; drift control</li>
+                    <li>Apex test levels &amp; the 75% coverage gate; Quick Deploy</li>
+                    <li>Copado / Gearset (or Flosum / AutoRABIT); DevOps Center</li>
+                    <li>Permission-sets-over-profiles; JWT CI auth; unlocked/2GP packages</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Study Resources -->
+        <h3>Study Resources</h3>
+        <div class="card">
+            <ul>
+                <li><strong>Salesforce values &amp; culture:</strong> <a href="https://www.salesforce.com/company/our-values/" target="_blank">salesforce.com/company/our-values</a>; Trailhead "Salesforce Culture and Values" module</li>
+                <li><strong>Interview prep (official):</strong> Trailhead "Strategies for Successful Software Engineer Interviews" → "Take the Remote Programming Test" unit; the Salesforce careers blog "Use the STAR Method to Ace Your Next Job Interview"</li>
+                <li><strong>Hyperforce:</strong> <a href="https://www.salesforce.com/platform/public-cloud-infrastructure/" target="_blank">salesforce.com/platform/public-cloud-infrastructure</a>; Salesforce Engineering blog (service mesh, Managed Releases, K8s optimization); Gearset's Hyperforce migration guide</li>
+                <li><strong>Platform DevOps:</strong> Trailhead "Application Lifecycle and Development Models"; the <a href="https://developer.salesforce.com/docs/metadata-coverage" target="_blank">Metadata Coverage Report</a>; <code>sf</code> CLI command reference; <code>sfdx-git-delta</code>, SFDMU (open source)</li>
+                <li><strong>Tooling:</strong> Copado &amp; Gearset docs; DevOps Center; HackerRank (practice the interface under a timer)</li>
+                <li><strong>Specs to know:</strong> OAuth 2.0 JWT bearer flow (connected apps); Apex test/coverage rules; Terraform state/backends; Kubernetes probes &amp; resource model</li>
+            </ul>
+        </div>
+
+        <hr>
+        <div id="footer"></div>
+    </div>
+
+</body>
+</html>

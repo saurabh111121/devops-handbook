@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Interviews - DevOps Handbook</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../../css/style.css">
+    <script src="../../js/app.js"></script>
+</head>
+<body>
+    <div id="topnav"></div>
+
+    <div class="container">
+        <nav class="breadcrumb">
+            <a href="../../index.html">Home</a> &gt; <a href="../index.html">Interview</a> &gt; <span>Databricks — Senior Technical Solutions Engineer (Platform)</span>
+        </nav>
+
+        <h1>Company-Specific Interview Prep</h1>
+        <p class="subtitle">Targeted preparation for specific companies — process, expectations, technical topics, and scenarios.</p>
+
+        <!-- ============================================================ -->
+        <!-- DATABRICKS -->
+        <!-- ============================================================ -->
+
+        <h2 id="databricks">Databricks — Senior Technical Solutions Engineer (Platform)</h2>
+
+        <div class="card card-info">
+            <strong>Role:</strong> Frontline Senior Technical Solutions Engineer on the <strong>Platform Support team</strong>. You are the primary contact for critical issues on the Databricks Data Intelligence Platform.<br>
+            <strong>Location:</strong> Bengaluru, India &nbsp;·&nbsp; Req <strong>P-1376</strong> (Greenhouse id 7845320002) &nbsp;·&nbsp; <strong>Experience:</strong> 7+ yrs<br>
+            <strong>Culture principles:</strong> Customer obsessed · Raise the bar · Truth seeking · First principles · Bias for action · Put the company first<br>
+            <strong>Platform (as Databricks describes it in 2026 JDs):</strong> Genie, Lakebase, Agent Bricks, Lakeflow, Lakehouse, Unity Catalog. 20,000+ organizations and 70% of the Fortune 500 are customers.
+        </div>
+
+        <div class="card card-warning">
+            <strong>How to read this page:</strong> Every fact here comes from official Databricks/Microsoft/Spark docs, the Databricks careers site, or the Greenhouse board, unless it carries a tag:
+            <span class="tag tag-yellow">unverified</span> means I could not confirm it from an accessible source, and
+            <span class="tag tag-orange">reported</span> means it is self-reported or third-party data. Do not state tagged items as fact in the interview.
+        </div>
+
+        <!-- In-page TOC -->
+        <div class="card">
+            <h4>On this page</h4>
+            <div class="grid-2">
+                <ul>
+                    <li><a href="#role-summary">1. Role summary &amp; reality check</a></li>
+                    <li><a href="#jd">2. Job description</a></li>
+                    <li><a href="#interview-process">3. Interview process</a></li>
+                    <li><a href="#architecture">4. Databricks architecture &amp; networking</a></li>
+                    <li><a href="#unity-catalog">5. Unity Catalog, compute &amp; identity</a></li>
+                    <li><a href="#spark">6. Spark internals &amp; performance</a></li>
+                    <li><a href="#delta">7. Delta Lake</a></li>
+                    <li><a href="#scenarios">8. Platform troubleshooting scenario bank (12)</a></li>
+                </ul>
+                <ul>
+                    <li><a href="#toolkit">9. Linux / log analysis / JVM toolkit</a></li>
+                    <li><a href="#incident">10. Incident management &amp; RCA template</a></li>
+                    <li><a href="#upgrades">11. Upgrades &amp; DBR lifecycle</a></li>
+                    <li><a href="#technical-qa">12. Technical Q&amp;A (30)</a></li>
+                    <li><a href="#behavioral">13. Behavioral STAR bank</a></li>
+                    <li><a href="#study-plan">14. 7 / 14-day study plan</a></li>
+                    <li><a href="#resources">15. Resources (official)</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- 1. ROLE SUMMARY -->
+        <!-- ============================================================ -->
+        <h3 id="role-summary">1. Role Summary &amp; Reality Check</h3>
+
+        <h4>Where this role sits in the support org</h4>
+        <div class="diagram">
+            <div class="diagram-label">Support tiers (official JD wording: Backline "serves as the critical bridge between Frontline Support and Engineering")</div>
+<pre>
+  Customer case (Sev1-4 / Mission Critical Severity)
+        │
+        ▼
+  ┌──────────────────────────────┐   you are here (P-1376)
+  │ FRONTLINE TSE                │   triage, diagnosis, customer comms,
+  │ Platform | Spark | ML &amp; AI   │   incident lead, RCA, KB, upgrades
+  └──────────────┬───────────────┘
+                 │ escalation package: repro, IDs, logs, UTC timeline,
+                 │ hypotheses ruled out, clear question
+                 ▼
+  ┌──────────────────────────────┐   complex escalations, reproductions,
+  │ BACKLINE ENGINEERING         │   reads source code, builds diagnostics,
+  │                              │   tooling, automation, "Claude skill capabilities"
+  └──────────────┬───────────────┘
+                 ▼
+  ┌──────────────────────────────┐
+  │ PRODUCT ENGINEERING          │   bug fixes, regressions
+  └──────────────────────────────┘
+
+  Alongside: Escalation Managers (own MC-Sev comms, 15-min updates),
+  Designated Support Engineers (DSE, paid add-on), Manager / Sr Manager Technical Solutions
+</pre>
+        </div>
+
+        <h4>Platform track vs Spark track vs ML &amp; AI track</h4>
+        <table>
+            <tr><th>Track</th><th>Focus</th><th>Example Bengaluru reqs</th></tr>
+            <tr><td><strong>Platform</strong> <span class="tag tag-blue">this role</span></td><td>Workspace, cloud infrastructure, networking, identity, clusters/compute, upgrades, Linux</td><td>P-1376, P-1431 (Senior), P-1378 (Staff, 12+ yrs)</td></tr>
+            <tr><td><strong>Spark (Data &amp; AI)</strong></td><td>Job performance, pipeline resiliency, "complex and long-running data engineering use cases"</td><td>Manager, Technical Solutions Spark (P-1576)</td></tr>
+            <tr><td><strong>ML &amp; AI</strong></td><td>Model Serving, Vector Search, Agent Bricks, MLflow, GenAI apps</td><td>Senior ML &amp; AI TSE (P-1377)</td></tr>
+        </table>
+
+        <div class="card card-warning">
+            <strong>Reality check:</strong>
+            <ul>
+                <li><strong>Platform-track emphasis is inferred from the JD, not from published interview content.</strong> The JD stresses Unix/Linux admin, DevOps, log analysis, AWS/Azure/GCP and platform upgrades. Expect cloud networking (VPC/VNet injection, PrivateLink, DNS), IAM/identity, cluster launch failures and Linux to weigh more than Spark tuning. You still need Spark fundamentals.</li>
+                <li><strong>Frontline means ownership.</strong> You stay the customer's owner after escalating to Backline and you keep the update cadence going.</li>
+                <li><strong>On-call and follow-the-sun.</strong> The Tokyo Platform TSE JD says TSEs "participate in weekend and weekday on call rotation". The India Spark team covers APJ and EMEA hours and hands off for 24x7. That Bengaluru Platform works the same way is <span class="tag tag-yellow">inferred, not stated in P-1376</span>. Ask.</li>
+                <li><strong>Coding is probably evaluated somewhere.</strong> The Tokyo Platform TSE JD lists expert-level Python as <em>desired</em> and strong SQL as <em>required</em>. P-1376 lists no coding requirement, so be ready for Python/SQL scripting (parse a log, a PySpark transform, a SQL window function). The exact format is <span class="tag tag-yellow">unverified</span>.</li>
+                <li><strong>Hiring at volume.</strong> Two Senior Platform reqs (P-1376, P-1431) share the same JD text, except that P-1431 states the role works <strong>EMEA timezone</strong> hours; a Staff req is also open. Ask the recruiter which req and which shift applies. Ask about headcount and team structure.</li>
+                <li><strong>Support is codifying troubleshooting into AI.</strong> The Backline JD mentions turning failure patterns into "diagnostics, documentation, tooling, automation, and Claude skill capabilities". The ML TSE JD mentions "teaching our AI systems new skills". Bring an automation story.</li>
+            </ul>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Career ladder (visible on job board)</h4>
+                <ul>
+                    <li><strong>Senior TSE</strong> (7+ yrs, Bengaluru Platform) → Staff TSE (12+ yrs)</li>
+                    <li>Adjacent: Staff Backline Engineer, DSE (Sr/Staff)</li>
+                    <li>Management: Manager Technical Solutions (Spark); Sr Manager Global Premier Support; Sr Manager Data &amp; AI Support Engineering</li>
+                    <li>Plain TSE, Escalation Engineer/Manager and Sr Manager Technical Solutions titles are not currently posted <span class="tag tag-yellow">unverified</span></li>
+                    <li>Internal level codes for TSE are <strong>not</strong> published</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Compensation &amp; reviews <span class="tag tag-orange">reported</span></h4>
+                <ul>
+                    <li>AmbitionBox (self-reported, 13 Nov 2025): TSE ₹23.3 L - ₹29 L/yr across 29 salaries. 6-9 yrs ₹20.6-29.3 L (5 reports), 9-12 yrs ₹26.6-30.4 L (15). About 92% fixed. These figures usually <strong>exclude RSUs and joining bonus</strong>.</li>
+                    <li>No India pay ranges are published. US example: Sr TSE (McLean, VA, cleared) $130,200-$178,950 base. Use it for relative context only.</li>
+                    <li>AmbitionBox Databricks India: 2.7/5 (47 reviews); WLB 2.4, promotions 2.5, salary 3.8. Small sample. Ask about on-call cadence, case load and the Senior → Staff path.</li>
+                    <li>Process takes 2-3 months officially. Plan your notice period around it.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- 2. JD -->
+        <!-- ============================================================ -->
+        <h3 id="jd">2. Job Description</h3>
+
+        <details class="jd-dropdown">
+            <summary class="jd-toggle">
+                <i class="fa-solid fa-file-lines"></i> View Full Job Description (P-1376)
+                <i class="fa-solid fa-chevron-down jd-arrow"></i>
+            </summary>
+            <div class="jd-content">
+                <h4>Senior Technical Solutions Engineer (Platform) — Bengaluru, India</h4>
+                <p>Frontline platform support for the Databricks Data Intelligence Platform. 7+ years of hands-on support or engineering experience with Databricks, cloud data platforms or big data.</p>
+
+                <h4>Responsibilities</h4>
+                <ul>
+                    <li>Frontline troubleshooting and diagnostics of escalated issues.</li>
+                    <li>Direct customer interaction.</li>
+                    <li>Lead high-priority incidents, including root cause analysis (RCA) and preventive measures.</li>
+                    <li>Collaborate with engineering, product management and DevOps.</li>
+                    <li>Documentation and knowledge base (KB) contributions.</li>
+                    <li>Performance monitoring.</li>
+                    <li>Manage platform upgrades and patches.</li>
+                    <li>Innovation and improvement.</li>
+                    <li>Gather and relay customer feedback.</li>
+                </ul>
+
+                <h4>Qualifications</h4>
+                <ul>
+                    <li>Deep knowledge of Databricks architecture and Apache Spark.</li>
+                    <li>Cloud platforms: AWS, Azure, GCP.</li>
+                    <li>Data pipelines and distributed computing.</li>
+                    <li>Unix/Linux administration.</li>
+                    <li>DevOps practices.</li>
+                    <li>Log analysis and monitoring tools.</li>
+                    <li>Problem-solving.</li>
+                    <li>Communication.</li>
+                    <li>Collaboration.</li>
+                    <li>Customer focus.</li>
+                    <li>Education: bachelor's in Computer Science, Engineering or a related field; advanced degrees or certifications highly desirable.</li>
+                </ul>
+
+                <h4>Preferred</h4>
+                <ul>
+                    <li>Hadoop, Kafka, NoSQL.</li>
+                    <li>Automation and CI/CD.</li>
+                    <li>Data governance and compliance.</li>
+                </ul>
+                <p><em>Req P-1376 · Greenhouse job id 7845320002</em></p>
+            </div>
+        </details>
+
+        <!-- ============================================================ -->
+        <!-- 3. INTERVIEW PROCESS -->
+        <!-- ============================================================ -->
+        <h3 id="interview-process">3. Interview Process</h3>
+
+        <div class="card card-info">
+            <strong>Confirmed (official careers interview-prep FAQ):</strong> 7 hiring stages: Identifying opportunities → Applying online → Connecting with Talent Acquisition → Skill assessments → Interviewing → Reference checks → Decision and offer. Interviews are on <strong>Google Meet</strong> unless told otherwise. The timeline "typically ranges from two to three months", depending on role, region and hiring team. Some roles also include a presentation stage. Databricks aims to give feedback <strong>within 48 hours</strong> of the final interview. If you hear nothing for a week or hold a competing offer, contact your recruiter. Behavioral questions are scored against "the same core competencies" for everyone.
+        </div>
+
+        <div class="card">
+            <div class="point">
+                <div class="point-num">1</div>
+                <div class="point-content">
+                    <span class="point-title">Recruiter call</span> <span class="tag tag-green">confirmed</span> — Background, motivation, logistics. Ask for the exact loop here.
+                </div>
+            </div>
+            <div class="point">
+                <div class="point-num">2</div>
+                <div class="point-content">
+                    <span class="point-title">Pre-onsite screen</span> <span class="tag tag-green">confirmed</span> — Officially "a hiring manager screen, technical assessment, or skill evaluation". For TSE, a Spark/SQL/Python/cloud fundamentals screen is <span class="tag tag-yellow">reported, unverified</span>. Some candidates are said to get an online or take-home assessment <span class="tag tag-yellow">unverified</span>.
+                </div>
+            </div>
+            <div class="point">
+                <div class="point-num">3</div>
+                <div class="point-content">
+                    <span class="point-title">Onsite loop — "typically consists of four to six interviews"</span> <span class="tag tag-green">confirmed count</span> — Round contents are <span class="tag tag-yellow">unverified</span>. Commonly reported: technical deep dive (Spark internals, Databricks), cloud/Linux/networking, a troubleshooting or customer scenario, and HM/behavioral.
+                </div>
+            </div>
+            <div class="point">
+                <div class="point-num">4</div>
+                <div class="point-content">
+                    <span class="point-title">Hiring Manager / Cross-functional round</span> <span class="tag tag-orange">model from SWE guide</span> — In the official Engineering guide this round covers career trajectory, motivation, why Databricks, significant projects and how they tied to company goals, decision-making, cross-team collaboration, and leadership "relevant to your career level". Explain projects in technical depth and avoid jargon from your current employer.
+                </div>
+            </div>
+            <div class="point">
+                <div class="point-num">5</div>
+                <div class="point-content">
+                    <span class="point-title">Hiring committee → References → Offer</span> <span class="tag tag-orange">SWE pattern, likely company-wide</span> — The Engineering PDF loop is Recruiter (30 min) → Technical Screen (1 hr) → Team Matching → Full Panel (4-6 × 1 hr) → Hiring Committee → References → Offer. That guide covers SWE, so do <strong>not</strong> assume TSE has CoderPad or algorithm rounds.
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-danger">
+            <strong>Confidentiality rules (official):</strong> Do not bring or share confidential information from current or former employers, and do not prepare Databricks interview materials on your current work computer. Anonymize customer names, internal service names and metrics in your RCA stories. The page says nothing about AI tools, so assume no AI help in live rounds.
+        </div>
+
+        <div class="card">
+            <strong>Ask the recruiter word for word:</strong> "How many panel interviews, what does each one cover, is there a take-home or online assessment, and is any round hands-on in a workspace?"
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- 4. ARCHITECTURE -->
+        <!-- ============================================================ -->
+        <h3 id="architecture">4. Databricks Architecture</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Control plane vs classic compute plane vs serverless compute plane</div>
+<pre>
+ ┌──────────────────────── DATABRICKS ACCOUNT ────────────────────────────┐
+ │  CONTROL PLANE                                                          │
+ │  web app · REST APIs · job scheduler · Unity Catalog services           │
+ │        ▲  ▲                                                             │
+ │        │  │ SCC relay (separate from web app / REST endpoint)           │
+ │        │  │                                                             │
+ │  SERVERLESS COMPUTE PLANE (same region as workspace)                    │
+ │  serverless notebooks/jobs · serverless SQL warehouses · pipelines      │
+ │  no public IPs · reaches customer data via NCC / serverless PEs         │
+ └────────┼──┼─────────────────────────────────────────────────────────────┘
+          │  │ outbound 443 tunnel per cluster (no inbound ports, no public IPs)
+          │  │ + 8443/8445 API, 8444 UC lineage/logging, 3306 legacy HMS
+ ┌────────┼──┼──────────── CUSTOMER CLOUD ACCOUNT ─────────────────────────┐
+ │  CLASSIC COMPUTE PLANE (inside workspace VPC / VNet)                    │
+ │  ┌───────────┐  ┌───────────┐  ┌───────────┐                           │
+ │  │  driver   │  │ executor  │  │ executor  │   2 IPs per node          │
+ │  └───────────┘  └───────────┘  └───────────┘   NAT for egress          │
+ │                                                                         │
+ │  WORKSPACE STORAGE (classic: customer S3 bucket, the old "root bucket") │
+ │  notebooks, revisions, job results, cluster logs  -- do not modify      │
+ │  DATA: S3 / ADLS / GCS governed by Unity Catalog                        │
+ └─────────────────────────────────────────────────────────────────────────┘
+</pre>
+        </div>
+
+        <div class="card card-info">
+            <strong>First triage question: classic or serverless?</strong> On classic compute, the customer's IAM, quotas, subnets, NSG/SGs, SCPs and firewalls are all possible failure points, and you have the Spark UI and cluster logs. On serverless, the infra belongs to Databricks, networking goes through NCCs and egress controls, and you have the query profile and system tables. If serverless works and classic does not, look at the customer's network or cloud account first.
+        </div>
+
+        <h4>Classic vs serverless — what changes for support</h4>
+        <table>
+            <tr><th></th><th>Classic</th><th>Serverless</th></tr>
+            <tr><td><strong>Where compute runs</strong></td><td>Customer VPC/VNet</td><td>Databricks account, same region</td></tr>
+            <tr><td><strong>Start time</strong></td><td>Minutes (Pro/Classic SQL warehouse about 4 min)</td><td>Seconds (serverless SQL about 2-6 s)</td></tr>
+            <tr><td><strong>Init scripts / cluster libs</strong></td><td>Yes (allowlist on Standard mode)</td><td>No. Use environments or notebook-scoped <code>%pip</code></td></tr>
+            <tr><td><strong>Spark UI</strong></td><td>Yes</td><td>No. Use the query profile / Query insights</td></tr>
+            <tr><td><strong>Languages</strong></td><td>Python, SQL, Scala, R (mode-dependent)</td><td>No Scala or R in notebooks (Scala JAR tasks OK)</td></tr>
+            <tr><td><strong>Other limits</strong></td><td>—</td><td>Subset of Spark configs; <code>CACHE TABLE</code> raises; no DBFS mounts with instance profiles; streaming triggers AvailableNow/Once only</td></tr>
+        </table>
+
+        <h4>Per-cloud networking cheat sheet</h4>
+        <table>
+            <tr><th></th><th>AWS (customer-managed VPC)</th><th>Azure (VNet injection)</th><th>GCP</th></tr>
+            <tr><td><strong>Network size</strong></td><td>Subnets /17 to /26; at least 2 private subnets in different AZs</td><td>VNet /16 to /24, same region and subscription; host (public) + container (private) subnets, each /26+</td><td>Subnets /29 to /9 (/24 ≈ 120 nodes, /20 ≈ 2,000)</td></tr>
+            <tr><td><strong>IPs per node</strong></td><td>2</td><td>1 in each subnet (2 total); Azure reserves 5 per subnet</td><td>2</td></tr>
+            <tr><td><strong>Egress</strong></td><td>NAT gateway for 0.0.0.0/0</td><td>Explicit egress needed for VNets created after <strong>31 Mar 2026</strong> (NAT Gateway recommended). No egress LB with SCC (port exhaustion)</td><td>Cloud NAT unless Private Service Connect</td></tr>
+            <tr><td><strong>Required egress</strong></td><td>443, 3306 (legacy HMS), 53 (custom DNS), 6666 (SCC + PrivateLink), 2443 (FIPS), 5432 (Lakebase), 8443/8445 (API), 8444 (UC lineage/logging), 8446-8451 reserved</td><td>AzureDatabricks tag 443, 3306, 8443-8451; Storage 443; EventHub 9093; Sql 3306</td><td>—</td></tr>
+            <tr><td><strong>Rules</strong></td><td>1-5 SGs; SG ingress all TCP/UDP from same SG; NACLs must not deny; DNS hostnames + resolution on</td><td>Subnets delegated to <code>Microsoft.Databricks/workspaces</code>, not shareable; NSG rules auto-managed; managed RG <code>databricks-rg-...</code> is locked; CIDRs fixed after deploy</td><td>GKE → GCE move <span class="tag tag-yellow">unverified timeline</span></td></tr>
+            <tr><td><strong>Cross-account / identity</strong></td><td>Cross-account IAM role trusts Databricks AWS account <code>414351767826</code>; external ID = Databricks account ID. SCPs must still allow <code>sts:AssumeRole</code></td><td>Access Connector managed identity for UC storage</td><td>—</td></tr>
+        </table>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Secure cluster connectivity (SCC)</h4>
+                <ul>
+                    <li>Default for <strong>all new workspaces</strong>. Classic nodes have no public IPs and the VPC has no open inbound ports.</li>
+                    <li>Each cluster opens an outbound 443 tunnel to the <strong>SCC relay</strong>. The control plane sends cluster commands down that tunnel.</li>
+                    <li>Azure calls it <strong>No Public IP (NPIP)</strong>: ARM <code>enableNoPublicIp</code>, default true from API 2024-05-01. Upgrading an existing workspace means stopping all compute first, and it can take 15+ min.</li>
+                    <li>Allowlist relay <strong>FQDNs, not IPs</strong>.</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>PrivateLink</h4>
+                <ul>
+                    <li><strong>AWS:</strong> front-end (user → workspace) and back-end (compute → control plane). Back-end needs <strong>two</strong> interface endpoints: SCC relay + workspace REST API, with "Enable private DNS name" on. Private Access Settings (PAS) can be shared per region. Needs customer-managed VPC, SCC, Enterprise tier, VPC CIDR /25+.</li>
+                    <li><strong>Azure:</strong> inbound (front-end), outbound (serverless via NCC), classic (back-end). Sub-resources: <code>databricks_ui_api</code>, <code>browser_authentication</code>, <code>general_access</code> (Beta), <code>service_direct</code>. Needs Premium, VNet injection, SCC.</li>
+                    <li><strong>Azure pitfall:</strong> one <code>browser_authentication</code> endpoint per region per private DNS zone. Deleting the workspace that hosts it breaks SSO for every workspace in the region. Use a dedicated "private web auth" workspace.</li>
+                    <li>NCC limits (Azure): 20 per region per account, 50 workspaces per NCC, 100 private endpoints per region.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card card-danger">
+            <strong>Workspace storage:</strong> Docs say "Do not delete or modify the workspace storage in your cloud account." A bucket policy or lifecycle rule on the root bucket breaks notebook revisions and results. DBFS root and mounts are a "deprecated pattern and not recommended by Databricks".
+        </div>
+
+        <h4>SQL warehouse types</h4>
+        <table>
+            <tr><th>Type</th><th>Compute location</th><th>Start</th><th>Features</th></tr>
+            <tr><td><strong>Serverless</strong></td><td>Databricks account</td><td>about 2-6 s</td><td>Photon, Predictive IO, Intelligent Workload Management (IWM)</td></tr>
+            <tr><td><strong>Pro</strong></td><td>Customer account</td><td>about 4 min</td><td>Photon, Predictive IO, no IWM. Use when serverless is not in the region or custom networking is needed</td></tr>
+            <tr><td><strong>Classic</strong></td><td>Customer account</td><td>about 4 min</td><td>Photon only, entry-level</td></tr>
+        </table>
+
+        <div class="card">
+            <h4>Photon</h4>
+            <p>Native C++ vectorized engine. Always on for serverless, SQL warehouses and serverless pipelines. On by default for classic all-purpose and jobs compute (<code>runtime_engine=PHOTON</code>). Unsupported operations fall back to Spark and results stay correct. <strong>Not supported:</strong> UDFs, RDD/Dataset APIs, stateful streaming. Little benefit under 2 s. <strong>To check it ran:</strong> in the Spark UI Photon operators are orange and Spark operators blue. In the query profile Photon is purple, and the profile shows the % of task time in Photon.</p>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- 5. UNITY CATALOG & IDENTITY -->
+        <!-- ============================================================ -->
+        <h3 id="unity-catalog">5. Unity Catalog, Compute Access &amp; Identity</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Unity Catalog object model</div>
+<pre>
+ METASTORE (one per region)
+   ├── CATALOG ── SCHEMA ── TABLE / VIEW / VOLUME / FUNCTION / MODEL
+   │                         (catalog.schema.object)
+   ├── STORAGE CREDENTIAL  (IAM role / managed identity / service account)
+   │       ▲
+   ├── EXTERNAL LOCATION   (path + credential; many locations per credential)
+   ├── CONNECTION
+   └── SHARE
+
+ Read a table needs:  USE CATALOG  +  USE SCHEMA  +  SELECT
+ Raw path access needs: READ FILES on the external location
+ Managed table/volume: UC governs access AND storage lifecycle
+ External table/volume: UC governs access only
+</pre>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>UC facts to have ready</h4>
+                <ul>
+                    <li>Privileges inherit downward and nothing is granted by default. Missing <code>USE CATALOG</code> / <code>USE SCHEMA</code> is the most common gap.</li>
+                    <li>Managed storage location can be set at metastore (optional), catalog or schema level.</li>
+                    <li>UC auto-enablement for new workspaces started <strong>8 Nov 2023</strong>.</li>
+                    <li><code>MSCK REPAIR TABLE ... SYNC METADATA</code> resyncs external-table metadata changed outside UC.</li>
+                    <li>Do not give non-UC identities direct access to managed storage.</li>
+                    <li><strong>Lineage:</strong> automatic to column level in <code>system.access.table_lineage</code> / <code>column_lineage</code>. None before 1 Sept 2024, not kept across renames, no RDDs or global temp views.</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Row filters, column masks, ABAC</h4>
+                <ul>
+                    <li><code>ALTER TABLE t SET ROW FILTER f ON (col)</code>; <code>ALTER TABLE t ALTER COLUMN c SET MASK m</code>.</li>
+                    <li>DBR below 12.2 LTS "fail securely and return no data".</li>
+                    <li>Dedicated mode needs 15.4 LTS+ with serverless enabled (runs through serverless FGAC). Read-only on 15.4-16.2, writes need 16.3+.</li>
+                    <li>Not on views. No time travel or clones on protected tables.</li>
+                    <li>Docs advise <code>spark.sql.ansi.enabled=true</code>, because failed casts become NULL and filters can return the wrong rows.</li>
+                    <li><strong>ABAC policies</strong> (catalog/schema level, governed tags) are recommended at scale. Table owners cannot override them.</li>
+                </ul>
+            </div>
+        </div>
+
+        <h4>Access modes (current names)</h4>
+        <table>
+            <tr><th>Mode</th><th>Former name / API</th><th>Use</th><th>Key limits</th></tr>
+            <tr><td><strong>Standard</strong></td><td>Shared / <code>USER_ISOLATION</code></td><td>Multi-user, Lakeguard isolation. Recommended default</td><td>No RDDs; no Scala <code>sc</code>/<code>sparkContext</code>/<code>sqlContext</code>; no ML runtime, GPU or R; no spark-submit tasks; IMDS blocked (use service credentials); no DBFS FUSE; init scripts/JARs on allowlist; DBR 19+ blocks many Spark confs (JVM options, classpath, <code>spark.jars</code>); executor logs unavailable, driver logs admin-only</td></tr>
+            <tr><td><strong>Dedicated</strong></td><td>Single user / <code>SINGLE_USER</code> (now assignable to a group)</td><td>ML, GPU, R, RDDs, full Spark</td><td>—</td></tr>
+            <tr><td><strong>Auto</strong> (default)</td><td>—</td><td>Picks Standard, unless ML runtime, GPU, or DBR &lt; 14.3 → Dedicated</td><td>—</td></tr>
+            <tr><td><strong>Legacy</strong></td><td>No Isolation Shared, <code>LEGACY_TABLE_ACL</code>, <code>LEGACY_PASSTHROUGH</code></td><td>Not UC-compatible</td><td>Migrate</td></tr>
+        </table>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Compute policies &amp; init scripts</h4>
+                <ul>
+                    <li>Compute policies (called "cluster policies" in APIs) fix or restrict attributes, cap cost and resources per user, and enforce up to 500 libraries. Lowering "max per user" does not terminate existing clusters.</li>
+                    <li>Init scripts: <strong>cluster-scoped</strong> (recommended) and <strong>global</strong> (admin-only; run before cluster-scoped; Dedicated/No-isolation only).</li>
+                    <li>DBFS init scripts and legacy global/cluster-named scripts are <strong>end-of-life</strong>.</li>
+                    <li>Store them in a <strong>UC volume</strong> (DBR 13.3 LTS+), workspace files (11.3 LTS+, 500 MB limit), or cloud storage.</li>
+                    <li>Serverless: no compute-scoped init scripts.</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Identity &amp; auth</h4>
+                <ul>
+                    <li><strong>Account-centric.</strong> Identity federation is on by default for new workspaces and cannot be disabled.</li>
+                    <li>Automatic identity management (Entra ID, Okta) recommended; account-level SCIM is the fallback, workspace SCIM is legacy. <strong>SCIM does not support nested groups</strong>; Azure automatic identity management does.</li>
+                    <li>Provisioned to account ≠ workspace access. Assign the user or group to the workspace.</li>
+                    <li>Auth: OAuth token federation (recommended), OAuth M2M for service principals, OAuth U2M, PATs (legacy, discouraged).</li>
+                    <li>Unified auth env vars: <code>DATABRICKS_HOST</code>, <code>DATABRICKS_ACCOUNT_ID</code>, <code>DATABRICKS_CLIENT_ID</code>, <code>DATABRICKS_CLIENT_SECRET</code>, or <code>~/.databrickscfg</code>.</li>
+                    <li>SSO is account-level (SAML 2.0 / OIDC). Emergency access for up to 20 users (password + security key).</li>
+                    <li>A rotated SCIM token keeps the old one valid for 24 h. Account limits: 10,000 users+SPs / 5,000 groups for accounts created before 17 Nov 2025; 50,000 / 10,000 for accounts created on or after that date; raisable via the account team. Per-workspace cap: 10,000 users+SPs / 5,000 groups.</li>
+                </ul>
+            </div>
+        </div>
+
+        <h4>System tables (forensics &amp; monitoring)</h4>
+        <table>
+            <tr><th>Table</th><th>Use</th></tr>
+            <tr><td><code>system.access.audit</code></td><td>Who changed what / why denied (<code>service_name</code>, <code>action_name</code>, <code>user_identity.email</code>, <code>response.statusCode</code>). Account-level events have <code>workspace_id = 0</code></td></tr>
+            <tr><td><code>system.billing.usage</code></td><td>DBU / cost anomalies (retention indefinite)</td></tr>
+            <tr><td><code>system.lakeflow.jobs</code>, <code>job_run_timeline</code>, <code>job_task_run_timeline</code>, <code>pipeline_update_timeline</code></td><td>Job and pipeline reliability</td></tr>
+            <tr><td><code>system.query.history</code></td><td>Query performance across many runs</td></tr>
+            <tr><td><code>system.compute.node_timeline</code>, <code>instance_events</code>, <code>warehouse_events</code></td><td>Node CPU/memory, warehouse scaling</td></tr>
+            <tr><td><code>system.storage.predictive_optimization_operations_history</code></td><td>Did OPTIMIZE / VACUUM run?</td></tr>
+            <tr><td><code>system.alert.alerts</code>, <code>alert_evaluation_history</code></td><td>SQL alert definitions and history</td></tr>
+        </table>
+        <p>Default retention is <strong>395 days</strong>, and admins can set 30-3,650 days (<code>st_retention</code>). Needs a UC-enabled workspace. Tables cover all workspaces in the region. Non-admins need <code>USE CATALOG</code>, <code>USE SCHEMA</code> and <code>SELECT</code>. <code>system.operational_data</code> and <code>system.lineage</code> are deprecated.</p>
+
+        <h4>Tooling: Terraform vs Bundles vs CLI</h4>
+        <div class="card">
+            <ul>
+                <li>Docs: "Databricks recommends Terraform for cloud-level and external resources" (workspaces, networking, credentials, metastores). Provider source <code>databricks/databricks</code>.</li>
+                <li>"For jobs, pipelines, notebooks, and other Databricks resources, use Declarative Automation Bundles." Docs: "Declarative Automation Bundles (formerly known as Databricks Asset Bundles)". Configured in <code>databricks.yml</code> with per-environment targets: <code>databricks bundle init / validate / deploy / run</code>; <code>bundle generate</code> + <code>deployment bind</code> adopt existing resources.</li>
+                <li>Whether bundles deploy via Terraform or a newer "direct" engine is <span class="tag tag-yellow">unverified</span>. The <code>databricks_mws_*</code> resource names are <span class="tag tag-yellow">unverified on docs</span> but well known.</li>
+                <li><strong>Drift:</strong> two <code>databricks_permissions</code> / <code>databricks_grants</code> on one object fight each other. Use one per securable with dynamic blocks.</li>
+            </ul>
+        </div>
+
+        <div class="card card-info">
+            <strong>2025-2026 renames (use current names):</strong> Delta Live Tables → <strong>Lakeflow pipelines</strong> ("Spark Declarative Pipelines on Lakeflow", built on Apache Spark Declarative Pipelines; the 2025 interim name was Lakeflow Declarative Pipelines). <code>import dlt</code> → <code>from pyspark import pipelines as dp</code> (<code>dlt</code> still works). <code>apply_changes</code> → <code>create_auto_cdc_flow</code>. Workflows → <strong>Lakeflow Jobs</strong>. DABs → <strong>Declarative Automation Bundles</strong>. Shared → <strong>Standard</strong>; Single user → <strong>Dedicated</strong>. AUTO CDC and expectations are Databricks-only, not in OSS SDP.
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- 6. SPARK -->
+        <!-- ============================================================ -->
+        <h3 id="spark">6. Spark Internals &amp; Performance</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Execution model</div>
+<pre>
+ DRIVER: your program → Catalyst logical/physical plan → AQE re-plans at runtime
+         schedules tasks · receives collect()/toPandas() · builds broadcasts
+    │
+    │ action → JOB → split into STAGES at shuffle boundaries → TASKS (1 per partition)
+    ▼
+ EXECUTORS (JVMs on workers): run tasks, hold cache + shuffle files
+
+ narrow (filter, select, map, union)   → pipelined in one stage, no data movement
+ wide   (groupBy, join w/o broadcast,  → SHUFFLE: map tasks write files, next stage
+         distinct, repartition, window)   reads over network → skew, spill, I/O live here
+
+ read-side partitions:    spark.sql.files.maxPartitionBytes = 128 MB  (scan stage)
+ shuffle-side partitions: spark.sql.shuffle.partitions      = 200     (post-shuffle)
+</pre>
+        </div>
+
+        <h4>AQE and join defaults on Databricks</h4>
+        <table>
+            <tr><th>Setting</th><th>Default</th><th>Note</th></tr>
+            <tr><td><code>spark.databricks.optimizer.adaptive.enabled</code></td><td>true</td><td>AQE on since Spark 3.2.0 in OSS too</td></tr>
+            <tr><td><code>spark.databricks.adaptive.autoBroadcastJoinThreshold</code></td><td>30 MB</td><td>Runtime, uses actual shuffle stats → SMJ becomes BHJ</td></tr>
+            <tr><td><code>spark.sql.autoBroadcastJoinThreshold</code></td><td>10 MB (OSS)</td><td>Plan-time estimate; -1 disables</td></tr>
+            <tr><td><code>spark.sql.broadcastTimeout</code></td><td>300 s</td><td></td></tr>
+            <tr><td><code>spark.sql.adaptive.advisoryPartitionSizeInBytes</code></td><td>64 MB</td><td>Coalesce target</td></tr>
+            <tr><td><code>spark.sql.adaptive.coalescePartitions.minPartitionSize</code></td><td>1 MB</td><td>Do not set <code>minPartitionNum</code> (overrides it)</td></tr>
+            <tr><td><code>skewJoin.skewedPartitionFactor</code> / <code>ThresholdInBytes</code></td><td>5 / 256 MB</td><td>Skewed only if larger than <strong>both</strong></td></tr>
+            <tr><td><code>spark.sql.shuffle.partitions=auto</code></td><td>—</td><td>Turns on auto-optimized shuffle</td></tr>
+        </table>
+        <p><strong>Join hints:</strong> BROADCAST &gt; MERGE &gt; SHUFFLE_HASH &gt; SHUFFLE_REPLICATE_NL when they conflict. Spark does not guarantee it will honor a hint.</p>
+
+        <h4>Reading the Spark UI (triage order)</h4>
+        <div class="card">
+            <div class="point">
+                <div class="point-num">1</div>
+                <div class="point-content"><span class="point-title">Jobs Timeline</span> — <strong>Gaps between jobs</strong> mean the driver is busy and workers are idle: <code>withColumn</code> loops, non-Spark Python, an overloaded driver.</div>
+            </div>
+            <div class="point">
+                <div class="point-num">2</div>
+                <div class="point-content"><span class="point-title">Longest stage → Summary Metrics</span> — <strong>Skew</strong> if Max task duration is at least 50% above the 75th percentile. <strong>Spill</strong> (Memory/Disk) appears only if the stage spilled.</div>
+            </div>
+            <div class="point">
+                <div class="point-num">3</div>
+                <div class="point-content"><span class="point-title">I/O bound?</span> — Uniform tasks, big input, high iowait in compute metrics. In the SQL tab scan node, compare files read vs pruned.</div>
+            </div>
+            <div class="point">
+                <div class="point-num">4</div>
+                <div class="point-content"><span class="point-title">Executors tab</span> — Failures per executor, executor logs, <strong>driver thread dump</strong> (for a hung driver or progress stuck at 100%).</div>
+            </div>
+            <div class="point">
+                <div class="point-num">5</div>
+                <div class="point-content"><span class="point-title">Cluster event log + compute metrics</span> — Autoscaling, spot loss, <code>Driver_Not_Responding</code>. The Metrics tab replaced Ganglia (1-min samples, 30-day retention, "By node" outlier view). The DBR 13 cutover version is <span class="tag tag-yellow">unverified</span>.</div>
+            </div>
+        </div>
+
+        <h4>Memory failures — driver vs executor</h4>
+        <table>
+            <tr><th></th><th>Driver OOM / pressure</th><th>Executor OOM</th></tr>
+            <tr><td><strong>Symptom</strong></td><td>"The spark driver has stopped unexpectedly and is restarting." / "Driver is temporarily unavailable." / "Lost connection to cluster. The notebook may have been detached." Event log: <code>Driver_Not_Responding</code> "Driver is up but is not responsive, likely due to GC."</td><td><code>ExecutorLostFailure ... Remote RPC client disassociated. Likely due to containers exceeding thresholds, or network issues.</code> (No YARN message: Databricks doesn't run YARN)</td></tr>
+            <tr><td><strong>Other errors</strong></td><td>"Total size of serialized results ... is bigger than spark.driver.maxResultSize"; "Size of broadcasted table far exceeds estimates and exceeds limit of spark.driver.maxResultSize=1073741824"</td><td>Stage retries, executors removed</td></tr>
+            <tr><td><strong>Causes</strong></td><td><code>collect()</code>/<code>toPandas()</code>, large broadcasts, <code>withColumn</code> loops, many notebooks/streams on one cluster, pure Python on driver</td><td>Skew, too few shuffle partitions, oversized broadcast, UDFs loading whole partitions, window without PARTITION BY, unbounded streaming state</td></tr>
+            <tr><td><strong>Fix</strong></td><td>Bigger driver (more workers does <strong>not</strong> help), stop collecting, job compute, detach notebooks. Raise maxResultSize only as a last resort</td><td>Rule out spot/autoscale first; test by doubling memory per core; <code>shuffle.partitions=auto</code>; RocksDB state store; fix skew</td></tr>
+        </table>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Skew playbook</h4>
+                <ul>
+                    <li>AQE skew-join applies only to shuffle-based joins (<strong>sort-merge and shuffle hash</strong>), never broadcast joins, and not to aggregations. FULL OUTER gets no skew handling; LEFT/RIGHT OUTER only on the preserved side.</li>
+                    <li>Lower <code>skewedPartitionFactor</code> / <code>ThresholdInBytes</code> if hot partitions are below 256 MB.</li>
+                    <li><code>spark.sql.adaptive.forceOptimizeSkewedJoin</code> (default false) forces it even with an extra shuffle.</li>
+                    <li>Find the hot key (often NULL or 'UNKNOWN'), salt + two-stage aggregation, broadcast the small side.</li>
+                    <li><code>REBALANCE</code> hint on writes (ignored when AQE is off). Liquid clustering if skew comes from the table layout.</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Structured Streaming essentials</h4>
+                <ul>
+                    <li>Triggers: default (≈0 ms), <code>processingTime</code>, <code>availableNow</code>, <code>once</code> (deprecated since 11.3 LTS), <code>realTime</code>. <strong>Continuous is NOT supported</strong> on Databricks.</li>
+                    <li>One <code>checkpointLocation</code> per query. Changing stateful operators, sources/topics or sink type needs a new checkpoint. Filters, rate limits and trigger interval are safe to change.</li>
+                    <li>DBR 18.2+: <code>spark.sql.streaming.queryEvolution.enableSourceEvolution</code> allows source add/remove (cannot be undone).</li>
+                    <li><strong>Kafka:</strong> Spark does not commit offsets to Kafka, so consumer-group lag tools mislead. Read lag from <code>avgOffsetsBehindLatest</code> / <code>maxOffsetsBehindLatest</code> / <code>estimatedTotalBytesBehindLatest</code>. <code>startingOffsets</code> only applies to a new query. <code>failOnDataLoss</code> defaults to true.</li>
+                    <li><strong>Auto Loader:</strong> <code>cloudFiles.schemaEvolutionMode</code> defaults to <code>addNewColumns</code> when no schema is provided, so the stream <em>stops</em> on a new column by design. With a user-supplied schema the default is <code>none</code> (no evolution, no failure; new columns are dropped unless rescued data is enabled). Restart with job retries. <code>maxFilesPerTrigger</code> defaults to 1000.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- 7. DELTA -->
+        <!-- ============================================================ -->
+        <h3 id="delta">7. Delta Lake</h3>
+
+        <div class="diagram">
+            <div class="diagram-label">Transaction log</div>
+<pre>
+ table/
+ ├── part-0000.parquet ...                data files
+ └── _delta_log/
+     ├── 00000000000000000000.json        commit 0  (add/remove file actions)
+     ├── 00000000000000000001.json        commit 1
+     ├── ...
+     └── 00000000000000000010.checkpoint.parquet   periodic state summary
+ Snapshot = last checkpoint + later JSON commits   (optimistic concurrency)
+
+ delta.logRetentionDuration       = 30 days   (history / time travel metadata)
+ delta.deletedFileRetentionDuration = 7 days  (VACUUM threshold)
+ DBR 18+: time travel beyond deletedFileRetentionDuration is blocked, and
+          logRetentionDuration must be &gt;= deletedFileRetentionDuration
+</pre>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>Layout &amp; maintenance</h4>
+                <ul>
+                    <li><strong>Liquid clustering</strong> (<code>CLUSTER BY</code>, up to 4 keys; <code>CLUSTER BY AUTO</code> needs predictive optimization) replaces partitioning + ZORDER and cannot be combined with them. GA on DBR 15.4 LTS+. OPTIMIZE is incremental. <code>OPTIMIZE FULL</code> (16.0+) reclusters everything and can take hours. 18.1+ adds <code>REPLACE PARTITIONED BY WITH CLUSTER BY</code>.</li>
+                    <li><strong>Z-ORDER</strong> is not idempotent and weakens with each extra column. Predictive optimization never runs it.</li>
+                    <li><strong>Data skipping</strong> uses stats on the first 32 columns (<code>delta.dataSkippingNumIndexedCols</code> / <code>dataSkippingStatsColumns</code>). Changing this does not recompute existing stats.</li>
+                    <li><strong>Small files:</strong> optimized writes + auto compaction (always on for MERGE/UPDATE/DELETE). Autotuning targets 256 MB files for tables under 2.56 TB.</li>
+                    <li><strong>Predictive optimization:</strong> runs OPTIMIZE, VACUUM, ANALYZE automatically. Default on, UC <strong>managed</strong> tables only, Premium+, DBR 12.2 LTS+.</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>VACUUM, RESTORE, deletion vectors</h4>
+                <ul>
+                    <li>VACUUM default 7 days. <code>spark.databricks.delta.retentionDurationCheck.enabled</code> (true) blocks shorter retention. <strong>Turning it off is a safety-protection change</strong>, so get explicit sign-off. <code>DRY RUN</code> lists up to 1,000 files. <code>LITE</code> (16.1+) fails with <code>DELTA_CANNOT_VACUUM_LITE</code> if the log was pruned.</li>
+                    <li>DBR 18.0+: VACUUM ignores the <code>RETAIN</code> argument except <code>0 HOURS</code>, so <code>RETAIN 24 HOURS</code> silently uses the table's <code>delta.deletedFileRetentionDuration</code>. Set the table property instead.</li>
+                    <li><code>RESTORE TABLE t TO VERSION AS OF n</code> needs MODIFY and cannot reach vacuumed files. It is a data-changing commit, so downstream streams may see duplicates.</li>
+                    <li><strong>Deletion vectors:</strong> rows are marked removed, not rewritten. To physically erase (GDPR): DELETE → <code>REORG TABLE ... APPLY (PURGE)</code> → VACUUM past purge time. Also purge upstream (Kafka, landing files, OLTP).</li>
+                    <li>Row-level concurrency: DBR 14.3 LTS+, unpartitioned, DVs enabled.</li>
+                </ul>
+            </div>
+        </div>
+
+        <h4>Concurrency exceptions (default isolation: WriteSerializable)</h4>
+        <table>
+            <tr><th>Exception</th><th>Meaning</th><th>Fix</th></tr>
+            <tr><td><code>ConcurrentAppendException</code></td><td>Concurrent writer added files where your op read</td><td>Explicit partition/cluster-key predicates in MERGE ON; row-level concurrency; serialize; retry with backoff</td></tr>
+            <tr><td><code>ConcurrentDeleteReadException</code></td><td>A file you read was rewritten by DELETE/UPDATE/MERGE</td><td>Disjoint predicates; serialize</td></tr>
+            <tr><td><code>ConcurrentDeleteDeleteException</code></td><td>Two ops rewrote the same file (e.g. two compactions)</td><td>Don't overlap OPTIMIZE runs</td></tr>
+            <tr><td><code>MetadataChangedException</code></td><td>Concurrent ALTER / schema update</td><td>Schedule DDL separately</td></tr>
+            <tr><td><code>ConcurrentTransactionException</code></td><td>Two streams share a checkpoint</td><td>One checkpoint per query</td></tr>
+            <tr><td><code>ProtocolChangedException</code></td><td>Protocol upgrade or concurrent CREATE/REPLACE on empty path</td><td>Retry; coordinate upgrades</td></tr>
+        </table>
+
+        <div class="card">
+            <h4>Lakeflow pipelines — the rule behind many tickets</h4>
+            <p>Dataset functions must <strong>only return a DataFrame</strong>. No <code>collect()</code>, <code>count()</code>, <code>toPandas()</code>, <code>save()</code>, <code>saveAsTable()</code> or <code>start()</code> inside definitions, because the source is evaluated several times during planning. Side effects run repeatedly, which shows up as "duplicate writes in prod". Use sinks / <code>foreach_batch_sink</code> for external writes. The pipeline <code>event_log</code> is the primary diagnostic. Concepts: streaming tables, materialized views, temporary views, flows (Append, Update, AUTO CDC), expectations (warn / drop / fail).</p>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- 8. SCENARIO BANK -->
+        <!-- ============================================================ -->
+        <h3 id="scenarios">8. Platform Troubleshooting Scenario Bank</h3>
+
+        <div class="card card-info">
+            <strong>Read the termination type first. It tells you who owns the fix.</strong>
+            <span class="tag tag-blue">SUCCESS</span>
+            <span class="tag tag-orange">CLIENT_ERROR / *_DUE_TO_MISCONFIG → customer config</span>
+            <span class="tag tag-purple">CLOUD_FAILURE → cloud provider</span>
+            <span class="tag tag-red">SERVICE_FAULT → escalate to Databricks</span><br>
+            Codes to recognise: <code>NETWORK_CONFIGURATION_FAILURE</code>, <code>NPIP_TUNNEL_SETUP_FAILURE</code>, <code>BOOTSTRAP_TIMEOUT(_DUE_TO_MISCONFIG)</code>, <code>INSTANCE_UNREACHABLE</code>, <code>DNS_RESOLUTION_ERROR</code>, <code>SUBNET_EXHAUSTED_FAILURE</code>, <code>AWS_INSUFFICIENT_FREE_ADDRESSES_IN_SUBNET_FAILURE</code>, <code>CLOUD_PROVIDER_RESOURCE_STOCKOUT</code>, <code>AZURE_QUOTA_EXCEEDED_EXCEPTION</code>, <code>INIT_SCRIPT_FAILURE</code>, <code>DRIVER_OUT_OF_MEMORY</code>, <code>DRIVER_UNRESPONSIVE</code>, <code>AWS_INACCESSIBLE_KMS_KEY_FAILURE</code>, <code>SECRET_RESOLUTION_ERROR</code>, <code>EOS_SPARK_IMAGE</code>, <code>METASTORE_COMPONENT_UNHEALTHY</code>.
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">S1. Clusters hang in Pending, then fail: "Node daemon ping timeout in 600000 ms"</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Symptom:</strong> New or freshly re-networked workspace. The first cluster waits 20-30 min then terminates. The customer's security team "tightened egress".</p>
+                <p><strong>Ask:</strong> Classic only, or serverless/SQL too? What changed (UDR, firewall, proxy, DNS)? Any TLS inspection? Hub-spoke with forced tunnelling?</p>
+                <p><strong>Where to look:</strong> Termination code/type; firewall logs; a test VM in the workspace subnet running <code>nc -zv</code> to the web app (443), SCC relay (443), artifact/log storage (443) and legacy metastore (3306); <code>curl /api/2.0/clusters/spark-versions</code> with a token; <code>openssl s_client -showcerts</code>.</p>
+                <p><strong>Ranked causes:</strong></p>
+                <ol>
+                    <li>UDR/firewall missing control plane, relay or storage routes (0.0.0.0/0 to an NVA with no exceptions)</li>
+                    <li>TLS-inspecting firewall. curl works only with <code>-k</code>, and network-layer logs look clean</li>
+                    <li>Custom DNS not forwarding</li>
+                    <li>SG/NSG egress missing 443 or 8443-8451; NACL denies (AWS)</li>
+                </ol>
+                <p><strong>Fix:</strong> Restore the documented ports and FQDNs and exempt them from TLS inspection. <strong>Prevention:</strong> validated network template; Databricks port/FQDN list kept in firewall-as-code tests; pre-go-live connectivity check.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">S2. New Azure VNet-injected workspace cannot reach PyPI / Maven / control plane, older workspaces fine</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Ask:</strong> When was the VNet created? NAT Gateway attached? SCC/NPIP on?</p>
+                <p><strong>Where to look:</strong> Subnet associations (NAT), NSG delegation rules, UDRs.</p>
+                <p><strong>Ranked causes:</strong> (1) VNet created after <strong>31 March 2026</strong>, so it has no default outbound access. (2) Customer deny rules or a UDR to a firewall without Databricks FQDNs. (3) An egress load balancer with SCC causing port exhaustion.</p>
+                <p><strong>Fix:</strong> Azure NAT Gateway on both host and container subnets (it also gives a stable egress IP). <strong>Prevention:</strong> add explicit egress to the workspace deployment template.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">S3. AWS: "failed to launch spark container on instance ... Timed out with exception after 1 attempts"</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Ask:</strong> Exfiltration-protection firewall? VPC endpoints? Recent SCP changes?</p>
+                <p><strong>Where to look:</strong> VPC endpoint list, endpoint SGs, CloudTrail; <code>aws sts decode-authorization-message</code> on any encoded failure.</p>
+                <p><strong>Ranked causes:</strong> (1) STS blocked, so nodes can't reach the root S3 bucket. (2) The STS endpoint SG does not allow the workspace SG. (3) SCP denies.</p>
+                <p><strong>Fix:</strong> Allow <code>sts.amazonaws.com</code> or add a regional STS VPC endpoint in (or reachable from) the workspace SG. <strong>Prevention:</strong> endpoint/SG checklist in IaC.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">S4. Launch failures at scale: IP exhaustion, quota, stockout, spot</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Ask:</strong> Instance type, AZ, autoscale max, spot policy, number of concurrent clusters?</p>
+                <p><strong>Where to look:</strong> Termination parameters (carry the cloud error); cloud quota pages; subnet free-IP counts.</p>
+                <p><strong>Ranked causes:</strong> (1) Subnet too small: 2 IPs per node, so a subnet holds about half its usable IPs as nodes (<code>SUBNET_EXHAUSTED_FAILURE</code>, <code>AWS_INSUFFICIENT_FREE_ADDRESSES_IN_SUBNET_FAILURE</code>). (2) vCPU quota (<code>AWS_RESOURCE_QUOTA_EXCEEDED</code>, <code>AZURE_QUOTA_EXCEEDED_EXCEPTION</code>, <code>GCP_QUOTA_EXCEEDED</code>). (3) Capacity (<code>CLOUD_PROVIDER_RESOURCE_STOCKOUT</code>, <code>AWS_INSUFFICIENT_INSTANCE_CAPACITY_FAILURE</code>). (4) Spot limits (<code>AWS_MAX_SPOT_INSTANCE_COUNT_EXCEEDED_FAILURE</code>). (5) <code>INSTANCE_POOL_MAX_CAPACITY_REACHED</code>.</p>
+                <p><strong>Fix:</strong> Raise quota; different instance type/AZ; spot with on-demand fallback and on-demand driver (field names <span class="tag tag-yellow">unverified</span>); serverless for critical jobs. AWS subnet CIDRs can't change, so create a new network config. Azure: ask the account team to expand. <strong>Prevention:</strong> quota alerts, subnet sizing at design time.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">S5. Intermittent cluster launch failures after enabling AWS back-end PrivateLink</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Ask:</strong> Both endpoints created? Private DNS on? Custom resolvers? When did the workspace reach RUNNING?</p>
+                <p><strong>Where to look:</strong> From a working notebook: <code>%sh nslookup &lt;workspace-url&gt;</code> (must return the private IP); a REST call with the notebook token (any HTTP code, even 401/403, proves the path works; a timeout means a network problem); endpoint SG rules.</p>
+                <p><strong>Ranked causes:</strong> (1) One of several resolvers gives public answers. (2) Relay/workspace registrations swapped in the network config, or PAS missing. (3) Endpoint SG missing 443/6666 (2443 with FIPS). (4) Clusters created before the roughly 20-minute wait after RUNNING. (5) VPC DNS hostnames/resolution off.</p>
+                <p><strong>Fix:</strong> Correct DNS forwarding and registrations. <strong>Prevention:</strong> DNS test in the change runbook.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">S6. Azure: browser SSO broken for every workspace in a region, REST/PAT still works</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Ask:</strong> Any workspace deleted recently? Front-end Private Link in use?</p>
+                <p><strong>Where to look:</strong> Which workspace hosted the <code>browser_authentication</code> private endpoint; private DNS zone records; <code>system.access.audit</code> with <code>service_name='accounts'</code>.</p>
+                <p><strong>Ranked causes:</strong> (1) The workspace hosting <code>browser_authentication</code> was deleted. There is only one per region per private DNS zone. (2) Expired SAML cert or OIDC secret (that breaks all browsers everywhere, not one region). (3) IdP app assignment or conditional-access change.</p>
+                <p><strong>Fix:</strong> Recreate the endpoint in a surviving or dedicated workspace and update DNS. Use emergency-access users if admins are locked out. <strong>Prevention:</strong> dedicated "private web auth" workspace per production region, with deletion guarded.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">S7. Cluster fails with INIT_SCRIPT_FAILURE / GLOBAL_INIT_SCRIPT_FAILURE</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Ask:</strong> Where is the script stored? Access mode? Anything changed in egress or the global scripts?</p>
+                <p><strong>Where to look:</strong> An <code>INIT_SCRIPTS_STARTED</code> event with no matching <code>INIT_SCRIPTS_FINISHED</code> (event details key <code>global</code>/<code>cluster</code>); logs at <code>&lt;log-path&gt;/&lt;cluster-id&gt;/init_scripts/&lt;cluster-id&gt;_&lt;container-ip&gt;/...sh.stderr.log</code> or <code>/databricks/init_scripts</code> on the node. Events log for one node only, so check every container directory. Audit <code>globalInitScripts</code> events.</p>
+                <p><strong>Ranked causes:</strong> (1) apt/pip blocked by egress. (2) Script on deprecated DBFS. (3) Not on the Standard-mode allowlist. (4) Script bugs: CRLF endings, missing <code>set -e</code> or exit codes <span class="tag tag-orange">general Linux practice</span>.</p>
+                <p><strong>Fix:</strong> Move to a UC volume or workspace files; allowlist; mirror packages. <strong>Prevention:</strong> lint scripts in CI; consider environments/serverless.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">S8. "PERMISSION_DENIED: User does not have USE SCHEMA on Schema 'poc.schema1'" — "but I have SELECT"</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Ask:</strong> Exact error string? Which principal (a job may run as a service principal)? Compute access mode? Is the catalog bound to specific workspaces? Ownership transferred recently?</p>
+                <p><strong>Where to look:</strong> <code>SHOW GRANTS</code> on catalog, schema and table; group membership (SCIM does not nest); <code>system.access.audit</code> where <code>service_name='unityCatalog'</code> for the denied action and any recent revoke.</p>
+                <p><strong>Ranked causes:</strong> (1) Missing <code>USE CATALOG</code>/<code>USE SCHEMA</code>. (2) Job runs as a different principal. (3) Legacy (non-UC) access mode. (4) Workspace-catalog binding. (5) Raw path access without <code>READ FILES</code>. (6) Row filter / mask / ABAC policy.</p>
+                <p><strong>Fix:</strong> Least-privilege grants to <strong>groups</strong>. <strong>Prevention:</strong> grants as code, one <code>databricks_grants</code> per securable.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">S9. External location: "java.nio.file.AccessDeniedException: s3://... getFileStatus ... 403 Forbidden"</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Ask:</strong> Was any IAM role deleted and recreated? KMS-encrypted bucket? Cross-account? Fails on classic, serverless, or both?</p>
+                <p><strong>Where to look:</strong> Bucket policy (look for <code>AROA...</code> strings); storage credential trust policy (<code>sts:ExternalId</code>); KMS key policy; CloudTrail AccessDenied for the role session; "Test connection" in Catalog Explorer.</p>
+                <p><strong>Ranked causes:</strong></p>
+                <ol>
+                    <li>Role deleted and recreated. AWS replaced the ARN in the bucket policy with the old unique ID (<code>AROA...</code>), and a new role with the same name does not get access back</li>
+                    <li>Trust policy <code>sts:ExternalId</code> doesn't match the storage credential's External ID (copy it from the credential; the 0000 placeholder was never updated), or the role isn't self-assuming. Databricks blocks non-self-assuming roles; run Validate Configuration.</li>
+                    <li>KMS key policy missing Decrypt/GenerateDataKey for the UC role</li>
+                    <li>Cross-account bucket policy, SCP or permission boundary</li>
+                    <li>Path outside the external location; VPC endpoint policy / <code>aws:SourceVpce</code> condition (classic-vs-serverless split)</li>
+                </ol>
+                <p><strong>Fix:</strong> Replace the AROA ID with the current role ARN and retest. <strong>Prevention:</strong> manage policies in IaC by ARN reference; alert on IAM role deletion.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">S10. Azure: works on classic cluster, 403 on serverless SQL warehouse</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Ask:</strong> Storage firewall on? Credential type (managed identity or service principal)? NCC configured?</p>
+                <p><strong>Where to look:</strong> Storage account networking (VNet rules, resource-instance rules); access connector role assignments; NCC private endpoints.</p>
+                <p><strong>Ranked causes:</strong> (1) Serverless runs in Databricks' subscription, so the VNet rules don't cover it and no NCC is configured. (2) Missing resource-instance rule for <code>Microsoft.Databricks/accessConnectors</code>. (3) Service principal credential, which can't pass network rules the way a managed identity can. (4) Missing Storage Blob Data Contributor.</p>
+                <p><strong>Fix:</strong> NCC with serverless private endpoints or allowlisted subnets; access connector managed identity. <strong>Prevention:</strong> include serverless in storage-firewall design reviews.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">S11. Lakeflow job intermittently fails: "Driver is temporarily unavailable"</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Ask:</strong> All-purpose or job compute? Other notebooks attached? Data growth? Any <code>collect</code>/<code>toPandas</code>?</p>
+                <p><strong>Where to look:</strong> Event log <code>Driver_Not_Responding</code> ("likely due to GC"); termination code <code>DRIVER_OUT_OF_MEMORY</code> / <code>DRIVER_UNRESPONSIVE</code>; driver stdout/stderr/log4j GC lines; thread dump; <code>system.compute.node_timeline</code>. Standard mode shows driver logs to admins only.</p>
+                <p><strong>Ranked causes:</strong> (1) Driver-side collection or large broadcast. (2) Shared all-purpose cluster with many notebooks. (3) Single-node pandas/Python loops. (4) Driver too small. (5) <code>DRIVER_UNREACHABLE</code>/network, if GC looks healthy.</p>
+                <p><strong>Fix:</strong> Bigger driver; keep work distributed; job compute or serverless jobs. <strong>Prevention:</strong> compute log delivery to a UC volume (logs survive termination); scheduled restarts of interactive clusters.</p>
+            </div>
+        </div>
+
+        <div class="scenario">
+            <div class="scenario-header">
+                <span class="title">S12. "Databricks broke our pipeline": jobs fail with cast/overflow errors after 15.4 LTS → 17.3 LTS</span>
+            </div>
+            <div class="scenario-body">
+                <p><strong>Ask:</strong> Exact before/after DBR versions? Failing run IDs? Did the code change? Are runtimes pinned in job definitions?</p>
+                <p><strong>Where to look:</strong> Release-note behavior-change sections; error class; a canary run of the same job on the old version.</p>
+                <p><strong>Ranked causes:</strong> (1) <strong>DBR 17.0 made ANSI SQL the default</strong>, so invalid casts, overflow and divide-by-zero now raise errors instead of returning NULL. (2) Library jumps (pandas 1.5.3 → 2.2.3, NumPy 1.26.4 → 2.1.3). (3) pandas-on-Spark blocked under ANSI by default. (4) MERGE APIs (Scala/Python) now return a DataFrame. (5) DBFS custom CA certs unsupported. (6) A real regression → Backline with a repro.</p>
+                <p><strong>Fix:</strong> Pin back to 15.4 LTS (supported to 19 Aug 2027) or set <code>spark.sql.ansi.enabled=false</code> as a temporary bridge. Long term, use <code>try_cast</code>/<code>try_divide</code>. <strong>Prevention:</strong> pin LTS in bundles/policies; staging canary on the next LTS; read release notes.</p>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- 9. TOOLKIT -->
+        <!-- ============================================================ -->
+        <h3 id="toolkit">9. Linux / Log-Analysis / JVM Toolkit</h3>
+
+        <div class="card card-warning">
+            <code>%sh</code> in a notebook runs <strong>on the driver only</strong>. Shell and JVM-flag access depends on access mode and policy. On serverless you can't set arbitrary JVM options. Exact log file names such as <code>log4j-active.log</code> are commonly seen but <span class="tag tag-yellow">unverified on official pages</span>. The commands below are standard Linux practice.
+        </div>
+
+        <div class="card">
+            <h4>Where Databricks logs live</h4>
+            <ul>
+                <li><strong>Cluster event log</strong> (60-day retention): resize, spot loss, init scripts, driver not responding.</li>
+                <li><strong>Driver logs</strong>: stdout, stderr, log4j. <strong>Executor logs</strong>: Spark UI → Executors.</li>
+                <li><strong>Compute log delivery</strong>: every 5 min to a UC volume (recommended), S3/ADLS/GCS, or legacy DBFS, under <code>&lt;cluster-id&gt;/</code>. Delivery stops at termination, and without it the logs are gone.</li>
+                <li><strong>Serverless</strong>: query profile / Query insights, system tables.</li>
+                <li><strong>Pipelines</strong>: <code>event_log</code>. <strong>Platform-wide</strong>: <code>status.databricks.com</code> (per service and region, plus external dependencies like EC2, S3, GitHub, Maven, Python).</li>
+            </ul>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="filename">Log analysis</span></div>
+<pre>
+# Top error signatures
+grep -E 'ERROR|Exception|OutOfMemory|Killed' log4j-active.log | sort | uniq -c | sort -rn | head
+zgrep -h 'OutOfMemoryError' *.log.gz | head                 # rotated logs
+sed -n '/10:15:00/,/10:20:00/p' log4j-active.log            # time window
+awk '{print $1, $2}' log4j-active.log | cut -c1-16 | uniq -c # events per minute
+less +F stderr                                              # follow
+
+# Cluster events / API output with jq
+databricks clusters events &lt;cluster-id&gt; -o json | jq '.[] | {timestamp, type}'   # CLI emits a JSON array; raw REST response uses '.events[]'
+
+# Kernel OOM killer (container OOM = exit code 137)
+dmesg -T | grep -i 'killed process'
+journalctl -k | grep -i oom
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="filename">Host &amp; network triage</span></div>
+<pre>
+top / htop                   # CPU, RES per process
+vmstat 1                     # si/so (swap), r (run queue), wa (I/O wait)
+iostat -x 1                  # %util, await on local spill disks
+free -h ; df -h ; du -sh *   # "No space left on device" during shuffle spill
+
+ss -tanp | awk '{print $1}' | sort | uniq -c    # TIME_WAIT / SYN_SENT pile-ups
+nc -zv tunnel.&lt;region&gt;.azuredatabricks.net 443   # SCC relay reachability
+nc -zv broker.example.com 9092                    # Kafka reachability
+dig +short &lt;workspace-url&gt;                       # PrivateLink: must be a private IP
+mtr / traceroute &lt;host&gt;
+openssl s_client -connect host:443 -servername host -showcerts   # chain, expiry, SNI, TLS inspection
+curl -v https://&lt;workspace-url&gt;/api/2.0/clusters/spark-versions -H "Authorization: Bearer $TOKEN"
+tcpdump -i any host 10.0.1.5 and port 9092 -w cap.pcap
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="filename">JVM diagnostics (driver hang / GC)</span></div>
+<pre>
+jstack &lt;pid&gt; &gt; td1.txt; sleep 5; jstack &lt;pid&gt; &gt; td2.txt   # diff: threads stuck in same frame
+jcmd &lt;pid&gt; Thread.print
+jmap -histo &lt;pid&gt; | head -30                              # top classes by instance count / shallow bytes (:live forces a full GC; retained size needs a heap dump + MAT)
+
+# Spark conf (classic, where allowed; flag permission on Databricks unverified)
+spark.driver.extraJavaOptions  -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/Volumes/...
+                               -Xlog:gc*                     # JDK 11/17 GC logging
+# Analyze heap dumps in Eclipse MAT: large collected results, broadcasts, plans/listeners
+# UI alternative: Spark UI &gt; Executors &gt; driver row &gt; Thread Dump
+</pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="filename">System-table forensics (SQL)</span></div>
+<pre>
+-- Who was denied in the last 7 days
+SELECT event_time, user_identity.email, service_name, action_name,
+       response.statusCode, response.errorMessage
+FROM system.access.audit
+WHERE event_date &gt;= current_date() - 7
+  AND response.statusCode IN (401, 403);
+
+-- Config changes right before an incident
+SELECT event_time, user_identity.email, service_name, action_name, request_params
+FROM system.access.audit
+WHERE event_date &gt;= current_date() - 1
+  AND (action_name IN ('edit','create','delete','changeClusterAcl')
+       OR service_name = 'globalInitScripts')
+ORDER BY event_time DESC;
+-- Exact column names of lakeflow timeline tables: verify in docs before quoting
+</pre>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- 10. INCIDENT & RCA -->
+        <!-- ============================================================ -->
+        <h3 id="incident">10. Incident Management &amp; RCA</h3>
+
+        <h4>Databricks support severities and SLAs (public support page)</h4>
+        <table>
+            <tr><th>Severity</th><th>Definition (verbatim)</th><th>Business</th><th>Production</th><th>Mission Critical</th></tr>
+            <tr><td><strong>MC-Sev</strong></td><td>"A mission-critical production system is down or severely impacted such that routine operation is impossible"</td><td>—</td><td>—</td><td>15 min</td></tr>
+            <tr><td><strong>Sev1</strong></td><td>"Production system is down or severely impacted such that routine operation is impossible"</td><td>1 business day</td><td>1 hr</td><td>1 hr</td></tr>
+            <tr><td><strong>Sev2</strong></td><td>"Production issue where the system is functioning but in degraded or restricted capacity"</td><td>1 business day</td><td>4 hr</td><td>2 hr</td></tr>
+            <tr><td><strong>Sev3</strong></td><td>"Issue where minor functionality is impacted or a development issue occurs"</td><td>1 business day</td><td>1 business day</td><td>4 hr</td></tr>
+            <tr><td><strong>Sev4</strong></td><td>"Request for information or feature request with no impact on business operations"</td><td>1 business day</td><td>1 business day</td><td>1 business day</td></tr>
+        </table>
+        <div class="card card-warning">
+            <span class="tag tag-orange">medium confidence</span> The per-plan response times were reconstructed from the page's HTML rowspans. Confirm on the rendered page before quoting. Coverage: Business 9 AM-6 PM business days; Production Sev1/2 24x7x365; Mission Critical adds MC-Sev 24x7, Proactive Monitoring and Escalation Management. For MC-Sev, Databricks "will assign an Escalation Manager" who sends updates every 15 minutes. DSE is a paid add-on.
+        </div>
+
+        <h4>Incident flow (frontline TSE as technical lead)</h4>
+        <div class="card">
+            <div class="point">
+                <div class="point-num">1</div>
+                <div class="point-content"><span class="point-title">Acknowledge &amp; scope</span> — Within SLA. One user, cluster, workspace, region, or many customers? Classic only or serverless too? Check status.databricks.com and the cloud health page. A multi-customer pattern points to the platform.</div>
+            </div>
+            <div class="point">
+                <div class="point-num">2</div>
+                <div class="point-content"><span class="point-title">Roles &amp; cadence</span> — Incident lead, comms, scribe. On MC-Sev the Escalation Manager owns the 15-minute cadence and you own diagnosis. Each update covers status, what we know, what we're doing, the customer's next action, and the next update time. Never speculate on root cause publicly.</div>
+            </div>
+            <div class="point">
+                <div class="point-num">3</div>
+                <div class="point-content"><span class="point-title">Collect evidence before it's lost</span> — Termination reasons, event logs, driver logs (before cluster deletion), <code>DESCRIBE HISTORY</code>, query profiles, audit log changes, good-run vs bad-run comparison.</div>
+            </div>
+            <div class="point">
+                <div class="point-num">4</div>
+                <div class="point-content"><span class="point-title">Mitigate first</span> — Pin the previous DBR, a different instance type/AZ, serverless fallback, restore a firewall rule, a bigger driver.</div>
+            </div>
+            <div class="point">
+                <div class="point-num">5</div>
+                <div class="point-content"><span class="point-title">Escalate with a clean package</span> — Workspace/cluster/job/run IDs, region, DBR, UTC timestamps, logs, minimal repro, hypotheses ruled out, a clear question. You remain the customer's owner.</div>
+            </div>
+            <div class="point">
+                <div class="point-num">6</div>
+                <div class="point-content"><span class="point-title">RCA, KB, product feedback</span> — Blameless, evidence-based, with owned and dated actions. Publish a KB article if the issue generalizes.</div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card card-success">
+                <h4>Escalate to Backline when...</h4>
+                <ul>
+                    <li>A regression reproduces on a clean cluster after a DBR or control-plane release</li>
+                    <li>A stack trace inside Databricks components, or a suspected platform bug</li>
+                    <li>The same signature across multiple customers</li>
+                    <li>Anything needing source code or internal telemetry</li>
+                    <li>Documented options are used up within the severity's time box, or the SLA is at risk with no workaround</li>
+                </ul>
+            </div>
+            <div class="card card-danger">
+                <h4>Don't escalate when...</h4>
+                <ul>
+                    <li>It's a configuration or understanding issue you can resolve yourself (missing <code>USE SCHEMA</code>, NSG rule, ANSI behavior change)</li>
+                    <li>You have no repro, IDs or timeline yet. Assemble the package first</li>
+                    <li>Escalation would just hand off ownership. Escalating early on a Sev1 is "company first"; escalating to avoid work is not</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="filename">RCA template (customer-facing, blameless)</span></div>
+<pre>
+TITLE:     [Sev1] Cluster launches failing in &lt;workspace&gt; — &lt;date&gt;
+1. SUMMARY        Impact (who / what / how long), customer-visible symptoms, current status
+2. TIMELINE (UTC) first symptom → detection → engagement → mitigation → resolution
+                  (time-to-detect, time-to-mitigate)
+3. ROOT CAUSE     5 Whys; separate TRIGGER from ROOT CAUSE
+                  e.g. trigger: UDR change sent relay traffic to an NVA
+                       root:    no Databricks FQDN allowlist / no pre-change test
+                  evidence: termination code BOOTSTRAP_TIMEOUT, audit entries, change records
+4. CONTRIBUTING   no log delivery · no alert on termination codes · runtime not pinned
+5. WENT WELL / DIDN'T
+6. ACTIONS        | action | type (prevent/detect/mitigate) | owner (customer/Databricks) | date |
+                  - nc/curl connectivity test from subnet VM in network change checklist
+                  - SQL alert on job failure rate from system.lakeflow.job_run_timeline
+                  - status page subscription · staging workspace on same network path
+                  - internal: KB article, docs gap, clearer error message request
+Tone: blameless, factual, customer-safe (no internal engineering detail)
+</pre>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- 11. UPGRADES -->
+        <!-- ============================================================ -->
+        <h3 id="upgrades">11. Upgrades &amp; DBR Lifecycle</h3>
+
+        <table>
+            <tr><th>DBR</th><th>Spark</th><th>Type</th><th>Released</th><th>End of support</th></tr>
+            <tr><td><strong>19</strong></td><td>4.3</td><td>non-LTS (latest)</td><td>23 Jul 2026</td><td>"Determined at LTS transition" <span class="tag tag-yellow">lifecycle change unclear</span></td></tr>
+            <tr><td><strong>18 LTS</strong></td><td>4.1</td><td>LTS</td><td>10 Jun 2026</td><td>10 Jun 2029</td></tr>
+            <tr><td><strong>17.3 LTS</strong></td><td>4.0</td><td>LTS</td><td>—</td><td>22 Oct 2028</td></tr>
+            <tr><td><strong>16.4 LTS</strong></td><td>3.5.2</td><td>LTS</td><td>—</td><td>9 May 2028</td></tr>
+            <tr><td><strong>15.4 LTS</strong></td><td>—</td><td>LTS</td><td>—</td><td>19 Aug 2027</td></tr>
+            <tr><td><strong>14.3 LTS</strong></td><td>—</td><td>LTS</td><td>—</td><td><strong>1 Feb 2027</strong> (next to retire)</td></tr>
+        </table>
+        <p><strong>Rule:</strong> LTS is supported for 3 years from GA; non-LTS (18.x and earlier) for 6 months. End-of-support images terminate with <code>EOS_SPARK_IMAGE</code>.</p>
+
+        <h4>Behavior changes that generate tickets</h4>
+        <table>
+            <tr><th>Version</th><th>Change</th></tr>
+            <tr><td>DBR 15.1</td><td>DBFS-root library storage disabled by default</td></tr>
+            <tr><td>DBR 14.3 LTS and below only</td><td>Libraries from DBFS (and never on Standard mode)</td></tr>
+            <tr><td>DBR 17.0</td><td>ANSI SQL default; MERGE APIs return a DataFrame; pandas-on-Spark blocked under ANSI; DBFS custom CA certs unsupported; CREATE VIEW with MV-only column clauses errors; pandas 2.2.3 / NumPy 2.1.3</td></tr>
+            <tr><td>DBR 18</td><td><code>logRetentionDuration</code> must be ≥ <code>deletedFileRetentionDuration</code>; time travel beyond deleted-file retention blocked; VACUUM ignores the <code>RETAIN</code> argument except <code>0 HOURS</code> (set <code>delta.deletedFileRetentionDuration</code> instead); Auto Loader trigger limits tuned dynamically</td></tr>
+            <tr><td>DBR 19</td><td>Standard mode blocks many Spark confs (JVM options, classpath, <code>spark.jars*</code>, <code>spark.files</code>), so cluster create/edit fails</td></tr>
+        </table>
+
+        <div class="card">
+            <h4>Fleet upgrade playbook (hundreds of jobs)</h4>
+            <ol>
+                <li><strong>Inventory:</strong> system tables (<code>system.lakeflow.jobs</code>, compute tables) for DBR versions in use. Flag 14.3 LTS (EOS Feb 2027) and 15.4 LTS (Aug 2027).</li>
+                <li><strong>Pick a target LTS</strong> (17.3 or 18) and read every behavior-change section in between.</li>
+                <li><strong>Scan code</strong> for risky patterns: RDD/<code>sc.</code> usage, instance profiles, DBFS paths, silent casts.</li>
+                <li><strong>Canary:</strong> clone critical jobs with the new <code>spark_version</code> via bundles/Terraform targets. Compare outputs and durations.</li>
+                <li><strong>Waves with rollback:</strong> compute policies pin or allow versions; keep the old version pinned as a fallback.</li>
+                <li><strong>Communicate</strong> the schedule; <strong>monitor</strong> failure rates in system tables after each wave; feed regressions to Backline with repros; update KB.</li>
+            </ol>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- 12. TECHNICAL Q&A -->
+        <!-- ============================================================ -->
+        <h3 id="technical-qa">12. Technical Q&amp;A</h3>
+
+        <h4>Architecture &amp; networking</h4>
+
+        <div class="qa">
+            <div class="q">1. Explain control plane vs classic vs serverless compute plane, and why it matters for support.</div>
+            <div class="a">The control plane (web app, REST APIs, scheduler, UC services) lives in Databricks' account. In <strong>classic</strong>, VMs run in the customer's VPC/VNet, so customer IAM, quotas, subnets, NSGs, SCPs and firewalls are all failure points. Clusters reach the control plane through an outbound 443 tunnel to the SCC relay, with no public IPs. In <strong>serverless</strong>, compute runs in Databricks' account in the same region. Startup takes seconds and data access goes through NCCs and serverless private endpoints. The plane tells me who owns the failing component and which logs exist: Spark UI and cluster logs on classic, query profile and system tables on serverless.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">2. AWS customer-managed VPC: clusters stuck Pending after the security team "tightened egress". Triage?</div>
+            <div class="a">Scope first. If serverless and SQL warehouses work, it's the customer's network. Pull the termination code and type. Check against the documented egress: 443, <strong>8443/8445</strong> (compute → control plane API), <strong>8444</strong> (UC lineage/logging), 3306 if legacy HMS, 6666 with back-end PrivateLink. Then check NACLs (must not deny), the route table (0.0.0.0/0 → NAT), DNS hostnames/resolution, and that the firewall allowlists relay FQDNs, not IPs. Reproduce with a test cluster or VM using nc/curl. Restore the minimum ports, then RCA it as a change-management gap and add the port list to firewall-as-code tests.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">3. What does SCC change, and what's the Azure equivalent?</div>
+            <div class="a">Secure cluster connectivity is the default for all new workspaces. Nodes have no public IPs and the VPC has no inbound ports. Each cluster opens an outbound HTTPS tunnel to the SCC relay, which is separate from the REST endpoint, and the control plane sends commands down it. Relay reachability is the first check when clusters hang. On Azure it's No Public IP (NPIP), <code>enableNoPublicIp</code>, default true from API 2024-05-01. Upgrading an existing workspace requires stopping all compute.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">4. Walk through AWS back-end PrivateLink requirements.</div>
+            <div class="a">Two interface endpoints, the workspace REST API and the SCC relay, each with private DNS on, in a dedicated subnet with their own SG. Requires a customer-managed VPC, SCC, Enterprise tier, a supported region, DNS hostnames/resolution, and VPC CIDR /25+. Register the endpoints, reference relay and workspace registrations in the network config, and attach a Private Access Settings object. SG allows 443 and 6666 (2443 for FIPS). To verify: nslookup returns the private IP, and a REST call returns any HTTP code. Wait about 20 minutes after RUNNING before launching clusters.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">5. Explain Azure front-end Private Link and the browser_authentication pitfall.</div>
+            <div class="a">Front-end uses a <code>databricks_ui_api</code> endpoint in a transit VNet plus a <code>browser_authentication</code> endpoint for Entra SSO callbacks. Only one <code>browser_authentication</code> can exist per region per private DNS zone, and it serves every workspace there, so best practice is a dedicated web-auth workspace per production region. If someone deletes the hosting workspace, browser login breaks region-wide while REST/PAT keeps working. That asymmetry is the clue. Back-end uses <code>databricks_ui_api</code> in the workspace VNet with <code>requiredNsgRules=NoAzureDatabricksRules</code>.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">6. How do you tell a cluster-launch failure that's the customer's fault from one that's Databricks'?</div>
+            <div class="a">The termination reason type. <code>CLIENT_ERROR</code> or codes ending <code>_DUE_TO_MISCONFIG</code> point to customer config. <code>CLOUD_FAILURE</code> (stockout, quota, launch failure) points to the cloud provider. A burst of <code>SERVICE_FAULT</code> across clusters, especially with a status-page event, means escalate to engineering immediately. I confirm with the termination parameters, which carry the raw cloud error.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">7. Where do you look first in a P1 affecting many jobs across a customer's workspaces?</div>
+            <div class="a">Blast radius and timeline: which workspaces and regions, classic vs serverless. Check status.databricks.com and internal incident channels. Query <code>system.lakeflow.job_run_timeline</code> for when failures began and the common error class. Check <code>system.access.audit</code> for correlated changes: policy edits, permission changes, metastore or external-location changes, token revocation. Ask about cloud-side changes (SCPs, firewall, KMS rotation, NAT). Mitigate, communicate on a fixed cadence, then RCA.</div>
+        </div>
+
+        <h4>Unity Catalog, identity &amp; governance</h4>
+
+        <div class="qa">
+            <div class="q">8. Walk through UC's storage model.</div>
+            <div class="a">A storage credential wraps a long-term cloud identity (IAM role, managed identity or service account). An external location pairs a path with a credential, and many locations can share one credential. Tables and volumes sit under locations. Managed tables: UC governs access and lifecycle. External tables: access only. The metastore is one per region, with a catalog.schema.object namespace. Reads need <code>USE CATALOG</code> + <code>USE SCHEMA</code> + <code>SELECT</code>. Raw path reads need <code>READ FILES</code>.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">9. What are the access modes today and how do you choose?</div>
+            <div class="a"><strong>Standard</strong> (formerly Shared, <code>USER_ISOLATION</code>): multi-user Lakeguard isolation, recommended default, but no RDDs/<code>sparkContext</code>, ML runtime, GPU or R, IMDS blocked, init scripts/JARs allowlisted, and restricted Spark confs on DBR 19+. <strong>Dedicated</strong> (formerly Single user, assignable to a group): ML, GPU, R, RDDs. <strong>Auto</strong> (default) picks Standard unless ML runtime, GPU or DBR &lt; 14.3. Legacy modes aren't UC-compatible. In a migration I scan code for RDD, <code>sc.</code> and instance-profile usage to decide which workloads need Dedicated.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">10. Explain HMS → UC migration gotchas.</div>
+            <div class="a">SYNC and the upgrade wizard create <strong>external</strong> tables only. Managed tables in DBFS/workspace storage need deep clone or CTAS. Table history doesn't migrate, so pre-migration time travel is lost. Views aren't upgraded automatically. External upgrades need a storage credential, external location and <code>CREATE EXTERNAL TABLE</code>. UCX is a Databricks Labs tool and not directly supported. HMS federation is an alternative. Common tickets: DBFS mounts or <code>/dbfs</code> FUSE on Standard compute, RDD code failing on Standard, missing <code>USE CATALOG</code> on the new catalog.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">11. A user sees zero rows from a table with a row filter but the admin sees data. Why?</div>
+            <div class="a">Check compute first. DBR below 12.2 LTS fails securely with no data, and Dedicated mode needs 15.4 LTS+ with serverless enabled. Then the filter UDF: <code>is_account_group_member</code> uses account groups, so a workspace-local group mismatch is a classic cause. With ANSI off, failed casts become NULL and drop rows. Check for an ABAC policy on the catalog or schema via governed tags, which owners can't override. Rule out views, clones or time travel on protected tables.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">12. A user exists in Entra and in the Databricks account but can't open the workspace, and group entitlements keep reverting.</div>
+            <div class="a">With account-level SCIM, provisioning to the account doesn't grant workspace access. The user or group must be assigned to the identity-federated workspace. Reverting is normal: IdP-owned attributes override UI/API changes at the next sync, so change them in the IdP. SCIM doesn't flatten nested groups, but Azure automatic identity management does. If they're mid-migration from a workspace-level connector, warn them not to remove users there before disabling it, or the users get deactivated.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">13. SSO is down and admins are locked out. What do you do?</div>
+            <div class="a">Emergency access first: up to 20 users with password plus security key. Then the usual suspects: expired or rotated SAML x.509 cert or OIDC client secret, a changed redirect URL, users removed from the IdP app, conditional access changes. Get the exact error and a HAR. In <code>system.access.audit</code>, filter <code>service_name='accounts'</code> on <code>samlLogin</code>/<code>oidcBrowserLogin</code> failures to find when they began. Prevention: Test SSO before saving, cert-rotation reminders, tested break-glass users.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">14. How would you migrate a customer's CI/CD from PATs to OAuth?</div>
+            <div class="a">Create an account-level service principal with minimum entitlements and UC grants. Use OAuth M2M, or better, OAuth token federation from the CI's OIDC provider (GitHub Actions, Azure DevOps) so no secret is stored. Configure unified auth (<code>DATABRICKS_HOST</code>/<code>CLIENT_ID</code>/<code>CLIENT_SECRET</code> or a profile) so CLI, SDK, Terraform and bundles all pick it up. Deploy bundles with <code>run_as</code> the SP. Find remaining PAT usage via the token-management API and audit logs, set lifetime limits, then restrict PAT creation.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">15. How do you handle a GDPR erasure request on Delta tables?</div>
+            <div class="a">Drive deletes from a control table of subject IDs with MERGE ... DELETE across bronze/silver/gold. With deletion vectors, run <code>REORG TABLE ... APPLY (PURGE)</code>, otherwise rows still exist physically. MVs pick up deletes on refresh. Streaming tables are append-only: delete in source and target and use <code>skipChangeCommits</code>. Old versions stay reachable until VACUUM (7-day default), so the SLA must allow for retention plus VACUUM schedule. Purge upstream copies (Kafka, landing files, OLTP). Record completion as evidence; audit trail is in <code>system.access.audit</code>.</div>
+        </div>
+
+        <h4>Spark &amp; performance</h4>
+
+        <div class="qa">
+            <div class="q">16. A daily job went from 20 minutes to 2 hours with no code change. Triage?</div>
+            <div class="a">(1) Compare good vs bad run: input volume, DBR, policy changes, spot loss, <code>DESCRIBE HISTORY</code> for new writers or property changes. (2) Jobs timeline: gaps (driver-bound), retries, a dominant job. (3) Longest stage: Max far above p75 means skew; check spill and shuffle sizes. (4) SQL tab: did a broadcast become a sort-merge join because a dimension grew past the 30 MB AQE threshold? Was file pruning lost? (5) Event log: autoscaling, spot loss, <code>Driver_Not_Responding</code>. (6) Compute metrics: iowait, container memory, outlier node, hot driver. (7) Table health: numFiles, whether predictive optimization ran, stats on filter columns (first 32). Fix, show evidence, add a preventive control.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">17. 199 tasks finish in 10 s and one runs 40 min. AQE is on. Why didn't AQE fix it?</div>
+            <div class="a">AQE splits a partition only if it's larger than <strong>both</strong> 5× the median and 256 MB, and only for shuffle-based joins (sort-merge and shuffle hash). <code>forceOptimizeSkewedJoin</code> only forces it when it would add an extra shuffle; it does not change which joins qualify. A 200 MB hot partition, a broadcast join, the non-preserved side of an outer join (or either side of FULL OUTER), or skew in an aggregation all escape it. Confirm the join type in the SQL tab. Then lower the thresholds, handle the hot key separately (often NULL), broadcast the small side, salt with two-stage aggregation, use REBALANCE on writes or liquid clustering for layout skew. Validate that Max ≈ p75 afterwards.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">18. <code>spark.sql.autoBroadcastJoinThreshold</code> vs <code>spark.databricks.adaptive.autoBroadcastJoinThreshold</code>? When does broadcast hurt?</div>
+            <div class="a">The first (OSS 10 MB, -1 disables) applies at plan time from estimates. The second (30 MB) is AQE at runtime from real shuffle sizes. Broadcast hurts when estimates are wrong: the table is collected to the driver and copied to every executor, giving "Size of broadcasted table far exceeds estimates...", driver OOM, or a 300 s broadcast timeout. Fix with ANALYZE TABLE, removing the BROADCAST hint, or a MERGE hint, per query. Don't disable broadcast cluster-wide.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">19. Distinguish driver OOM from executor OOM on Databricks.</div>
+            <div class="a">Driver: "spark driver has stopped unexpectedly", "Driver is temporarily unavailable", <code>Driver_Not_Responding</code> "likely due to GC", maxResultSize errors. Fix by stopping driver-side collection, a bigger driver, job compute. Executor: <code>ExecutorLostFailure ... Remote RPC client disassociated</code>, with no YARN message since Databricks doesn't use YARN. Rule out spot/autoscale in the event log, test by doubling memory per core, then fix skew, partitions (<code>auto</code>), broadcasts, UDFs, windows without PARTITION BY, or streaming state (RocksDB).</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">20. A Kafka stream is falling behind. Diagnose and explain lag to the customer.</div>
+            <div class="a">Spark doesn't commit offsets to Kafka. The checkpoint is the truth, so their consumer-group lag dashboard misleads. Read <code>avgOffsetsBehindLatest</code>, <code>maxOffsetsBehindLatest</code> and <code>estimatedTotalBytesBehindLatest</code> from StreamingQueryProgress. Compare input vs processed rows per second and batch duration. Bottlenecks: skewed Kafka partitions (<code>minPartitions</code>), expensive state (state size, watermarks), small-file writes, undersized compute. Use <code>maxOffsetsPerTrigger</code> to catch up predictably. <code>startingOffsets</code> doesn't apply to an existing checkpoint. <code>failOnDataLoss=false</code> hides lost data, so set it only as a conscious, documented decision.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">21. The customer changed a stream (new aggregation, second topic) and wants to "just delete the checkpoint".</div>
+            <div class="a">Stateful operator and source changes need a new checkpoint, so the failure is expected. Deleting the checkpoint means either reprocessing everything (duplicates in non-idempotent sinks) or skipping data, depending on <code>startingOffsets</code>. Safer: a new query with a new checkpointLocation, explicit starting offsets where the old one stopped, and an idempotent sink (MERGE or foreachBatch with <code>txnVersion</code>/<code>txnAppId</code>). On DBR 18.2+, source evolution can add named sources but can't be undone. Continuous trigger isn't supported on Databricks; real-time mode replaces it.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">22. A SQL warehouse dashboard is "slow". Capacity, sizing or the query?</div>
+            <div class="a">Monitoring tab: a nonzero Peak Queued Queries is a concurrency shortfall, so raise max clusters (classic/pro guideline: about 1 cluster per 10 concurrent queries; serverless uses IWM). Query profile: high bytes spilled to disk means a bigger size. Query history splits queue, compile and execution time. A slow first query of the day is cold start on classic/pro. If execution dominates, look at data layout: liquid clustering, stats, file sizes, Photon coverage. Max queue is 1,000 queries. A query waiting 5 minutes triggers scale-up on classic/pro.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">23. A Lakeflow pipeline (formerly DLT) works in dev but writes duplicates intermittently in prod.</div>
+            <div class="a">Pipelines evaluate source code several times during planning. Side effects inside dataset functions (<code>collect</code>, <code>count</code>, <code>saveAsTable</code>, external writes, custom monitoring) run repeatedly. Fix: pure definitions that only return DataFrames, sinks or <code>foreach_batch_sink</code> for external writes, event hooks for monitoring. Check <code>event_log</code> flow progress and expectations, and whether prod is continuous vs triggered or serverless vs classic. <code>import dlt</code> still works, but <code>pyspark.pipelines as dp</code> is recommended.</div>
+        </div>
+
+        <h4>Delta &amp; operations</h4>
+
+        <div class="qa">
+            <div class="q">24. "I accidentally deleted rows. Can you recover?"</div>
+            <div class="a"><code>DESCRIBE HISTORY</code> to find the pre-delete version. If it's within <code>deletedFileRetentionDuration</code> (7 days) and not vacuumed, <code>RESTORE TABLE t TO VERSION AS OF n</code> (needs MODIFY), or re-insert selectively from a time-travel query. On DBR 18+, time travel beyond deleted-file retention is blocked. Warn that RESTORE is a data-changing commit, so streaming readers may reprocess. Prevention: suitable retention, restricted MODIFY, deep-clone backups of critical tables.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">25. Two jobs writing one Delta table keep failing with ConcurrentAppendException.</div>
+            <div class="a">Optimistic concurrency at WriteSerializable: another commit added files in data my MERGE/UPDATE/DELETE read. Make the operations disjoint with explicit partition or cluster-key predicates in the MERGE ON clause. Enable row-level concurrency (unpartitioned, DVs, DBR 14.3 LTS+). Serialize the jobs or retry idempotently with backoff, and don't overlap OPTIMIZE on the same files. Then tell it apart from DeleteRead, DeleteDelete, MetadataChanged, ConcurrentTransaction (shared checkpoint) and ProtocolChanged.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">26. The customer wants <code>VACUUM RETAIN 0 HOURS</code> and asks you to disable the safety check.</div>
+            <div class="a">Push back and explain the impact. The 7-day window protects long-running readers, streams and uncommitted writers, and 0 hours can break in-flight queries and removes time travel permanently. Disabling <code>retentionDurationCheck</code> removes a safeguard, so it needs explicit sign-off and confirmation that nothing runs longer than the window. Run <code>DRY RUN</code> first. On DBR 18.0+, VACUUM ignores any <code>RETAIN</code> value other than 0 hours, so if they really want a shorter (non-zero) window, change <code>delta.deletedFileRetentionDuration</code> instead. For compliance deletion, the sequence is DELETE → REORG PURGE → VACUUM. For routine cleanup, use predictive optimization or scheduled VACUUM LITE.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">27. 2 million small files and slow queries. Recommendation?</div>
+            <div class="a">Short term: OPTIMIZE (incremental), with WHERE on recent data if huge. Prevent: optimized writes + auto compaction. Find the cause: default streaming trigger micro-batches, high-cardinality partitioning, tiny appends. Long term: liquid clustering; on UC managed tables, let predictive optimization run OPTIMIZE/VACUUM/ANALYZE and drop hand-scheduled jobs. Set expectations that OPTIMIZE FULL can take hours. Verify with <code>DESCRIBE DETAIL</code> numFiles and files-pruned in the query profile.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">28. An orchestrator gets intermittent HTTP 429s from the Jobs API.</div>
+            <div class="a">Per-endpoint, per-workspace limits; <code>error_code</code> is <code>RESOURCE_EXHAUSTED</code> (older material says <code>REQUEST_LIMIT_EXCEEDED</code> <span class="tag tag-yellow">legacy, unverified</span>). <code>/jobs/runs/get</code> allows 100/s and <code>/jobs/runs/submit</code> 35/s, so a tight polling loop hits them fast. Fix: exponential backoff with jitter honoring <code>RetryInfo</code> in error details; SDK built-in retries; poll less, use notifications; list-with-filter instead of N gets; system tables for reporting. Workspace limits also include 10,000 jobs created per hour and 2,000 concurrent task runs. Check the limits page before promising an increase.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">29. Terraform shows a permanent diff on <code>databricks_permissions</code>.</div>
+            <div class="a">Two resources manage the same object's ACL, and each apply overwrites the other because they're authoritative. Use one <code>databricks_permissions</code>/<code>databricks_grants</code> per securable with dynamic blocks. Other drift sources: UI edits and server-side defaults. Related errors: "cannot configure default credentials" (add <code>depends_on</code> the workspace), "more than one authorization method configured" (set <code>auth_type</code>), "HTTP method POST is not supported by this URL" (missing <code>account_id</code> on account resources), <code>invalid character '&lt;'</code> (workspace object on an account provider).</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">30. How would you proactively monitor a customer's platform without third-party tools?</div>
+            <div class="a">System tables plus Databricks SQL alerts. Jobs: <code>system.lakeflow.job_run_timeline</code>/<code>job_task_run_timeline</code> for failure rate and duration regressions. Pipelines: <code>pipeline_update_timeline</code>. Cost: <code>system.billing.usage</code>. Compute: <code>node_timeline</code>, <code>warehouse_events</code>. Queries: <code>system.query.history</code>. Security: <code>system.access.audit</code>. Alert to email, Slack or webhook; review <code>system.alert.alert_evaluation_history</code>. Mention 395-day retention and grants for non-admins. If they already run Datadog or Azure Monitor, route diagnostics there <span class="tag tag-yellow">integration steps unverified</span>.</div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- 13. BEHAVIORAL -->
+        <!-- ============================================================ -->
+        <h3 id="behavioral">13. Behavioral STAR Bank</h3>
+
+        <div class="card card-info">
+            Behavioral answers are scored against "the same core competencies" for everyone. Prepare <strong>8 stories</strong>, each with a 60-90 second version, a number in the Result, and a <strong>mechanism you left behind</strong> (runbook, alert, KB article, tool). Anonymize everything.
+        </div>
+
+        <table>
+            <tr><th>Databricks principle</th><th>Story to prepare</th><th>Proof points</th></tr>
+            <tr><td><strong>We are customer obsessed</strong></td><td>Owning a Sev1 end to end; turning an angry customer around</td><td>Fixed update cadence kept; workaround before root fix; follow-up after closure; CSAT/renewal</td></tr>
+            <tr><td><strong>We raise the bar</strong></td><td>KB article, tooling, mentoring, runbook</td><td>Reuse count, handle time, repeat-ticket rate</td></tr>
+            <tr><td><strong>We are truth seeking</strong></td><td>Data-driven RCA; the hypothesis you abandoned</td><td>Timestamps that didn't line up; evidence that changed your mind</td></tr>
+            <tr><td><strong>We operate from first principles</strong></td><td>Solving from Spark internals or logs when no KB article fit</td><td>Reasoned from shuffle/GC/network behavior to cause</td></tr>
+            <tr><td><strong>We bias for action</strong></td><td>Mitigate first, root-cause second</td><td>Time-to-mitigate; the rollback/pin decision</td></tr>
+            <tr><td><strong>We put the company first</strong></td><td>Escalating or handing off when it served the customer better</td><td>Early Backline escalation on a Sev1; clean hand-off across regions</td></tr>
+        </table>
+
+        <div class="qa">
+            <div class="q">B1. Why Databricks, and why frontline Platform support rather than SRE or SA?</div>
+            <div class="a">Platform frontline sits where cloud infrastructure, distributed compute and customer impact meet. You see every failure mode across AWS/Azure/GCP, networking, identity, UC and serverless first, and you turn patterns into KB, tooling and product feedback through Backline. Cite the JD's Sev1 ownership with RCA and prevention, "customer obsessed" and "first principles", the fast-moving product (Lakeflow, Lakebase, Agent Bricks), and the org's push to codify troubleshooting into automation and AI skills. Close with your years of incident command and Linux/cloud depth.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">B2. Tell me about an incident you led where the RCA changed something permanently.</div>
+            <div class="a"><strong>S:</strong> severity and blast radius. <strong>T:</strong> your role (incident lead). <strong>A:</strong> separated mitigation from diagnosis, roles and cadence, evidence (logs, metrics, traces), one hard call (roll back vs wait for a hotfix). <strong>R:</strong> MTTR, customer outcome, and above all the preventive measure (guardrail, alert, runbook, upstream fix, KB article that cut repeat tickets by N%). Name the hypothesis you dropped when the data contradicted it (truth seeking).</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">B3. An angry customer says Databricks broke their pipeline after an upgrade and wants an engineer on a call now.</div>
+            <div class="a">Acknowledge impact without blame and confirm severity (Sev1 or MC-Sev depending on plan). Set next steps and cadence. Get on a call if it speeds diagnosis, but run it with structure: what changed, exact DBR before and after, failing run IDs. Mitigate (pin the previous runtime), then diagnose: release-note behavior change, deprecated API, or a real regression going to Backline with a repro. Plain language for leadership, technical detail for engineers. Afterwards recommend staging, pinned runtimes and CI with bundles.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">B4. A time you were wrong during troubleshooting.</div>
+            <div class="a">An early hypothesis (e.g. blaming the network), the data that contradicted it (error only on one runtime version; metrics showing GC pauses instead), how you pivoted, and how you changed your method: falsifiable hypotheses, check change logs first, reproduce before concluding. They want intellectual honesty and a system, not a flawless record.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">B5. A Sev1, two Sev2s and a Sev3 backlog at the end of your shift.</div>
+            <div class="a">Severity and SLA drive order. The Sev1 gets active work and a documented hand-off to the next region: status, next steps, named owner. Sev2s get current updates and next actions. Ask the manager or duty lead to rebalance rather than letting SLAs lapse quietly. Batch Sev3 updates with honest timelines. No customer goes without an update, and hand-off notes must be actionable without contacting you.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">B6. Disagreement with engineering ("works as designed").</div>
+            <div class="a">Minimal repro, quantified impact (tickets, affected workloads), framed against documented expected behavior. Offer options (docs fix, config flag, product change), not an ultimatum. Disagree and commit if overruled, but get a documented workaround and KB article. Result: fix shipped or docs clarified, ticket volume down.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">B7. Automation or process improvement that reduced toil.</div>
+            <div class="a">A log-triage script, a diagnostic collector for cluster events and driver logs, a ticket-classification/deflection KB, or an LLM-assisted runbook. Before and after: handle time, repeat-ticket rate, escalation rate. Tie it to "raise the bar" and "bias for action", and to Databricks' own push to turn failure patterns into tooling and Claude skills. Mention guardrails: validation and no customer-data leakage.</div>
+        </div>
+
+        <div class="qa">
+            <div class="q">B8. Explain a complex root cause to a non-technical executive.</div>
+            <div class="a">Business impact and status first, then a one-sentence plain cause, what was done, what prevents recurrence, and any action needed, with dates. Example: "executor OOM from skewed shuffle partitions" becomes "one step of the nightly job received far more data than expected and ran out of memory; we rebalanced it and added an alert." Technical detail goes in a separate engineer-to-engineer note.</div>
+        </div>
+
+        <div class="card">
+            <h4>Other prompts to have a story for</h4>
+            <ul>
+                <li>Learning a new technology fast to solve a case (Kafka, UC migration)</li>
+                <li>A mistake you made in an incident and what you changed</li>
+                <li>Mentoring juniors / improving a team runbook</li>
+                <li>Saying no to a customer (unsupported config) while offering a path forward</li>
+                <li>A KB article with measurable impact, kept current through product renames</li>
+                <li>Driving a product improvement from support data (e.g. init-script failures after DBFS deprecation)</li>
+            </ul>
+            <h4>Questions to ask the HM</h4>
+            <ul>
+                <li>How are Platform cases split between frontline and Backline, and what is the typical escalation rate?</li>
+                <li>What does on-call and the weekend rotation look like for Bengaluru Platform?</li>
+                <li>What defines success at 6-12 months (CSAT, time-to-resolution, KB contributions, escalation quality)?</li>
+                <li>What separates Senior from Staff TSE, and how have people moved into Backline, DSE or management?</li>
+                <li>How is the org using AI and automation in support today?</li>
+            </ul>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- 14. STUDY PLAN -->
+        <!-- ============================================================ -->
+        <h3 id="study-plan">14. Study Plan</h3>
+
+        <div class="grid-2">
+            <div class="card">
+                <h4>7-day sprint</h4>
+                <table>
+                    <tr><th>Day</th><th>Focus</th></tr>
+                    <tr><td>1</td><td>Architecture: planes, SCC, workspace storage; draw the diagram from memory. Per-cloud networking table.</td></tr>
+                    <tr><td>2</td><td>PrivateLink (AWS + Azure), termination codes, scenarios S1-S6</td></tr>
+                    <tr><td>3</td><td>Unity Catalog, access modes, identity/SCIM/SSO; scenarios S7-S10</td></tr>
+                    <tr><td>4</td><td>Spark UI triage, AQE, OOM, skew; S11. Q&amp;A 16-21</td></tr>
+                    <tr><td>5</td><td>Delta log, concurrency, VACUUM, liquid clustering; DBR lifecycle and S12</td></tr>
+                    <tr><td>6</td><td>Linux/JVM toolkit hands-on; incident flow and RCA template; write one RCA</td></tr>
+                    <tr><td>7</td><td>8 STAR stories mapped to principles; mock aloud all 30 Q&amp;A; recruiter questions</td></tr>
+                </table>
+            </div>
+            <div class="card">
+                <h4>14-day plan (adds hands-on)</h4>
+                <table>
+                    <tr><th>Days</th><th>Focus</th></tr>
+                    <tr><td>1-2</td><td>Architecture + networking; read customer-managed VPC, SCC, VNet injection docs end to end</td></tr>
+                    <tr><td>3-4</td><td>PrivateLink + DNS; troubleshooting docs; memorize the port list</td></tr>
+                    <tr><td>5-6</td><td>UC, access mode limitations, migration, identity; build a workspace with a catalog, external location and grants (free trial)</td></tr>
+                    <tr><td>7-8</td><td>Spark UI guide pages; reproduce skew, spill and a driver <code>collect()</code> OOM; read thread dumps</td></tr>
+                    <tr><td>9</td><td>Delta: history, RESTORE, VACUUM DRY RUN, liquid clustering, concurrency exceptions</td></tr>
+                    <tr><td>10</td><td>Streaming + Auto Loader + Kafka; Lakeflow pipelines rules and event_log</td></tr>
+                    <tr><td>11</td><td>System tables: write the audit and job-failure queries; set a SQL alert</td></tr>
+                    <tr><td>12</td><td>Terraform + bundles: deploy a job via <code>databricks bundle deploy</code>; Python/SQL scripting drill (log parser, window function)</td></tr>
+                    <tr><td>13</td><td>DBR release notes (17.0, 18, 19 behavior changes); incident/RCA practice</td></tr>
+                    <tr><td>14</td><td>Behavioral STAR rehearsal; full mock of 12 scenarios out loud</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- 15. RESOURCES -->
+        <!-- ============================================================ -->
+        <h3 id="resources">15. Resources (official only)</h3>
+        <div class="card">
+            <ul>
+                <li><strong>Careers:</strong> <a href="https://www.databricks.com/company/careers/interview-prep" target="_blank">Interview prep FAQ</a> · <a href="https://www.databricks.com/company/careers/culture" target="_blank">Culture principles</a> · <a href="https://www.databricks.com/sites/default/files/2025-04/engineering-careers-site-interview-prep-april-2025-002.pdf" target="_blank">Engineering interview guide (PDF, SWE)</a> · <a href="https://databricks.com/company/careers/open-positions/job?gh_jid=7845320002" target="_blank">P-1376 posting</a></li>
+                <li><strong>Support:</strong> <a href="https://www.databricks.com/support" target="_blank">Support plans &amp; severities</a> · <a href="https://status.databricks.com/" target="_blank">status.databricks.com</a> · <a href="https://kb.databricks.com/" target="_blank">Knowledge base</a></li>
+                <li><strong>Architecture &amp; networking:</strong> <a href="https://docs.databricks.com/aws/en/getting-started/high-level-architecture" target="_blank">High-level architecture</a> · <a href="https://docs.databricks.com/aws/en/security/network/classic/customer-managed-vpc" target="_blank">Customer-managed VPC</a> · <a href="https://docs.databricks.com/aws/en/security/network/classic/secure-cluster-connectivity" target="_blank">SCC</a> · <a href="https://docs.databricks.com/aws/en/security/network/classic/privatelink" target="_blank">AWS PrivateLink</a> · <a href="https://learn.microsoft.com/en-us/azure/databricks/security/network/classic/vnet-inject" target="_blank">Azure VNet injection</a> · <a href="https://learn.microsoft.com/en-us/azure/databricks/security/network/classic/private-link" target="_blank">Azure Private Link</a> · <a href="https://docs.databricks.com/aws/en/admin/account-settings-e2/credentials" target="_blank">Cross-account IAM role</a></li>
+                <li><strong>Troubleshooting:</strong> <a href="https://docs.databricks.com/aws/en/compute/troubleshooting/" target="_blank">Compute troubleshooting</a> · <a href="https://docs.databricks.com/api/workspace/clusters/get" target="_blank">Clusters API (termination codes)</a> · <a href="https://docs.databricks.com/aws/en/init-scripts/logs" target="_blank">Init script logs</a> · <a href="https://docs.databricks.com/api/workspace/errors" target="_blank">API errors</a> · <a href="https://docs.databricks.com/aws/en/resources/limits" target="_blank">Limits</a></li>
+                <li><strong>Compute &amp; governance:</strong> <a href="https://docs.databricks.com/aws/en/compute/access-mode-limitations" target="_blank">Access mode limitations</a> · <a href="https://docs.databricks.com/aws/en/compute/serverless/limitations" target="_blank">Serverless limitations</a> · <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/" target="_blank">Unity Catalog</a> · <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/migrate" target="_blank">HMS → UC migration</a> · <a href="https://docs.databricks.com/aws/en/admin/system-tables/" target="_blank">System tables</a> · <a href="https://docs.databricks.com/aws/en/admin/users-groups/scim/" target="_blank">SCIM</a> · <a href="https://docs.databricks.com/aws/en/tables/row-and-column-filters" target="_blank">Row filters &amp; masks</a></li>
+                <li><strong>Spark &amp; Delta:</strong> <a href="https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/" target="_blank">Spark UI guide</a> · <a href="https://docs.databricks.com/aws/en/optimizations/aqe" target="_blank">AQE</a> · <a href="https://spark.apache.org/docs/latest/sql-performance-tuning.html" target="_blank">Spark SQL tuning</a> · <a href="https://docs.databricks.com/aws/en/delta/history" target="_blank">Delta history</a> · <a href="https://docs.databricks.com/aws/en/delta/clustering" target="_blank">Liquid clustering</a> · <a href="https://docs.databricks.com/aws/en/optimizations/predictive-optimization" target="_blank">Predictive optimization</a> · <a href="https://docs.databricks.com/aws/en/structured-streaming/kafka" target="_blank">Kafka</a> · <a href="https://docs.databricks.com/aws/en/security/privacy/gdpr-delta" target="_blank">GDPR on Delta</a></li>
+                <li><strong>Lifecycle &amp; tooling:</strong> <a href="https://docs.databricks.com/aws/en/release-notes/runtime/" target="_blank">DBR release notes</a> · <a href="https://docs.databricks.com/aws/en/release-notes/runtime/17.0" target="_blank">DBR 17.0</a> · <a href="https://docs.databricks.com/aws/en/dev-tools/bundles/" target="_blank">Bundles</a> · <a href="https://docs.databricks.com/aws/en/dev-tools/terraform/" target="_blank">Terraform</a> · <a href="https://docs.databricks.com/aws/en/dev-tools/auth/" target="_blank">Authentication</a> · <a href="https://docs.databricks.com/aws/en/ldp/" target="_blank">Lakeflow pipelines</a></li>
+            </ul>
+        </div>
+
+        <hr>
+        <div id="footer"></div>
+    </div>
+
+</body>
+</html>

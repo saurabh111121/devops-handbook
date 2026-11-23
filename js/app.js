@@ -203,6 +203,8 @@ const searchIndex = [
     { title: "Logging Stacks", category: "Application", keywords: "logging elk elasticsearch logstash kibana fluentd loki promtail logql structured logging correlation", path: "application/logging-stacks.html" },
     { title: "Interview Prep", category: "Interview", keywords: "interview system design scenarios behavioral star format gotcha questions aws cloud preparation mock", path: "interview/interview-prep.html" },
     { title: "Kong Inc — TSE", category: "Interview", keywords: "kong api gateway hybrid mode lua plugins troubleshooting tse support engineer rate limiting", path: "interview/companies/kong.html" },
+    { title: "Salesforce — Senior DevOps Engineer", category: "Interview", keywords: "salesforce devops sre hyperforce kubernetes istio terraform spinnaker sfdx metadata copado gearset flosum autorabit sandbox scratch org apex coverage package.xml destructivechanges change sets devops center trailhead v2mom ohana trust values star jwt", path: "interview/companies/salesforce.html" },
+    { title: "Databricks — Senior TSE (Platform)", category: "Interview", keywords: "databricks tse technical solutions engineer platform support spark delta lake unity catalog lakehouse photon serverless privatelink vnet injection cluster launch failure oom skew aqe dbr lakeflow asset bundles rca incident", path: "interview/companies/databricks.html" },
 ];
 
 // ============================================================
