@@ -869,40 +869,42 @@ spec:
         <div class="code-block">
             <div class="code-header"><span class="filename">consumer-contract-test.js</span><span class="tag tag-green">Pact</span></div>
 <pre>
-const { Pact } = require('@pact-foundation/pact');
+const { PactV3, MatchersV3 } = require('@pact-foundation/pact');
+const { string, regex } = MatchersV3;
 
-const provider = new Pact({
+const provider = new PactV3({
   consumer: 'OrderService',
   provider: 'UserService',
 });
 
 describe('User Service Contract', () => {
-  beforeAll(() => provider.setup());
-  afterAll(() => provider.finalize());
-
-  it('should return user by ID', async () => {
+  it('should return user by ID', () => {
     // Define expected interaction
-    await provider.addInteraction({
-      state: 'user 123 exists',
-      uponReceiving: 'a request for user 123',
-      withRequest: {
+    provider
+      .given('user 123 exists')
+      .uponReceiving('a request for user 123')
+      .withRequest({
         method: 'GET',
         path: '/users/123',
         headers: { Accept: 'application/json' },
-      },
-      willRespondWith: {
+      })
+      .willRespondWith({
         status: 200,
+        headers: { 'Content-Type': 'application/json' },
         body: {
           id: '123',
-          name: Matchers.string('John Doe'),
-          email: Matchers.email(),
+          name: string('John Doe'),
+          email: regex(/^[^@\s]+@[^@\s]+$/, 'john@example.com'),
         },
-      },
-    });
+      });
 
-    // Execute consumer code against mock
-    const user = await userClient.getUser('123');
-    expect(user.id).toBe('123');
+    // Execute consumer code against the mock server; the pact file
+    // is written (and verified) when the test callback resolves
+    return provider.executeTest(async (mockServer) => {
+      const userClient = createUserClient(mockServer.url);
+      const user = await userClient.getUser('123');
+      expect(user.id).toBe('123');
+    });
   });
 });
 </pre>

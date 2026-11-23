@@ -416,46 +416,37 @@ spec:
         <pre>
 Initial State (v1 running):
 ┌──────────────────────────────────────────────────────┐
-│  ReplicaSet-v1 (4/4 ready)    ReplicaSet-v2 (0/0)   │
-│  ┌────┐ ┌────┐ ┌────┐ ┌────┐                        │
-│  │ v1 │ │ v1 │ │ v1 │ │ v1 │                        │
-│  └────┘ └────┘ └────┘ └────┘                        │
+│  ReplicaSet-v1 (4/4 ready)    ReplicaSet-v2 (0/0)    │
+│  ┌────┐ ┌────┐ ┌────┐ ┌────┐                         │
+│  │ v1 │ │ v1 │ │ v1 │ │ v1 │                         │
+│  └────┘ └────┘ └────┘ └────┘                         │
 │  Available: 4    Desired: 4    Max: 5    Min: 3      │
 └──────────────────────────────────────────────────────┘
 
-Step 1 -- Scale up v2, scale down v1 (maxSurge=1, maxUnavailable=1):
+Step 1 -- Surge v2 to 2 pods, terminate 1 v1 pod:
 ┌──────────────────────────────────────────────────────┐
-│  ReplicaSet-v1 (3/3 ready)    ReplicaSet-v2 (1/1)   │
-│  ┌────┐ ┌────┐ ┌────┐        ┌────┐                 │
-│  │ v1 │ │ v1 │ │ v1 │        │ v2 │                 │
-│  └────┘ └────┘ └────┘        └────┘                 │
-│  Total pods: 4    Available: 4    (1 terminated)     │
+│  ReplicaSet-v1 (3/3 ready)    ReplicaSet-v2 (0/2)    │
+│  ┌────┐ ┌────┐ ┌────┐        ┌────┐ ┌────┐           │
+│  │ v1 │ │ v1 │ │ v1 │        │ v2*│ │ v2*│           │
+│  └────┘ └────┘ └────┘        └────┘ └────┘           │
+│  Total pods: 5    Available: 3    (* = starting)     │
 └──────────────────────────────────────────────────────┘
 
-Step 2 -- Continue rolling:
+Step 2 -- v2 pods ready: terminate 2 v1, start 2 v2:
 ┌──────────────────────────────────────────────────────┐
-│  ReplicaSet-v1 (2/2 ready)    ReplicaSet-v2 (2/2)   │
-│  ┌────┐ ┌────┐               ┌────┐ ┌────┐          │
-│  │ v1 │ │ v1 │               │ v2 │ │ v2 │          │
-│  └────┘ └────┘               └────┘ └────┘          │
-│  Total pods: 4    Available: 4                       │
+│  ReplicaSet-v1 (1/1 ready)    ReplicaSet-v2 (2/4)    │
+│  ┌────┐               ┌────┐ ┌────┐ ┌────┐ ┌────┐    │
+│  │ v1 │               │ v2 │ │ v2 │ │ v2*│ │ v2*│    │
+│  └────┘               └────┘ └────┘ └────┘ └────┘    │
+│  Total pods: 5    Available: 3    (* = starting)     │
 └──────────────────────────────────────────────────────┘
 
-Step 3 -- Continue rolling:
+Step 3 -- Last v2 pods ready, last v1 terminated:
 ┌──────────────────────────────────────────────────────┐
-│  ReplicaSet-v1 (1/1 ready)    ReplicaSet-v2 (3/3)   │
-│  ┌────┐                      ┌────┐ ┌────┐ ┌────┐   │
-│  │ v1 │                      │ v2 │ │ v2 │ │ v2 │   │
-│  └────┘                      └────┘ └────┘ └────┘   │
-│  Total pods: 4    Available: 4                       │
-└──────────────────────────────────────────────────────┘
-
-Step 4 -- Complete:
-┌──────────────────────────────────────────────────────┐
-│  ReplicaSet-v1 (0/0 kept)     ReplicaSet-v2 (4/4)   │
-│                               ┌────┐ ┌────┐ ┌────┐ ┌────┐
-│                               │ v2 │ │ v2 │ │ v2 │ │ v2 │
-│                               └────┘ └────┘ └────┘ └────┘
+│  ReplicaSet-v1 (0/0 kept)     ReplicaSet-v2 (4/4)    │
+│                       ┌────┐ ┌────┐ ┌────┐ ┌────┐    │
+│                       │ v2 │ │ v2 │ │ v2 │ │ v2 │    │
+│                       └────┘ └────┘ └────┘ └────┘    │
 │  Available: 4    Desired: 4    Rollout Complete!     │
 └──────────────────────────────────────────────────────┘
 
@@ -886,8 +877,8 @@ spec:
 
       securityContext:
         runAsNonRoot: true
-        runAsUser: 999               # postgres user
-        fsGroup: 999
+        runAsUser: 70                # postgres user in alpine images (999 in Debian images)
+        fsGroup: 70
 
       # --- Init Container: Set up replication ---
       initContainers:
@@ -909,8 +900,8 @@ spec:
                   sleep 2
                 done
                 # Base backup from primary if data directory is empty
-                if [ ! -f /var/lib/postgresql/data/PG_VERSION ]; then
-                  pg_basebackup -h postgres-0.postgres-headless -D /var/lib/postgresql/data \
+                if [ ! -f /var/lib/postgresql/data/pgdata/PG_VERSION ]; then
+                  pg_basebackup -h postgres-0.postgres-headless -D /var/lib/postgresql/data/pgdata \
                     -U replicator -Fp -Xs -P -R
                 fi
               fi
@@ -1002,10 +993,12 @@ spec:
             preStop:
               exec:
                 command:
-                  - su
-                  - postgres
-                  - -c
-                  - "pg_ctl stop -D /var/lib/postgresql/data/pgdata -m fast"
+                  - pg_ctl            # already running as postgres (no su as non-root)
+                  - stop
+                  - -D
+                  - /var/lib/postgresql/data/pgdata
+                  - -m
+                  - fast
 
       volumes:
         - name: config
@@ -1061,7 +1054,7 @@ spec:
     <div class="point">
         <div class="point-num">3</div>
         <div class="point-content">
-            <span class="point-title">Node Scheduling:</span> DaemonSets bypass the normal scheduler. They use nodeAffinity to target specific nodes. You can restrict to a subset of nodes using <code>nodeSelector</code> or <code>affinity</code> rules in the pod template.
+            <span class="point-title">Node Scheduling:</span> The DaemonSet controller adds a node-specific nodeAffinity term to each pod, and the default scheduler binds it to that node. You can restrict to a subset of nodes using <code>nodeSelector</code> or <code>affinity</code> rules in the pod template.
         </div>
     </div>
     <div class="point">
@@ -1333,7 +1326,7 @@ spec:
     <div class="point">
         <div class="point-num purple">3</div>
         <div class="point-content">
-            <span class="point-title">startingDeadlineSeconds:</span> If the CronJob misses its scheduled time by more than this many seconds, it skips the run. Useful when a Job takes longer than the interval -- prevents queueing dozens of missed runs. If unset, all missed runs may execute simultaneously.
+            <span class="point-title">startingDeadlineSeconds:</span> If the CronJob misses its scheduled time by more than this many seconds, it skips the run. Useful when a Job takes longer than the interval -- prevents queueing dozens of missed runs. Missed runs are never all executed at once: the controller starts at most one Job, for the most recent missed time. If unset, it counts misses since the last schedule time, and if more than 100 were missed it stops scheduling and logs an error.
         </div>
     </div>
     <div class="point">
@@ -1482,7 +1475,7 @@ spec:
             <ul>
                 <li><strong>Deployment:</strong> For stateless apps. Pods are interchangeable, no stable identity, no persistent storage guarantees. Supports rolling updates and rollback. Pods can land on any node and are named randomly (e.g., web-api-6799fc88d8-x4k2p).</li>
                 <li><strong>StatefulSet:</strong> For stateful apps. Provides stable network identity (pod-0, pod-1), stable persistent storage (dedicated PVC per pod), ordered deployment/scaling, and ordered rolling updates. Requires a Headless Service.</li>
-                <li><strong>DaemonSet:</strong> Ensures exactly one pod per node (or subset of nodes). Used for node-level infrastructure (monitoring, logging, networking). Does not use the scheduler -- directly targets nodes. Pods are tied to specific nodes.</li>
+                <li><strong>DaemonSet:</strong> Ensures exactly one pod per node (or subset of nodes). Used for node-level infrastructure (monitoring, logging, networking). The controller pins each pod to its node via nodeAffinity; the default scheduler binds it. Pods are tied to specific nodes.</li>
             </ul>
         </div>
     </div>
@@ -1495,7 +1488,7 @@ spec:
                 <li><strong>Pending:</strong> Pod accepted by API server, stored in etcd. Scheduler evaluates placement. Image pulling may begin.</li>
                 <li><strong>Init Containers:</strong> Run sequentially. Each must exit 0 before the next starts. Failure restarts the pod.</li>
                 <li><strong>Running:</strong> All containers started. Startup probes gate liveness/readiness. Readiness probe success adds pod to Service endpoints.</li>
-                <li><strong>Termination:</strong> Pod receives SIGTERM, preStop hook executes, containers get terminationGracePeriodSeconds (default 30s) to shut down. SIGKILL sent if not terminated. Pod removed from endpoints first (before SIGTERM) to stop receiving traffic.</li>
+                <li><strong>Termination:</strong> Pod receives SIGTERM, preStop hook executes, containers get terminationGracePeriodSeconds (default 30s) to shut down. SIGKILL sent if not terminated. Endpoint removal happens in parallel with preStop/SIGTERM (not before), which is why a preStop sleep is often used to drain traffic.</li>
             </ol>
             <p>Pod phase reflects the aggregate: a pod is Running if at least one container is running, regardless of other container states.</p>
         </div>
@@ -1584,11 +1577,11 @@ spec:
         <div class="q">Q9: How does a StatefulSet handle node failure differently from a Deployment?</div>
         <div class="a">
             <strong>StatefulSets are deliberately conservative about rescheduling to prevent data corruption:</strong>
-            <p>When a node becomes unreachable, the node controller marks it NotReady after ~40s. For Deployments, the controller creates a replacement pod immediately on a healthy node (the old pod may still be running on the partitioned node -- this is acceptable for stateless apps).</p>
+            <p>When a node becomes unreachable, the node controller marks it NotReady after ~50s (node-monitor-grace-period). For Deployments, pods are evicted after the default 300s toleration for the not-ready/unreachable taints expires (~5 min), and the ReplicaSet then creates replacements on healthy nodes (the old pod may still be running on the partitioned node -- this is acceptable for stateless apps).</p>
             <p>For StatefulSets, Kubernetes does NOT automatically delete the pod or create a replacement. Reason: the pod may still be running and writing to its PVC on the unreachable node. Creating a second pod with the same PVC could cause data corruption (split-brain). An operator must either:</p>
             <ul>
                 <li>Confirm the node is truly dead, then force-delete the pod: <code>kubectl delete pod postgres-0 --force --grace-period=0</code></li>
-                <li>Or fence the node (cordon + drain) to ensure the old pod is truly gone before rescheduling.</li>
+                <li>Or, once the node is confirmed down (powered off), apply the out-of-service taint (GA in 1.28): <code>kubectl taint nodes &lt;node&gt; node.kubernetes.io/out-of-service=nodeshutdown:NoExecute</code>. Kubernetes then force-deletes the pods and detaches their volumes so they can be rescheduled. Cordon + drain does not work on a dead node.</li>
             </ul>
         </div>
     </div>
@@ -1820,10 +1813,11 @@ resources:
     memory: 512           # No unit! Means 512 BYTES
   limits:
     cpu: 1000m
-    memory: 1g            # Lowercase 'g' = NOT gibibytes
-    # 1g = 10^9 bytes (gigabyte)
+    memory: 1g            # Lowercase 'g' is INVALID
+    # API rejects '1g' with a validation error
+    # 1G  = 10^9 bytes (gigabyte)
     # 1Gi = 2^30 bytes (gibibyte)
-    # Off by ~7% -- causes unexpected OOM</pre>
+    # G vs Gi is off by ~7% -- unexpected OOM</pre>
         </div>
         <div class="card card-success">
             <h4>Correct: Proper resource units</h4>
@@ -1919,9 +1913,10 @@ containers:
     image: myapp:latest
     # No securityContext at all!
     # Defaults:
-    #   runAsUser: 0 (root)
+    #   runAsUser: image's USER (often root)
     #   allowPrivilegeEscalation: true
-    #   capabilities: ALL inherited
+    #   capabilities: runtime default set (~14,
+    #     e.g. CHOWN, SETUID, NET_RAW)
     # Container escape → full node access
     # This fails PodSecurity "restricted"</pre>
         </div>
@@ -1938,6 +1933,8 @@ containers:
       readOnlyRootFilesystem: true
       capabilities:
         drop: ["ALL"]
+      seccompProfile:
+        type: RuntimeDefault
     # Passes PodSecurity "restricted"
     # Minimal attack surface
     # Use emptyDir for writable /tmp</pre>

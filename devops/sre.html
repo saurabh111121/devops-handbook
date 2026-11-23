@@ -606,7 +606,7 @@ groups:
             <tr><td><strong>Litmus Chaos</strong></td><td>Kubernetes-native</td><td>ChaosEngine CRDs, ChaosHub experiment library, Kubernetes-first, CNCF project</td></tr>
             <tr><td><strong>Gremlin</strong></td><td>Multi-platform</td><td>Enterprise SaaS, state/network/resource attacks, safety controls, team features</td></tr>
             <tr><td><strong>Chaos Mesh</strong></td><td>Kubernetes</td><td>CNCF project, pod/network/IO/time chaos, dashboard, fine-grained scheduling</td></tr>
-            <tr><td><strong>AWS FIS</strong></td><td>AWS</td><td>Fault Injection Simulator, native AWS integration, EC2/ECS/EKS/RDS targets</td></tr>
+            <tr><td><strong>AWS FIS</strong></td><td>AWS</td><td>AWS Fault Injection Service (formerly Fault Injection Simulator), native AWS integration, EC2/ECS/EKS/RDS targets</td></tr>
             <tr><td><strong>Toxiproxy</strong></td><td>Any</td><td>Network-level chaos proxy, latency/bandwidth/disconnect simulation</td></tr>
         </table>
 
@@ -739,6 +739,7 @@ spec:
 
         <div class="card card-info">
             <p><strong>DORA</strong> (DevOps Research and Assessment) identified four key metrics that predict software delivery performance and organizational outcomes.</p>
+            <p>The bands below come from the 2021 Accelerate State of DevOps Report. Starting in 2023, DORA renamed MTTR to <strong>failed deployment recovery time</strong>. The performance clusters are recalculated from each year's survey data, so the thresholds (and even the number of tiers) change from report to report. Treat these bands as a reference point, not a fixed standard.</p>
         </div>
 
         <table>
@@ -760,7 +761,7 @@ spec:
                 <td><strong>Lead Time for Changes</strong><br><em>Commit to production deploy time</em></td>
                 <td>&lt; 1 hour</td>
                 <td>1 day to 1 week</td>
-                <td>1 week to 1 month</td>
+                <td>1 month to 6 months</td>
                 <td>&gt; 6 months</td>
             </tr>
             <tr>
@@ -768,7 +769,7 @@ spec:
                 <td>0-15%</td>
                 <td>16-30%</td>
                 <td>16-30%</td>
-                <td>46-60%</td>
+                <td>16-30%</td>
             </tr>
             <tr>
                 <td><strong>Mean Time to Restore (MTTR)</strong><br><em>Time to recover from failure</em></td>

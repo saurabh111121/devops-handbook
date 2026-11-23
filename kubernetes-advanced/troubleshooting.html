@@ -314,7 +314,8 @@ kubectl top pod my-app-xyz  # (if pod is running between restarts)
 watch kubectl top pod my-app-xyz
 
 # 5. Profile memory inside the container
-kubectl exec my-app-xyz -- cat /sys/fs/cgroup/memory/memory.usage_in_bytes
+kubectl exec my-app-xyz -- cat /sys/fs/cgroup/memory.current   # cgroup v2 (default on modern nodes)
+# Legacy cgroup v1 nodes only: /sys/fs/cgroup/memory/memory.usage_in_bytes
 kubectl exec my-app-xyz -- cat /proc/meminfo
 
 # 6. Check JVM heap settings (Java apps are common OOM culprits)
@@ -791,7 +792,7 @@ my-data   Pending                                      gp2            5m
 
 $ kubectl describe pvc my-data
 Events:
-  Warning  ProvisioningFailed  waiting for first consumer to be created before binding</code></pre>
+  Normal  WaitForFirstConsumer  waiting for first consumer to be created before binding</code></pre>
 
     <p><strong>Debug Steps:</strong></p>
     <pre><code># 1. Check PVC events for the specific failure reason
@@ -1149,7 +1150,8 @@ spec:
     configMap:
       name: app-config
   # "data-volume" is completely missing from volumes list!
-  # Pod will fail to create with: "MountVolume.SetUp failed"</code></pre>
+  # API server rejects the Pod: spec.containers[0].volumeMounts[0].name: Not found: "config-volume"
+  # (and spec.containers[0].volumeMounts[1].name: Not found: "data-volume")</code></pre>
 
     <div class="card card-success">
         <p><strong>CORRECT:</strong> volumeMount names must exactly match entries in spec.volumes</p>
@@ -1187,9 +1189,10 @@ metadata:
   name: db-credentials
 type: Opaque
 data:
-  username: admin              # NOT base64! Will be decoded as garbled text
-  password: sup3r-s3cret      # K8s treats this AS base64, decodes it wrong
-  # When mounted, "admin" becomes binary garbage because K8s base64-decodes it</code></pre>
+  username: admin              # NOT base64! "data" values must be valid base64
+  password: sup3r-s3cret      # Invalid base64 ('-' is not in the alphabet)
+  # kubectl apply is rejected: "illegal base64 data at input byte N"
+  # Plaintext that happens to be valid base64 is accepted but silently decodes to unexpected bytes</code></pre>
 
     <div class="card card-success">
         <p><strong>CORRECT:</strong> Use "stringData" for plaintext (auto-encodes) or properly base64-encode "data"</p>

@@ -709,8 +709,8 @@ spec:
                 </tr>
                 <tr>
                     <td><strong>Resource Usage</strong></td>
-                    <td>Higher (~50-100MB per sidecar)</td>
-                    <td>Lower (~20-30MB per sidecar, ~1ms p99 latency)</td>
+                    <td>Higher (~50MB per sidecar, ~3-5ms p99 latency)</td>
+                    <td>Lower (~10MB per sidecar, ~1ms p99 latency)</td>
                 </tr>
                 <tr>
                     <td><strong>Complexity</strong></td>
@@ -725,7 +725,7 @@ spec:
                 <tr>
                     <td><strong>Traffic Splitting</strong></td>
                     <td>VirtualService + DestinationRule</td>
-                    <td>TrafficSplit (SMI spec) or HTTPRoute</td>
+                    <td>HTTPRoute (Gateway API or policy.linkerd.io); SMI TrafficSplit is archived</td>
                 </tr>
                 <tr>
                     <td><strong>Protocol Support</strong></td>
@@ -794,21 +794,10 @@ linkerd viz dashboard
                 <span class="tag tag-green">Linkerd</span>
             </div>
             <pre>
-# Traffic split using SMI spec (works with Linkerd)
-apiVersion: split.smi-spec.io/v1alpha4
-kind: TrafficSplit
-metadata:
-  name: my-app-canary
-  namespace: production
-spec:
-  service: my-app          # Root service (what clients call)
-  backends:
-  - service: my-app-v1    # Stable version
-    weight: 900            # 90%
-  - service: my-app-v2    # Canary version
-    weight: 100            # 10%
----
-# HTTPRoute-based (newer approach with Gateway API)
+# Linkerd traffic split with HTTPRoute.
+# Note: SMI TrafficSplit (split.smi-spec.io) is legacy - CNCF archived SMI in 2023
+# and Linkerd only supports it via the separate linkerd-smi extension.
+# Gateway API's gateway.networking.k8s.io/v1 HTTPRoute also works with Linkerd.
 apiVersion: policy.linkerd.io/v1beta3
 kind: HTTPRoute
 metadata:
@@ -888,7 +877,7 @@ spec:
             <ul>
                 <li>You have fewer than 5-10 services (overhead not justified)</li>
                 <li>Team is still learning Kubernetes fundamentals (adds complexity)</li>
-                <li>Low-latency requirements where sidecar overhead (~1-3ms) is unacceptable</li>
+                <li>Low-latency requirements where sidecar overhead (~1-5ms per hop: Linkerd ~1ms, Istio ~3-5ms) is unacceptable</li>
                 <li>Simple architecture with one team and one language (library-based approach works)</li>
                 <li>You don't need mTLS, advanced routing, or mesh-level observability</li>
                 <li>Resource-constrained clusters (sidecars add memory/CPU per pod)</li>
@@ -989,7 +978,7 @@ spec:
 
         <div class="qa">
             <div class="q">Q2: Compare Istio and Linkerd. When would you choose one over the other?</div>
-            <div class="a"><strong>Istio:</strong> Uses Envoy proxy (C++), very feature-rich (Wasm extensions, multiple protocols, complex routing rules). Higher resource usage (~50-100MB per sidecar). Many CRDs and configuration options. <strong>Linkerd:</strong> Uses linkerd2-proxy (Rust), ultra-lightweight (~20MB, ~1ms p99 latency overhead). Simpler to operate with sane defaults. Less extensible but covers 90% of use cases. <strong>Choose Istio when:</strong> you need complex routing, Wasm extensibility, multi-protocol support (MongoDB, Redis), or your team has Envoy expertise. <strong>Choose Linkerd when:</strong> you want simplicity, minimal overhead, quick time-to-value, or your team is smaller and wants less operational burden. Both are CNCF graduated projects.</div>
+            <div class="a"><strong>Istio:</strong> Uses Envoy proxy (C++), very feature-rich (Wasm extensions, multiple protocols, complex routing rules). Higher resource usage (~50MB per sidecar, ~3-5ms p99 latency overhead). Many CRDs and configuration options. <strong>Linkerd:</strong> Uses linkerd2-proxy (Rust), ultra-lightweight (~10MB per sidecar, ~1ms p99 latency overhead). Simpler to operate with sane defaults. Less extensible but covers 90% of use cases. <strong>Choose Istio when:</strong> you need complex routing, Wasm extensibility, multi-protocol support (MongoDB, Redis), or your team has Envoy expertise. <strong>Choose Linkerd when:</strong> you want simplicity, minimal overhead, quick time-to-value, or your team is smaller and wants less operational burden. Both are CNCF graduated projects.</div>
         </div>
 
         <div class="qa">
@@ -1009,7 +998,7 @@ spec:
 
         <div class="qa">
             <div class="q">Q6: When would you NOT use a service mesh?</div>
-            <div class="a">Avoid a service mesh when: (1) <strong>Few services (&lt;5-10):</strong> Overhead of running/maintaining the mesh isn't justified. Use library-based approaches instead. (2) <strong>Early K8s adoption:</strong> Adding a mesh before mastering K8s basics compounds complexity. (3) <strong>Ultra-low latency requirements:</strong> The sidecar adds 1-5ms per hop. For high-frequency trading or real-time systems, this matters. (4) <strong>Resource-constrained:</strong> Each sidecar uses 50-100MB RAM (Istio). For 100 pods, that's 5-10GB extra. (5) <strong>Simple communication patterns:</strong> If services just do synchronous REST calls with no need for traffic splitting, circuit breaking, or mTLS, a mesh is overkill. (6) <strong>Single language/framework:</strong> If all services use the same language, library-based solutions (like gRPC interceptors) may suffice.</div>
+            <div class="a">Avoid a service mesh when: (1) <strong>Few services (&lt;5-10):</strong> Overhead of running/maintaining the mesh isn't justified. Use library-based approaches instead. (2) <strong>Early K8s adoption:</strong> Adding a mesh before mastering K8s basics compounds complexity. (3) <strong>Ultra-low latency requirements:</strong> The sidecar adds 1-5ms per hop. For high-frequency trading or real-time systems, this matters. (4) <strong>Resource-constrained:</strong> Each sidecar uses ~50MB RAM (Istio). For 100 pods, that's ~5GB extra. (5) <strong>Simple communication patterns:</strong> If services just do synchronous REST calls with no need for traffic splitting, circuit breaking, or mTLS, a mesh is overkill. (6) <strong>Single language/framework:</strong> If all services use the same language, library-based solutions (like gRPC interceptors) may suffice.</div>
         </div>
 
         <div class="qa">
@@ -1019,7 +1008,7 @@ spec:
 
         <div class="qa">
             <div class="q">Q8: How do you troubleshoot connectivity issues in a service mesh?</div>
-            <div class="a"><strong>Systematic approach:</strong> (1) Check if sidecar is injected: <code>kubectl get pod -o jsonpath='{.spec.containers[*].name}'</code> - should see istio-proxy. (2) Check proxy status: <code>istioctl proxy-status</code> - are all proxies synced? Look for "STALE" or "NOT SENT". (3) Check proxy config: <code>istioctl proxy-config routes &lt;pod&gt;</code> - verify routes exist for the target service. (4) Check mTLS: <code>istioctl authn tls-check &lt;pod&gt; &lt;service&gt;</code> - confirm both sides agree on mTLS mode. (5) Check AuthorizationPolicy: Is there a deny-all without matching allow? (6) Check Envoy logs: <code>kubectl logs &lt;pod&gt; -c istio-proxy</code> - look for "403 RBAC: access denied" or connection errors. (7) Analyze with Kiali: visualize traffic flow, see which connections are failing. (8) Check DestinationRule: wrong subset labels can cause "no healthy upstream".</div>
+            <div class="a"><strong>Systematic approach:</strong> (1) Check if sidecar is injected: <code>kubectl get pod -o jsonpath='{.spec.containers[*].name}'</code> - should see istio-proxy. (2) Check proxy status: <code>istioctl proxy-status</code> - are all proxies synced? Look for "STALE" or "NOT SENT". (3) Check proxy config: <code>istioctl proxy-config routes &lt;pod&gt;</code> - verify routes exist for the target service. (4) Check mTLS: <code>istioctl x describe pod &lt;pod&gt;</code> - shows the effective PeerAuthentication/DestinationRule mTLS mode; <code>istioctl proxy-config secret &lt;pod&gt;</code> confirms certificates are loaded, and <code>istioctl analyze</code> flags conflicting mTLS settings. (5) Check AuthorizationPolicy: Is there a deny-all without matching allow? (6) Check Envoy logs: <code>kubectl logs &lt;pod&gt; -c istio-proxy</code> - look for "403 RBAC: access denied" or connection errors. (7) Analyze with Kiali: visualize traffic flow, see which connections are failing. (8) Check DestinationRule: wrong subset labels can cause "no healthy upstream".</div>
         </div>
 
         <!-- ============================================ -->
@@ -1080,7 +1069,7 @@ spec:
                 </div>
                 <div class="scenario-step">
                     <span class="step-num">2.</span>
-                    <span>Check current mTLS mode: <code>istioctl authn tls-check &lt;legacy-pod&gt; &lt;target-service&gt;</code></span>
+                    <span>Check current mTLS mode: <code>istioctl x describe pod &lt;legacy-pod&gt;</code> (and <code>istioctl analyze</code> for conflicting policies)</span>
                 </div>
                 <div class="scenario-step">
                     <span class="step-num">3.</span>

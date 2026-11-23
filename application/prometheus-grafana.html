@@ -79,7 +79,7 @@
         <div class="card card-info">
             <h4>Pull-Based Model</h4>
             <ul>
-                <li><strong>Pull vs Push:</strong> Prometheus scrapes targets at configured intervals (default 15s-30s). Targets expose an HTTP endpoint (<code>/metrics</code>) in Prometheus exposition format</li>
+                <li><strong>Pull vs Push:</strong> Prometheus scrapes targets at configured intervals (default 1m, commonly set to 15s-30s). Targets expose an HTTP endpoint (<code>/metrics</code>) in Prometheus exposition format</li>
                 <li><strong>Advantages:</strong> Easier to detect target health (failed scrape = target down), no need for targets to know about Prometheus, central configuration control</li>
                 <li><strong>Pushgateway:</strong> For short-lived batch jobs that cannot be scraped, push metrics to a Pushgateway which Prometheus scrapes</li>
                 <li><strong>Scrape interval:</strong> Configurable per-job; typically 15s for infrastructure, 30s for applications</li>
@@ -129,11 +129,11 @@ scrape_configs:
         action: keep
         regex: true
       # Use custom port from annotation
-      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
         action: replace
         target_label: __address__
-        regex: (.+)
-        replacement: ${1}:${2}
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
       # Use custom path from annotation
       - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
         action: replace
@@ -299,7 +299,7 @@ scrape_configs:
         <div class="card">
             <ul>
                 <li><code>sum(rate(http_requests_total[5m])) by (service)</code> - total request rate per service</li>
-                <li><code>avg(node_cpu_seconds_total) by (instance)</code> - average CPU per node</li>
+                <li><code>1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m]))</code> - average CPU utilization per node (counters need <code>rate()</code>)</li>
                 <li><code>max(container_memory_usage_bytes) by (pod)</code> - peak memory per pod</li>
                 <li><code>min</code>, <code>count</code>, <code>stddev</code>, <code>topk(k, v)</code>, <code>bottomk(k, v)</code>, <code>quantile(q, v)</code></li>
                 <li><code>count_values("version", build_info)</code> - count unique label values</li>
@@ -367,10 +367,10 @@ sum(rate(container_cpu_usage_seconds_total{container!="POD",container!=""}[5m]))
 by (namespace, pod)
 
 # CPU throttling percentage
-sum(rate(container_cpu_cfs_throttled_periods_total[5m]))
+sum by (namespace, pod) (rate(container_cpu_cfs_throttled_periods_total[5m]))
 /
-sum(rate(container_cpu_cfs_periods_total[5m]))
-by (namespace, pod) * 100
+sum by (namespace, pod) (rate(container_cpu_cfs_periods_total[5m]))
+* 100
             </pre>
         </div>
 
@@ -423,7 +423,7 @@ sum(rate(http_requests_total[5m] offset 1h))
 # Saturation: requests approaching capacity
 sum(rate(http_requests_total[5m])) by (instance)
 /
-max_over_time(http_requests_capacity[1h]) by (instance)
+max by (instance) (max_over_time(http_requests_capacity[1h]))
             </pre>
         </div>
 
@@ -740,7 +740,7 @@ spec:
                 <li><strong>Purpose:</strong> Pre-compute expensive PromQL expressions and save results as new time series</li>
                 <li><strong>When to use:</strong> Dashboard queries that are slow, queries used in multiple dashboards, complex aggregations needed for alerts</li>
                 <li><strong>Naming convention:</strong> <code>level:metric:operations</code> (e.g., <code>job:http_requests_total:rate5m</code>)</li>
-                <li><strong>Evaluation:</strong> Run at <code>evaluation_interval</code> (default 15s), results stored as regular time series</li>
+                <li><strong>Evaluation:</strong> Run at <code>evaluation_interval</code> (default 1m, commonly set to 15s-30s), results stored as regular time series</li>
                 <li><strong>Benefit:</strong> Reduces query latency from seconds to milliseconds; reduces load on TSDB at query time</li>
             </ul>
         </div>
@@ -1062,13 +1062,13 @@ receivers:
 
   - name: 'pagerduty-critical'
     pagerduty_configs:
-      - service_key: 'your-pagerduty-service-key'
+      - routing_key: 'your-events-v2-integration-key'
         severity: critical
         description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}'
 
   - name: 'pagerduty-platform'
     pagerduty_configs:
-      - service_key: 'platform-team-key'
+      - routing_key: 'platform-team-integration-key'
         severity: '{{ .GroupLabels.severity }}'
 
   - name: 'deadmansswitch'
@@ -1532,11 +1532,11 @@ kubeStateMetrics:
             <div class="scenario-body">
                 <p><strong>Symptoms:</strong> Old pod metrics still appearing in queries after pods are deleted/replaced. Graphs show gaps or unexpected values.</p>
 
-                <div class="scenario-step"><span class="step-num">1.</span> <span>Understand staleness: Prometheus marks series as stale 5 minutes after last scrape. Old series remain queryable until then</span></div>
+                <div class="scenario-step"><span class="step-num">1.</span> <span>Understand staleness: Prometheus writes staleness markers immediately when a target disappears or a series is missing from a scrape. The 5-minute lookback delta only applies when no marker was written (e.g. federation, explicit timestamps)</span></div>
                 <div class="scenario-step"><span class="step-num">2.</span> <span>Check if service discovery removed the target: Prometheus UI > Targets page (should show target as DOWN then disappear)</span></div>
-                <div class="scenario-step"><span class="step-num">3.</span> <span>For rate() queries: Stale markers create NaN - this is correct behavior. Use <code>rate(metric[5m])</code> not <code>irate()</code></span></div>
-                <div class="scenario-step"><span class="step-num">4.</span> <span>For sum() queries: Old series may inflate totals during the staleness window. Use <code>sum(rate(...))</code> which handles resets</span></div>
-                <div class="scenario-step"><span class="step-num">5.</span> <span>If using Pushgateway: Metrics persist until explicitly deleted. Use <code>--push-to-gateway-delete-on-job-complete</code> or TTL</span></div>
+                <div class="scenario-step"><span class="step-num">3.</span> <span>For rate() queries: once a staleness marker is written the series simply stops returning samples (gaps after a pod is replaced are expected). Prefer <code>rate(metric[5m])</code> over <code>irate()</code> for smoother graphs</span></div>
+                <div class="scenario-step"><span class="step-num">4.</span> <span>For sum() queries: Old series may briefly inflate totals while both old and new pods fall inside the range window (or for up to 5m if no staleness marker was written). Use <code>sum(rate(...))</code> which handles resets</span></div>
+                <div class="scenario-step"><span class="step-num">5.</span> <span>If using Pushgateway: Metrics persist until explicitly deleted. Pushgateway has no TTL, so delete groups explicitly at job end, e.g. <code>curl -X DELETE http://pushgateway:9091/metrics/job/&lt;job&gt;</code> or the client library's <code>delete_from_gateway()</code></span></div>
                 <div class="scenario-step"><span class="step-num">6.</span> <span><strong>Best practice:</strong> Always query by rate/increase for counters. Include pod label in aggregation to see individual pods</span></div>
             </div>
         </div>

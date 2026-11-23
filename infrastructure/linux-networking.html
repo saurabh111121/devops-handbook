@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Linux & Networking Fundamentals - DevOps/SRE Reference</title>
     <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
 </head>
 <body>
 
@@ -224,7 +225,7 @@ journalctl -u nginx --since "1 hour ago"  # Recent logs
                     <td><strong>PID</strong></td>
                     <td>Process IDs</td>
                     <td>Own PID tree starting from PID 1</td>
-                    <td>Each pod gets its own PID namespace (containers in a pod share it)</td>
+                    <td>Each container gets its own PID namespace by default; containers in a pod share it only with <code>shareProcessNamespace: true</code></td>
                 </tr>
                 <tr>
                     <td><strong>Network (net)</strong></td>
@@ -275,11 +276,11 @@ journalctl -u nginx --since "1 hour ago"  # Recent logs
 
   +-- kubelet
   |     |
-  |     +-- Pod A (namespaces: net, PID, IPC, UTS shared by containers)
+  |     +-- Pod A (namespaces: net, IPC, UTS shared; PID only if shareProcessNamespace)
   |     |     |
   |     |     +-- Container 1 -----> cgroup: /kubepods/podA/container1
-  |     |     |     CPU: 100m-500m       (cpu.shares, cpu.cfs_quota_us)
-  |     |     |     MEM: 128Mi-512Mi     (memory.limit_in_bytes)
+  |     |     |     CPU: 100m-500m       (cgroup v2: cpu.weight, cpu.max)
+  |     |     |     MEM: 128Mi-512Mi     (cgroup v2: memory.max)
   |     |     |
   |     |     +-- Container 2 -----> cgroup: /kubepods/podA/container2
   |     |           CPU: 200m-1000m
@@ -298,22 +299,23 @@ journalctl -u nginx --since "1 hour ago"  # Recent logs
 
         <div class="grid-2">
             <div class="card">
-                <h4>CPU Cgroup Controls</h4>
+                <h4>CPU Cgroup Controls (cgroup v2)</h4>
                 <ul>
-                    <li><strong>cpu.shares:</strong> Relative weight (requests). 1024 = 1 CPU core equivalent</li>
-                    <li><strong>cpu.cfs_quota_us:</strong> Hard limit (limits). Max CPU time per period</li>
-                    <li><strong>cpu.cfs_period_us:</strong> Period length (default 100ms)</li>
+                    <li><strong>cpu.weight:</strong> Relative weight (requests), 1-10000, default 100 (v1: cpu.shares, 1024 = 1 core)</li>
+                    <li><strong>cpu.max:</strong> Hard limit (limits) as "quota period", e.g. <code>50000 100000</code> (v1: cpu.cfs_quota_us / cpu.cfs_period_us)</li>
+                    <li><strong>Period:</strong> Default 100ms (second field of cpu.max)</li>
                     <li><strong>cpuset.cpus:</strong> Pin to specific CPU cores</li>
                 </ul>
+                <p>cgroup v2 is the default on current distros; kubelet 1.35+ refuses to start on cgroup v1 by default.</p>
                 <p><code>K8s 100m = 100 millicores = 10% of one core</code></p>
             </div>
             <div class="card">
-                <h4>Memory Cgroup Controls</h4>
+                <h4>Memory Cgroup Controls (cgroup v2)</h4>
                 <ul>
-                    <li><strong>memory.limit_in_bytes:</strong> Hard limit. OOM kill if exceeded</li>
-                    <li><strong>memory.soft_limit_in_bytes:</strong> Soft limit (reclaim target)</li>
-                    <li><strong>memory.usage_in_bytes:</strong> Current usage</li>
-                    <li><strong>memory.oom_control:</strong> OOM killer behavior</li>
+                    <li><strong>memory.max:</strong> Hard limit. OOM kill if exceeded (v1: memory.limit_in_bytes)</li>
+                    <li><strong>memory.high:</strong> Throttle/reclaim threshold (v1 analogue: memory.soft_limit_in_bytes)</li>
+                    <li><strong>memory.current:</strong> Current usage (v1: memory.usage_in_bytes)</li>
+                    <li><strong>memory.events:</strong> OOM and limit-hit counters (v1: memory.oom_control)</li>
                 </ul>
                 <p><code>K8s 128Mi = 128 mebibytes memory limit</code></p>
             </div>
@@ -711,7 +713,7 @@ journalctl -u nginx --since "1 hour ago"  # Recent logs
                 <ul>
                     <li><strong>Multiplexing:</strong> Multiple requests/responses over a single TCP connection simultaneously (no head-of-line blocking at HTTP level)</li>
                     <li><strong>Header Compression:</strong> HPACK reduces redundant headers (cookies, user-agent sent once)</li>
-                    <li><strong>Server Push:</strong> Server can send resources before client requests them</li>
+                    <li><strong>Server Push (deprecated):</strong> Server could send resources before the client requested them; removed from Chrome (106) and Firefox (132). Use <code>103 Early Hints</code> instead</li>
                     <li><strong>Binary Framing:</strong> More efficient parsing than HTTP/1.1 text-based</li>
                     <li><strong>Stream Prioritization:</strong> Client can indicate priority of requests</li>
                 </ul>
@@ -1242,7 +1244,7 @@ journalctl -u nginx --since "1 hour ago"  # Recent logs
 
         <div class="card">
             <h4>Q7: What is consistent hashing and why is it used in load balancing?</h4>
-            <p><strong>Answer:</strong> Consistent hashing maps both servers and requests onto a ring (0 to 2^32). A request is routed to the nearest server clockwise on the ring. When a server is added/removed, only K/N keys need to remap (K=total keys, N=servers) rather than reshuffling everything. This is critical for caches (Memcached, Redis cluster) where remapping means cache misses. Virtual nodes (multiple points per server on the ring) improve distribution uniformity.</p>
+            <p><strong>Answer:</strong> Consistent hashing maps both servers and requests onto a ring (0 to 2^32). A request is routed to the nearest server clockwise on the ring. When a server is added/removed, only K/N keys need to remap (K=total keys, N=servers) rather than reshuffling everything. This is critical for caches (Memcached clients using ketama) and distributed stores (Cassandra, DynamoDB) where remapping means cache misses or data movement. Note: Redis Cluster does not use consistent hashing; it uses 16384 fixed hash slots (CRC16(key) mod 16384) assigned to nodes. Virtual nodes (multiple points per server on the ring) improve distribution uniformity.</p>
         </div>
 
         <div class="card">

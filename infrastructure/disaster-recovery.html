@@ -255,10 +255,15 @@
 <pre>
 resource "aws_s3_bucket" "backups" {
   bucket = "company-db-backups-${var.environment}"
+}
 
-  # Enable versioning for additional protection
-  versioning {
-    enabled = true
+# Enable versioning for additional protection
+# (inline versioning block is deprecated since AWS provider v4)
+resource "aws_s3_bucket_versioning" "backups" {
+  bucket = aws_s3_bucket.backups.id
+
+  versioning_configuration {
+    status = "Enabled"
   }
 }
 
@@ -338,9 +343,10 @@ resource "aws_s3_bucket_replication_configuration" "dr_replication" {
             </div>
 <pre>
 # Install Velero with AWS provider
+# (match plugin to Velero version: plugin v1.14.x = Velero 1.18.x)
 velero install \
   --provider aws \
-  --plugins velero/velero-plugin-for-aws:v1.8.0 \
+  --plugins velero/velero-plugin-for-aws:v1.14.4 \
   --bucket my-velero-backups \
   --backup-location-config region=us-east-1 \
   --snapshot-location-config region=us-east-1 \
@@ -366,7 +372,7 @@ velero backup create full-cluster-backup --wait
 # Backup specific namespace
 velero backup create prod-backup \
   --include-namespaces production \
-  --include-resources deployments,services,configmaps,secrets,pvc \
+  --include-resources deployments,services,configmaps,secrets,persistentvolumeclaims,persistentvolumes,pods \
   --wait
 
 # Backup with label selector
@@ -392,7 +398,7 @@ velero restore create --from-backup prod-backup \
   --wait
 
 # Check restore status
-velero restore describe <restore-name> --details
+velero restore describe &lt;restore-name&gt; --details
 </pre>
         </div>
 
@@ -443,14 +449,15 @@ spec:
 # etcd backup (run on control plane node)
 
 # Backup etcd
-ETCDCTL_API=3 etcdctl snapshot save /backup/etcd-$(date +%Y%m%d-%H%M%S).db \
+SNAP=/backup/etcd-$(date +%Y%m%d-%H%M%S).db
+ETCDCTL_API=3 etcdctl snapshot save "$SNAP" \
   --endpoints=https://127.0.0.1:2379 \
   --cacert=/etc/kubernetes/pki/etcd/ca.crt \
   --cert=/etc/kubernetes/pki/etcd/server.crt \
   --key=/etc/kubernetes/pki/etcd/server.key
 
-# Verify backup
-ETCDCTL_API=3 etcdctl snapshot status /backup/etcd-latest.db --write-out=table
+# Verify backup (etcd v3.6+: status/restore live in etcdutl, not etcdctl)
+etcdutl snapshot status "$SNAP" --write-out=table
 
 # Restore etcd (DESTRUCTIVE - stops cluster)
 # 1. Stop kube-apiserver and etcd
@@ -458,7 +465,7 @@ sudo mv /etc/kubernetes/manifests/kube-apiserver.yaml /tmp/
 sudo mv /etc/kubernetes/manifests/etcd.yaml /tmp/
 
 # 2. Restore snapshot to new data directory
-ETCDCTL_API=3 etcdctl snapshot restore /backup/etcd-latest.db \
+etcdutl snapshot restore "$SNAP" \
   --data-dir=/var/lib/etcd-restored \
   --name=master-1 \
   --initial-cluster=master-1=https://10.0.1.10:2380 \
@@ -585,7 +592,6 @@ aws rds create-db-instance-read-replica \
   --source-db-instance-identifier arn:aws:rds:us-east-1:123456789:db:mydb-primary \
   --region us-west-2 \
   --db-instance-class db.r6g.xlarge \
-  --storage-encrypted \
   --kms-key-id alias/rds-dr-key
 
 # Check replication lag
@@ -947,8 +953,8 @@ spec:
               responseCode: "200"
         mode: Continuous
         runProperties:
-          probeTimeout: 5
-          interval: 5
+          probeTimeout: 5s
+          interval: 5s
           retry: 3
 </pre>
         </div>
@@ -993,8 +999,8 @@ spec:
             value: "2"                 # At least 2 pods running
         mode: Edge
         runProperties:
-          probeTimeout: 30
-          interval: 10
+          probeTimeout: 30s
+          interval: 10s
 </pre>
         </div>
 
@@ -1099,7 +1105,7 @@ spec:
             <div class="scenario-body">
                 <p><strong>Symptom:</strong> kube-apiserver returning errors. etcd logs showing "database space exceeded" or corruption errors. kubectl commands failing. New pods not scheduling.</p>
                 <div class="scenario-step"><span class="step-num">1.</span> <strong>Immediate triage:</strong> Check etcd member health: <code>etcdctl endpoint health</code>. Check cluster status: <code>etcdctl endpoint status</code>. If one member corrupt but others healthy, remove and re-add the member.</div>
-                <div class="scenario-step"><span class="step-num">2.</span> <strong>If space exceeded:</strong> Compact etcd history: <code>etcdctl compact $(etcdctl endpoint status -w json | jq '.[] .Status.header.revision')</code>. Then defragment: <code>etcdctl defrag</code>. Increase <code>--quota-backend-bytes</code>.</div>
+                <div class="scenario-step"><span class="step-num">2.</span> <strong>If space exceeded:</strong> Compact etcd history: <code>etcdctl compact $(etcdctl endpoint status -w json | jq '.[] .Status.header.revision')</code>. Then defragment: <code>etcdctl defrag</code>. Clear the NOSPACE alarm (etcd stays read-only until you do): <code>etcdctl alarm disarm</code>, then confirm with <code>etcdctl alarm list</code>. Increase <code>--quota-backend-bytes</code>.</div>
                 <div class="scenario-step"><span class="step-num">3.</span> <strong>If data corrupted:</strong> Stop kube-apiserver (move manifest). Identify latest valid snapshot. Restore from snapshot to new data directory. Update etcd manifest to use new data directory. Restart.</div>
                 <div class="scenario-step"><span class="step-num">4.</span> <strong>Validate recovery:</strong> Check all nodes rejoin: <code>kubectl get nodes</code>. Verify workloads: <code>kubectl get pods --all-namespaces</code>. Check CRDs and custom resources are intact. Verify RBAC still working.</div>
                 <div class="scenario-step"><span class="step-num">5.</span> <strong>Prevention:</strong> Regular etcd snapshots (every 30 min). Monitor etcd DB size and set alerts at 70% quota. Set appropriate <code>--auto-compaction-retention</code>. Run etcd on fast local SSD (not network-attached storage).</div>

@@ -178,7 +178,7 @@ sum(rate(http_requests_total{status!~"5.."}[30d]))
   / sum(rate(http_requests_total[30d])) * 100
 
 # Burn rate: how fast are we consuming error budget?
-# 1x = consuming at exactly SLO rate. 14.4x = 100% budget in 1 hour
+# 1x = consuming at exactly SLO rate. 14.4x = 2% of 30-day budget in 1 hour (exhausted in ~2 days)
 (
   sum(rate(http_requests_total{status=~"5.."}[1h]))
   / sum(rate(http_requests_total[1h]))
@@ -414,7 +414,7 @@ predict_linear(node_filesystem_avail_bytes[1h], 4*3600) < 0
                 <tr>
                     <td><strong>Agent</strong></td>
                     <td>Filebeat / Logstash</td>
-                    <td>Promtail / Grafana Agent</td>
+                    <td>Grafana Alloy (or OTel Collector / Fluent Bit)</td>
                 </tr>
             </tbody>
         </table>
@@ -628,41 +628,51 @@ route:
 
   routes:
     # P1: Page immediately
-    - match:
-        severity: critical
+    - matchers:
+        - severity = "critical"
       receiver: 'pagerduty-critical'
       group_wait: 10s
       repeat_interval: 1h
 
     # P2: Page during business hours
-    - match:
-        severity: high
+    - matchers:
+        - severity = "high"
       receiver: 'pagerduty-high'
       active_time_intervals:
         - business-hours
 
     # P3: Slack + ticket
-    - match:
-        severity: medium
+    - matchers:
+        - severity = "medium"
       receiver: 'slack-and-ticket'
       repeat_interval: 12h
 
     # P4: Slack only
-    - match:
-        severity: low
+    - matchers:
+        - severity = "low"
       receiver: 'default-slack'
       repeat_interval: 24h
+
+# Named time intervals referenced by routes
+time_intervals:
+  - name: business-hours
+    time_intervals:
+      - weekdays: ['monday:friday']
+        times:
+          - start_time: '09:00'
+            end_time: '17:00'
+        location: 'America/New_York'
 
 receivers:
   - name: 'pagerduty-critical'
     pagerduty_configs:
-      - service_key: 'YOUR_PD_KEY'
+      - routing_key: 'YOUR_PD_INTEGRATION_KEY'   # Events API v2
         severity: critical
 
   - name: 'pagerduty-high'
     pagerduty_configs:
-      - service_key: 'YOUR_PD_KEY'
-        severity: high
+      - routing_key: 'YOUR_PD_INTEGRATION_KEY'
+        severity: error   # PD v2 allows critical | error | warning | info
 
   - name: 'slack-and-ticket'
     slack_configs:
@@ -679,10 +689,10 @@ receivers:
 
 # Inhibition: suppress related alerts
 inhibit_rules:
-  - source_match:
-      severity: critical
-    target_match:
-      severity: high
+  - source_matchers:
+      - severity = "critical"
+    target_matchers:
+      - severity = "high"
     equal: ['service']  # If critical fires for a service, suppress high for same service
             </pre>
         </div>

@@ -403,6 +403,7 @@ spec:
                   number: 80
 </pre>
         </div>
+        <p><strong>Note:</strong> This example uses the community <code>ingress-nginx</code> controller annotations. That project was retired in March 2026 and no longer receives releases, bug fixes or security patches. For new deployments, use the Gateway API (<code>HTTPRoute</code>) with a maintained implementation such as Envoy Gateway, Istio, Cilium or NGINX Gateway Fabric, or another actively maintained Ingress controller. The tier layout and NetworkPolicies on this page stay the same; only the controller namespace label and annotations change.</p>
 
         <!-- BACKEND -->
         <h3 id="backend-tier">Backend Tier (Node.js API)</h3>
@@ -718,27 +719,14 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        runAsUser: 999
-        runAsGroup: 999
-        fsGroup: 999
+        runAsUser: 70     # "postgres" user in the Alpine image (999 in Debian)
+        runAsGroup: 70
+        fsGroup: 70
         seccompProfile:
           type: RuntimeDefault
-      initContainers:
-        - name: init-permissions
-          image: busybox:1.36
-          command:
-            - sh
-            - -c
-            - |
-              mkdir -p /var/lib/postgresql/data/pgdata
-              chmod 700 /var/lib/postgresql/data/pgdata
-              chown -R 999:999 /var/lib/postgresql/data
-          securityContext:
-            runAsUser: 0
-            allowPrivilegeEscalation: false
-          volumeMounts:
-            - name: postgres-data
-              mountPath: /var/lib/postgresql/data
+      # No root init container: the namespace enforces PSA "restricted",
+      # which rejects runAsUser: 0. fsGroup: 70 makes the volume writable
+      # by the postgres user, and postgres creates PGDATA (mode 700) itself.
       containers:
         - name: postgres
           image: postgres:15.4-alpine
@@ -924,10 +912,9 @@ spec:
           livenessProbe:
             exec:
               command:
-                - redis-cli
-                - -a
-                - $(REDIS_PASSWORD)
-                - ping
+                - sh
+                - -c
+                - redis-cli -a "$REDIS_PASSWORD" --no-auth-warning ping | grep -q PONG
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 3
@@ -935,10 +922,9 @@ spec:
           readinessProbe:
             exec:
               command:
-                - redis-cli
-                - -a
-                - $(REDIS_PASSWORD)
-                - ping
+                - sh
+                - -c
+                - redis-cli -a "$REDIS_PASSWORD" --no-auth-warning ping | grep -q PONG
             initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 2
@@ -1253,6 +1239,11 @@ spec:
             matchLabels:
               app: backend
               tier: application
+        # ...and from DB migration/rollback Job pods
+        - podSelector:
+            matchLabels:
+              app: backend
+              purpose: migration
       ports:
         - protocol: TCP
           port: 5432
@@ -1361,6 +1352,7 @@ k8s/
 │       ├── kustomization.yaml
 │       ├── backend-config-patch.yaml
 │       ├── replica-patch.yaml
+│       ├── resource-patch.yaml
 │       ├── ingress-patch.yaml
 │       └── hpa-patch.yaml
 </pre>
@@ -1389,9 +1381,13 @@ resources:
   - redis/deployment.yaml
   - redis/service.yaml
 
-commonLabels:
-  app.kubernetes.io/managed-by: kustomize
-  app.kubernetes.io/part-of: myapp
+# "labels" replaces the deprecated commonLabels (Kustomize v5).
+# includeSelectors: false keeps these out of immutable selectors.
+labels:
+  - pairs:
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/part-of: myapp
+    includeSelectors: false
 </pre>
         </div>
 
@@ -1753,6 +1749,8 @@ spec:
   template:
     metadata:
       labels:
+        # No tier: application label, so the Job pod is not added
+        # to the backend Service endpoints
         app: backend
         purpose: migration
     spec:
@@ -1761,6 +1759,8 @@ spec:
         runAsNonRoot: true
         runAsUser: 1000
         runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: migrate
           image: myregistry.io/myapp-backend:1.2.0
@@ -1777,7 +1777,38 @@ spec:
             limits:
               cpu: 500m
               memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
       serviceAccountName: backend-sa
+---
+# Under default-deny, migration pods need their own egress rule to Postgres
+# (postgres-netpol also admits app=backend,purpose=migration)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: migration-netpol
+  namespace: myapp
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+      purpose: migration
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress: []  # Job pods accept no traffic
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgres
+              tier: data
+      ports:
+        - protocol: TCP
+          port: 5432
 </pre>
         </div>
 
@@ -1982,7 +2013,7 @@ echo "=== All tiers deployed successfully ==="
 
         <div class="diagram">
 <pre>
-Trace: "GET /checkout" (total: 450ms)
+Trace: "GET /checkout" (total: 105ms)
 
 ├── [Ingress]  SSL termination + routing ............ 5ms
 ├── [Frontend] Nginx proxy_pass .................... 2ms
@@ -2261,7 +2292,7 @@ kubectl exec -it deploy/frontend -n myapp -- \
 
 # Check Redis cache content
 kubectl exec -it deploy/redis -n myapp -- \
-  redis-cli -a $REDIS_PASSWORD GET "cache:user:123"
+  sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning GET "cache:user:123"'
 
 # Force frontend rollout (if stuck on old image)
 kubectl rollout restart deployment/frontend -n myapp
@@ -2322,8 +2353,18 @@ spec:
   backoffLimit: 1
   activeDeadlineSeconds: 120
   template:
+    metadata:
+      labels:
+        app: backend
+        purpose: migration  # matched by migration-netpol / postgres-netpol
     spec:
       restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: rollback
           image: myregistry.io/myapp-backend:1.1.0  # Previous known-good version
@@ -2333,6 +2374,12 @@ spec:
                 name: backend-config
             - secretRef:
                 name: backend-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      serviceAccountName: backend-sa
 </pre>
                 </div>
             </div>
@@ -2485,7 +2532,7 @@ kubectl get pods -n myapp --field-selector=status.phase=Pending
                     <tr>
                         <td>5</td>
                         <td>Deploy Redis (Deployment + Service)</td>
-                        <td><code>kubectl exec deploy/redis -- redis-cli ping</code> returns PONG</td>
+                        <td><code>kubectl exec deploy/redis -n myapp -- sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning ping'</code> returns PONG</td>
                     </tr>
                     <tr>
                         <td>6</td>

@@ -62,16 +62,20 @@
             </div>
             <pre>
 terraform {
-  required_version = ">= 1.5.0"
+  required_version = ">= 1.11.0"
 
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "~> 6.0"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
       version = "~> 2.23"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 3.0"
     }
   }
 }
@@ -200,7 +204,7 @@ data "aws_vpc" "existing" {
             </ul>
         </div>
 
-        <h3>Remote State (S3 + DynamoDB)</h3>
+        <h3>Remote State (S3 + Native Locking)</h3>
 
         <div class="code-block">
             <div class="code-header">
@@ -214,9 +218,13 @@ terraform {
     key            = "production/networking/terraform.tfstate"
     region         = "us-east-1"
     encrypt        = true
-    dynamodb_table = "terraform-state-lock"
-    # Optional: use assume_role for cross-account access
-    # role_arn     = "arn:aws:iam::123456789012:role/TerraformStateAccess"
+    use_lockfile   = true   # Native S3 locking (Terraform &gt;= 1.11)
+    # Legacy: dynamodb_table = "terraform-state-lock" (deprecated)
+
+    # Optional: assume a role for cross-account access
+    # assume_role {
+    #   role_arn = "arn:aws:iam::123456789012:role/TerraformStateAccess"
+    # }
   }
 }
             </pre>
@@ -258,6 +266,7 @@ resource "aws_s3_bucket_public_access_block" "terraform_state" {
   restrict_public_buckets = true
 }
 
+# Legacy only: DynamoDB lock table (not needed with use_lockfile = true)
 resource "aws_dynamodb_table" "terraform_lock" {
   name         = "terraform-state-lock"
   billing_mode = "PAY_PER_REQUEST"
@@ -277,7 +286,7 @@ resource "aws_dynamodb_table" "terraform_lock" {
             <h4>How State Locking Works</h4>
             <p>When Terraform performs an operation that could modify state, it acquires a lock. This prevents concurrent operations from corrupting state.</p>
             <ul>
-                <li><strong>S3 backend:</strong> Uses DynamoDB for locking (LockID = state file path)</li>
+                <li><strong>S3 backend:</strong> Native S3 lock file with <code>use_lockfile = true</code> (Terraform 1.11+). DynamoDB locking (<code>dynamodb_table</code>) is deprecated and kept only for legacy setups</li>
                 <li><strong>GCS backend:</strong> Uses built-in object locking</li>
                 <li><strong>Terraform Cloud:</strong> Built-in state locking per workspace</li>
                 <li><strong>Force unlock:</strong> <code>terraform force-unlock LOCK_ID</code> (use with caution)</li>
@@ -469,12 +478,12 @@ module "vpc" {
 # Registry module
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "~> 19.0"
+  version = "~> 21.0"
 
-  cluster_name    = "production-cluster"
-  cluster_version = "1.28"
-  vpc_id          = module.vpc.vpc_id
-  subnet_ids      = module.vpc.private_subnet_ids
+  name               = "production-cluster"
+  kubernetes_version = "1.36"
+  vpc_id             = module.vpc.vpc_id
+  subnet_ids         = module.vpc.private_subnet_ids
 }
 
 # Git module (specific tag)
@@ -948,13 +957,12 @@ data "local_file" "config" {
   filename = "${path.module}/config.json"
 }
 
-# Template rendering
-data "template_file" "user_data" {
-  template = file("${path.module}/user-data.sh.tpl")
-  vars = {
+# Template rendering (templatefile replaces the deprecated template provider)
+locals {
+  user_data = templatefile("${path.module}/user-data.sh.tpl", {
     environment = var.environment
     db_host     = aws_db_instance.main.endpoint
-  }
+  })
 }
 
 # Use data in resources
@@ -1046,7 +1054,7 @@ resource "aws_instance" "app" {
         <div class="point">
             <div class="point-num">1</div>
             <div class="point-content">
-                <div class="point-title">terraform plan / terraform refresh</div>
+                <div class="point-title">terraform plan / terraform plan -refresh-only</div>
                 Terraform reads the real infrastructure state from the cloud API and compares it to the state file. Any differences appear in the plan output.
             </div>
         </div>
@@ -1097,14 +1105,17 @@ terraform {
     encrypt        = true
     kms_key_id     = "alias/terraform-state-key"
 
-    # Locking
-    dynamodb_table = "terraform-state-locks"
+    # Locking (native S3 lock file, Terraform &gt;= 1.11)
+    use_lockfile   = true
+    # Legacy: dynamodb_table = "terraform-state-locks" (deprecated)
 
     # Access control
     acl            = "private"
 
     # Cross-account access (optional)
-    # role_arn     = "arn:aws:iam::SHARED_ACCOUNT:role/TerraformState"
+    # assume_role {
+    #   role_arn = "arn:aws:iam::SHARED_ACCOUNT:role/TerraformState"
+    # }
 
     # Workspace key prefix (if using workspaces)
     workspace_key_prefix = "workspaces"
@@ -1236,12 +1247,13 @@ resource "kubernetes_deployment" "app" {
                 <span class="tag tag-green">HCL</span>
             </div>
             <pre>
+# Helm provider v3 syntax: kubernetes and exec are objects, set is a list
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host                   = module.eks.cluster_endpoint
     cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
 
-    exec {
+    exec = {
       api_version = "client.authentication.k8s.io/v1beta1"
       command     = "aws"
       args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
@@ -1250,29 +1262,25 @@ provider "helm" {
 }
 
 # Install ingress controller
-resource "helm_release" "ingress_nginx" {
-  name       = "ingress-nginx"
-  repository = "https://kubernetes.github.io/ingress-nginx"
-  chart      = "ingress-nginx"
-  version    = "4.8.3"
-  namespace  = "ingress-nginx"
+# Note: the community ingress-nginx project was retired (no releases or
+# security fixes after March 2026). Use AWS Load Balancer Controller, or a
+# Gateway API implementation such as Envoy Gateway.
+resource "helm_release" "aws_lb_controller" {
+  name       = "aws-load-balancer-controller"
+  repository = "https://aws.github.io/eks-charts"
+  chart      = "aws-load-balancer-controller"
+  namespace  = "kube-system"
 
-  create_namespace = true
-
-  set {
-    name  = "controller.replicaCount"
-    value = "3"
-  }
-
-  set {
-    name  = "controller.service.type"
-    value = "LoadBalancer"
-  }
-
-  set {
-    name  = "controller.metrics.enabled"
-    value = "true"
-  }
+  set = [
+    {
+      name  = "clusterName"
+      value = module.eks.cluster_name
+    },
+    {
+      name  = "replicaCount"
+      value = "2"
+    }
+  ]
 }
 
 # Install cert-manager
@@ -1285,10 +1293,12 @@ resource "helm_release" "cert_manager" {
 
   create_namespace = true
 
-  set {
-    name  = "installCRDs"
-    value = "true"
-  }
+  set = [
+    {
+      name  = "installCRDs"
+      value = "true"
+    }
+  ]
 }
 
 # Install Prometheus stack
@@ -1409,6 +1419,12 @@ jobs:
         working-directory: environments/${{ matrix.environment }}
         run: terraform plan -out=tfplan
 
+      - name: Upload Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ matrix.environment }}
+          path: environments/${{ matrix.environment }}/tfplan
+
       - name: Post Plan to PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
@@ -1427,9 +1443,15 @@ jobs:
         working-directory: environments/production
         run: terraform init
 
+      - name: Download Reviewed Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-production
+          path: environments/production
+
       - name: Terraform Apply
         working-directory: environments/production
-        run: terraform apply -auto-approve
+        run: terraform apply tfplan
             </pre>
         </div>
 
@@ -1495,7 +1517,7 @@ provider "aws" {
 
         <div class="qa">
             <div class="q">Q: How does state locking work and why is it important?</div>
-            <div class="a">State locking <strong>prevents concurrent operations from corrupting state</strong>. When Terraform starts an operation (plan/apply), it acquires a lock on the state file. If another operation tries to run simultaneously, it fails with a lock error. For S3 backend, locking uses a DynamoDB table with a LockID key matching the state file path. It's important because: without locking, two people applying at the same time could write conflicting state, leading to duplicated or orphaned resources. If a lock gets stuck (crash during apply), use <code>terraform force-unlock LOCK_ID</code> carefully.</div>
+            <div class="a">State locking <strong>prevents concurrent operations from corrupting state</strong>. When Terraform starts an operation (plan/apply), it acquires a lock on the state file. If another operation tries to run simultaneously, it fails with a lock error. For S3 backend, Terraform 1.11+ uses a native S3 lock file (<code>use_lockfile = true</code>); the older DynamoDB table with a LockID key is deprecated. It's important because: without locking, two people applying at the same time could write conflicting state, leading to duplicated or orphaned resources. If a lock gets stuck (crash during apply), use <code>terraform force-unlock LOCK_ID</code> carefully.</div>
         </div>
 
         <div class="qa">
@@ -1505,7 +1527,7 @@ provider "aws" {
 
         <div class="qa">
             <div class="q">Q: Compare Terraform vs CloudFormation vs Pulumi.</div>
-            <div class="a"><strong>Terraform:</strong> Multi-cloud, HCL language, large provider ecosystem, state management required, open-source core. <strong>CloudFormation:</strong> AWS-only, JSON/YAML, deeply integrated with AWS (no state file - AWS manages it), free, supports drift detection natively. <strong>Pulumi:</strong> Multi-cloud, uses real programming languages (Python, TypeScript, Go), built-in state management, supports testing with standard tools. Key trade-offs: Terraform wins on multi-cloud and ecosystem size; CloudFormation wins on AWS-native integration and zero state management; Pulumi wins on developer experience for teams preferring general-purpose languages over DSLs.</div>
+            <div class="a"><strong>Terraform:</strong> Multi-cloud, HCL language, large provider ecosystem, state management required, source-available (BSL 1.1) since 1.6; OpenTofu is the MPL-licensed open-source fork. <strong>CloudFormation:</strong> AWS-only, JSON/YAML, deeply integrated with AWS (no state file - AWS manages it), free, supports drift detection natively. <strong>Pulumi:</strong> Multi-cloud, uses real programming languages (Python, TypeScript, Go), built-in state management, supports testing with standard tools. Key trade-offs: Terraform wins on multi-cloud and ecosystem size; CloudFormation wins on AWS-native integration and zero state management; Pulumi wins on developer experience for teams preferring general-purpose languages over DSLs.</div>
         </div>
 
         <div class="qa">
@@ -1537,7 +1559,7 @@ provider "aws" {
                 <p><strong>Mistake:</strong> Committing <code>terraform.tfstate</code> to Git.</p>
                 <p><strong>Why it's bad:</strong> State contains secrets (passwords, tokens, private IPs). Multiple people pulling/pushing creates conflicts and state corruption.</p>
                 <p><strong>Fix:</strong> Use remote backend (S3, GCS, Terraform Cloud). Add to <code>.gitignore</code>:</p>
-                <div class="cmd">echo "*.tfstate*\n.terraform/\n*.tfvars" >> .gitignore</div>
+                <div class="cmd">printf '%s\n' '*.tfstate*' '.terraform/' '*.tfvars' &gt;&gt; .gitignore</div>
             </div>
         </div>
 

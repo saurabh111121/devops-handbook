@@ -55,7 +55,7 @@
     <div class="point">
         <div class="point-num">4</div>
         <div class="point-content">
-            <span class="point-title">CNI Plugins:</span> Kubernetes does not implement networking itself. It delegates to Container Network Interface (CNI) plugins. The CNI specification defines how the container runtime invokes the plugin to set up or tear down a pod's network interface. Popular plugins: Calico, Cilium, Flannel, Weave Net.
+            <span class="point-title">CNI Plugins:</span> Kubernetes does not implement networking itself. It delegates to Container Network Interface (CNI) plugins. The CNI specification defines how the container runtime invokes the plugin to set up or tear down a pod's network interface. Popular plugins: Calico, Cilium, Flannel, AWS VPC CNI, Antrea. (Weave Net is unmaintained since Weaveworks shut down in 2024.)
         </div>
     </div>
     <div class="point">
@@ -143,7 +143,7 @@
     <div class="point">
         <div class="point-num">2</div>
         <div class="point-content">
-            <span class="point-title">Virtual IP Allocation:</span> The service CIDR (e.g., 10.96.0.0/12) is configured at cluster creation via <code>--service-cluster-ip-range</code>. IPs are allocated sequentially or can be specified manually. This range must NOT overlap with the pod CIDR or node networks.
+            <span class="point-title">Virtual IP Allocation:</span> The service CIDR (e.g., 10.96.0.0/12) is configured at cluster creation via <code>--service-cluster-ip-range</code>. Dynamic ClusterIPs are chosen randomly, preferring the upper band of the range so the lower band stays available for manually specified (static) IPs (dynamic allocation only falls back to the lower band when the upper band is exhausted). This range must NOT overlap with the pod CIDR or node networks.
         </div>
     </div>
     <div class="point">
@@ -535,7 +535,7 @@ spec:
     <div class="point">
         <div class="point-num">2</div>
         <div class="point-content">
-            <span class="point-title">Ingress Controller Required:</span> The Ingress resource is just a specification -- it does nothing without a controller. Popular controllers: nginx-ingress-controller, Traefik, HAProxy, AWS ALB Ingress Controller, Istio Gateway. Each interprets Ingress rules and configures the underlying proxy.
+            <span class="point-title">Ingress Controller Required:</span> The Ingress resource is just a specification -- it does nothing without a controller. Popular controllers: ingress-nginx, Traefik, HAProxy, AWS Load Balancer Controller, Istio Gateway. Each interprets Ingress rules and configures the underlying proxy. Note: the community ingress-nginx project was retired in March 2026 (no further releases or security patches) -- the nginx annotations below are shown for existing clusters; for new work, migrate to Gateway API or another maintained controller.
         </div>
     </div>
     <div class="point">
@@ -584,12 +584,14 @@ metadata:
   namespace: production
   annotations:
     # NGINX Ingress Controller annotations
-    nginx.ingress.kubernetes.io/rewrite-target: /
+    # No rewrite-target: a plain "rewrite-target: /" would send /v1/users upstream as "/".
+    # To strip a prefix, use use-regex: "true", path: /v1(/|$)(.*) with
+    # pathType: ImplementationSpecific, and rewrite-target: /$2
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
-    nginx.ingress.kubernetes.io/rate-limit: "100"
-    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/limit-rpm: "100"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
     # Enable CORS
     nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/cors-allow-origin: "https://app.example.com"
@@ -672,10 +674,9 @@ metadata:
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     # Use specific SSL ciphers
     nginx.ingress.kubernetes.io/ssl-ciphers: "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256"
-    # HSTS header
-    nginx.ingress.kubernetes.io/hsts: "true"
-    nginx.ingress.kubernetes.io/hsts-max-age: "31536000"
-    nginx.ingress.kubernetes.io/hsts-include-subdomains: "true"
+    # HSTS is NOT a per-Ingress annotation in ingress-nginx; set it in the
+    # controller ConfigMap: hsts: "true", hsts-max-age: "31536000",
+    # hsts-include-subdomains: "true"
     # Use cert-manager for automatic certificate management
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
@@ -761,7 +762,7 @@ spec:
     <p>Network Policies are Kubernetes resources that control traffic flow at the IP/port level (L3/L4) between pods, namespaces, and external endpoints. They act as a firewall for pod communication within the cluster.</p>
 
     <div class="card card-warning">
-        <p><strong>Important:</strong> Network Policies require a CNI plugin that supports them (Calico, Cilium, Weave). Flannel alone does NOT enforce network policies. If your CNI does not support them, the NetworkPolicy resources are silently ignored.</p>
+        <p><strong>Important:</strong> Network Policies require a CNI plugin that supports them (Calico, Cilium, Antrea, AWS VPC CNI with network policy enabled). Flannel alone does NOT enforce network policies. If your CNI does not support them, the NetworkPolicy resources are silently ignored.</p>
     </div>
 
     <div class="point">
@@ -821,7 +822,8 @@ spec:
     - Ingress              # Deny all incoming traffic
     - Egress               # Deny all outgoing traffic
   # No ingress or egress rules = nothing is allowed
-  # Pods can still reach the Kubernetes API server (usually)
+  # This also blocks the Kubernetes API server -- pods that call it need an
+  # ipBlock egress rule for the API server endpoint(s) on port 443/6443
   # DNS will be blocked -- add a separate policy to allow it
         </pre>
     </div>
@@ -862,7 +864,7 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              name: monitoring
+              kubernetes.io/metadata.name: monitoring
           podSelector:
             matchLabels:
               app: prometheus
@@ -1106,7 +1108,7 @@ kubectl exec dig-debug -- dig @10.96.0.10 backend-api.production.svc.cluster.loc
                 <th>Calico</th>
                 <th>Cilium</th>
                 <th>Flannel</th>
-                <th>Weave Net</th>
+                <th>Weave Net (unmaintained)</th>
             </tr>
         </thead>
         <tbody>
@@ -1155,7 +1157,7 @@ kubectl exec dig-debug -- dig @10.96.0.10 backend-api.production.svc.cluster.loc
             <tr>
                 <td><strong>Complexity</strong></td>
                 <td>Medium-High (many config options)</td>
-                <td>Medium-High (requires Linux 4.9.17+)</td>
+                <td>Medium-High (requires Linux 5.10+ or equivalent, e.g. RHEL 8.10's 4.18)</td>
                 <td>Low (minimal config)</td>
                 <td>Low-Medium</td>
             </tr>
@@ -1230,7 +1232,7 @@ kubectl exec dig-debug -- dig @10.96.0.10 backend-api.production.svc.cluster.loc
     <div class="qa">
         <div class="q">Q2: What is the difference between Ingress and a LoadBalancer Service? When would you use each?</div>
         <div class="a">
-            <strong>LoadBalancer = L4 (one service per LB), Ingress = L7 (many services per LB).</strong> A LoadBalancer service provisions one cloud load balancer per service -- expensive at scale but simple and supports any TCP/UDP protocol. Ingress provides L7 routing (host/path-based) allowing many services to share a single load balancer -- cost-effective but limited to HTTP/HTTPS. Use LoadBalancer for non-HTTP protocols (databases, gRPC without HTTP/2, MQTT), and Ingress for HTTP-based microservices. In practice, the Ingress controller itself runs behind a LoadBalancer service.
+            <strong>LoadBalancer = L4 (one service per LB), Ingress = L7 (many services per LB).</strong> A LoadBalancer service provisions one cloud load balancer per service -- expensive at scale but simple and supports any TCP/UDP protocol. Ingress provides L7 routing (host/path-based) allowing many services to share a single load balancer -- cost-effective but limited to HTTP/HTTPS. Use LoadBalancer for non-HTTP protocols (databases, MQTT, raw TCP/UDP), and Ingress for HTTP-based microservices. In practice, the Ingress controller itself runs behind a LoadBalancer service.
         </div>
     </div>
 

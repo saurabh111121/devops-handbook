@@ -206,7 +206,7 @@
    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐   Multi-AZ region
    │ K8s cluster  │    │ K8s cluster  │    │ K8s cluster  │   + out-of-region DR
    │  (AZ-a)      │    │  (AZ-b)      │    │  (AZ-c)      │   (Advanced Cross-
-   │ 8000+ svcs   │    │ Istio sidecar│    │  immutable   │    Region Continuity)
+   │ app services │    │ Istio sidecar│    │  immutable   │    Region Continuity)
    └──────────────┘    └──────────────┘    └──────────────┘
 
   Substrates: AWS (primary) · GCP · Alibaba (China)      Everything is Terraform/IaC
@@ -394,7 +394,7 @@
 
         <div class="qa">
             <div class="q">15. A pod is in CrashLoopBackOff. Troubleshoot it.</div>
-            <div class="a">It means the container keeps starting and exiting, with backoff between restarts. Steps: <code>kubectl describe pod</code> for events, exit code, restart count; <code>kubectl logs</code> and <code>--previous</code> to see why the last run died. Common causes: app error/bad config or missing env var/secret (exit 1); a failing liveness probe killing a slow-starting app (fix with readiness/startup probes); <strong>OOMKilled</strong> (exit 137) — memory limit too low; missing dependency at startup; bad image/command. Fix the root cause — raise memory, add a startupProbe, correct config — rather than just bumping restarts.</div>
+            <div class="a">It means the container keeps starting and exiting, with backoff between restarts. Steps: <code>kubectl describe pod</code> for events, exit code, restart count; <code>kubectl logs</code> and <code>--previous</code> to see why the last run died. Common causes: app error/bad config or missing env var/secret (exit 1); a failing liveness probe killing a slow-starting app (fix with a startupProbe or relaxed liveness <code>initialDelaySeconds</code>/<code>failureThreshold</code>; readiness only gates traffic, it never restarts); <strong>OOMKilled</strong> (exit 137) — memory limit too low; missing dependency at startup; bad image/command. Fix the root cause — raise memory, add a startupProbe, correct config — rather than just bumping restarts.</div>
         </div>
 
         <div class="qa">
@@ -517,7 +517,7 @@
                 <ul>
                     <li>Developer/Dev Pro sandboxes copy <strong>metadata only</strong>; only Partial/Full include data — refresh replaces the org</li>
                     <li>Named Credentials, Remote Site Settings, Custom Settings still point at production systems</li>
-                    <li>Refresh appends <code>.invalid</code> to usernames, resets email to "System only", deactivates scheduled Apex</li>
+                    <li>Refresh appends the sandbox name to usernames (e.g. <code>user@acme.com.uat</code>) and <code>.invalid</code> to user email addresses; email deliverability defaults to "System email only"</li>
                 </ul>
                 <p><strong>Fix:</strong> Automate with a <code>SandboxPostCopy</code> Apex class that re-points endpoints to sandbox, fixes usernames, sets email deliverability, seeds data, reactivates jobs. Keep environment-specific config in Custom Metadata/Settings keyed by environment. Pick the right sandbox type when data is needed. Back up/export before refresh; maintain a documented post-refresh runbook.</p>
             </div>

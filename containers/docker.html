@@ -149,7 +149,7 @@
 ├─────────────────────────────────────────────┤
 │  Layer 2: RUN apt-get install -y curl        │  &lt;-- System packages (~20MB)
 ├─────────────────────────────────────────────┤
-│  Layer 1: FROM node:20-slim                  │  &lt;-- Base OS + Node.js (~180MB)
+│  Layer 1: FROM node:24-slim                  │  &lt;-- Base OS + Node.js (~180MB)
 └─────────────────────────────────────────────┘
 
 All layers are READ-ONLY and CACHED.
@@ -165,7 +165,7 @@ Multiple containers share the same image layers (copy-on-write).
             <tr><th>Instruction</th><th>Purpose</th><th>Example</th></tr>
         </thead>
         <tbody>
-            <tr><td><code>FROM</code></td><td>Set base image (required first instruction)</td><td><code>FROM node:20-alpine</code></td></tr>
+            <tr><td><code>FROM</code></td><td>Set base image (required first instruction)</td><td><code>FROM node:24-alpine</code></td></tr>
             <tr><td><code>RUN</code></td><td>Execute command during build (creates layer)</td><td><code>RUN apt-get update && apt-get install -y curl</code></td></tr>
             <tr><td><code>COPY</code></td><td>Copy files from build context to image</td><td><code>COPY package.json /app/</code></td></tr>
             <tr><td><code>ADD</code></td><td>Copy files (also extracts tar, supports URLs)</td><td><code>ADD archive.tar.gz /app/</code></td></tr>
@@ -189,9 +189,9 @@ Multiple containers share the same image layers (copy-on-write).
     <h4>Node.js App (Multi-Stage Build)</h4>
 
     <div class="code-block">
-        <div class="code-label">Dockerfile (Node.js Multi-Stage)</div>
+        <div class="code-header">Dockerfile (Node.js Multi-Stage)</div>
         <pre><code># ============ Stage 1: Build ============
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -209,10 +209,10 @@ COPY tsconfig.json ./
 RUN npm run build
 
 # Prune devDependencies
-RUN npm prune --production
+RUN npm prune --omit=dev
 
 # ============ Stage 2: Production ============
-FROM node:20-alpine AS production
+FROM node:24-alpine AS production
 
 # Security: run as non-root
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
@@ -249,7 +249,7 @@ CMD ["node", "dist/server.js"]</code></pre>
     <h4>Python App (with Virtual Environment)</h4>
 
     <div class="code-block">
-        <div class="code-label">Dockerfile (Python with venv)</div>
+        <div class="code-header">Dockerfile (Python with venv)</div>
         <pre><code># ============ Stage 1: Build ============
 FROM python:3.12-slim AS builder
 
@@ -302,9 +302,9 @@ CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "app:create_app()"]
     <h4>Go App (Scratch Final Image)</h4>
 
     <div class="code-block">
-        <div class="code-label">Dockerfile (Go with scratch)</div>
+        <div class="code-header">Dockerfile (Go with scratch)</div>
         <pre><code># ============ Stage 1: Build ============
-FROM golang:1.22-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 # Install certificates (needed for HTTPS calls in final image)
 RUN apk add --no-cache ca-certificates
@@ -341,7 +341,7 @@ ENTRYPOINT ["/server"]</code></pre>
     <h3>.dockerignore File</h3>
 
     <div class="code-block">
-        <div class="code-label">.dockerignore</div>
+        <div class="code-header">.dockerignore</div>
         <pre><code># Version control
 .git
 .gitignore
@@ -389,10 +389,10 @@ coverage/
     <h3>Image Tagging</h3>
 
     <div class="code-block">
-        <div class="code-label">Image Tag Format</div>
+        <div class="code-header">Image Tag Format</div>
         <pre><code># Format: registry/repository:tag
 # Examples:
-docker.io/library/nginx:1.25-alpine      # Docker Hub official
+docker.io/library/nginx:1.28-alpine      # Docker Hub official
 myregistry.com/team/myapp:v1.2.3         # Private registry
 ghcr.io/org/service:sha-abc123f          # GitHub Container Registry
 123456789.dkr.ecr.us-east-1.amazonaws.com/app:latest  # AWS ECR
@@ -407,7 +407,7 @@ docker push myregistry.com/team/myapp:v1.0</code></pre>
     <h3>Image Scanning with Trivy</h3>
 
     <div class="code-block">
-        <div class="code-label">Image Vulnerability Scanning</div>
+        <div class="code-header">Image Vulnerability Scanning</div>
         <pre><code># Scan a local image for vulnerabilities
 trivy image myapp:v1.0
 
@@ -433,9 +433,9 @@ trivy image --format json --output results.json myapp:v1.0</code></pre>
     <h3>Multi-Stage Builds (Reduce Image Size)</h3>
 
     <div class="code-block">
-        <div class="code-label">Before vs After Multi-Stage</div>
+        <div class="code-header">Before vs After Multi-Stage</div>
         <pre><code># BAD: Single stage (image includes build tools = 1.2GB)
-FROM node:20
+FROM node:24
 WORKDIR /app
 COPY . .
 RUN npm install
@@ -444,14 +444,16 @@ CMD ["node", "dist/server.js"]
 # Result: 1.2GB image with devDependencies, source, build tools
 
 # GOOD: Multi-stage (final image has only runtime = 150MB)
-FROM node:20 AS build
+FROM node:24-alpine AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
 RUN npm run build
+RUN npm prune --omit=dev   # drop devDependencies
 
-FROM node:20-alpine
+# Same base (musl) as build stage so native addons still load
+FROM node:24-alpine
 WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
@@ -479,7 +481,7 @@ CMD ["node", "dist/server.js"]
             <tr>
                 <td><strong>Use specific base image tags</strong></td>
                 <td>Reproducible builds, no surprise breakage</td>
-                <td><code>FROM node:20.11-alpine3.19</code> not <code>FROM node:latest</code></td>
+                <td><code>FROM node:24.11-alpine3.22</code> not <code>FROM node:latest</code></td>
             </tr>
             <tr>
                 <td><strong>Order by change frequency</strong></td>
@@ -654,10 +656,8 @@ CMD ["node", "dist/server.js"]
     <h3>Complete docker-compose.yml Example</h3>
 
     <div class="code-block">
-        <div class="code-label">docker-compose.yml (Full-Stack Application)</div>
-        <pre><code>version: '3.8'
-
-services:
+        <div class="code-header">docker-compose.yml (Full-Stack Application)</div>
+        <pre><code>services:
   # ============ Application Service ============
   app:
     build:
@@ -745,7 +745,7 @@ services:
 
   # ============ Nginx Reverse Proxy ============
   nginx:
-    image: nginx:1.25-alpine
+    image: nginx:1.28-alpine
     container_name: myapp-nginx
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
@@ -802,7 +802,7 @@ networks:
     <h3>Environment Variables and .env File</h3>
 
     <div class="code-block">
-        <div class="code-label">.env (loaded automatically by Docker Compose)</div>
+        <div class="code-header">.env (loaded automatically by Docker Compose)</div>
         <pre><code># Database
 DB_PASSWORD=supersecretpassword123
 DB_PORT=5432
@@ -817,7 +817,7 @@ REDIS_MAX_MEMORY=256mb</code></pre>
     </div>
 
     <div class="code-block">
-        <div class="code-label">Using env vars in docker-compose.yml</div>
+        <div class="code-header">Using env vars in docker-compose.yml</div>
         <pre><code># Variable substitution from .env or shell
 services:
   app:
@@ -831,7 +831,7 @@ services:
     <h3>Profiles for Dev/Test/Prod</h3>
 
     <div class="code-block">
-        <div class="code-label">docker-compose.yml with Profiles</div>
+        <div class="code-header">docker-compose.yml with Profiles</div>
         <pre><code>services:
   app:
     build: .
@@ -936,7 +936,7 @@ services:
     <h3>Port Mapping</h3>
 
     <div class="code-block">
-        <div class="code-label">Port Mapping Examples</div>
+        <div class="code-header">Port Mapping Examples</div>
         <pre><code># Format: -p [hostIP:]hostPort:containerPort[/protocol]
 
 docker run -p 8080:80 nginx            # host:8080 → container:80
@@ -952,7 +952,7 @@ docker port my-container</code></pre>
     <h3>Container-to-Container Communication</h3>
 
     <div class="code-block">
-        <div class="code-label">Custom Network with DNS</div>
+        <div class="code-header">Custom Network with DNS</div>
         <pre><code># Create custom network
 docker network create my-app-net
 
@@ -1052,7 +1052,7 @@ docker run -d --name db --network my-app-net postgres:15
     <h3>Volume Commands</h3>
 
     <div class="code-block">
-        <div class="code-label">Docker Volume Management</div>
+        <div class="code-header">Docker Volume Management</div>
         <pre><code># Create a named volume
 docker volume create mydata
 
@@ -1065,7 +1065,7 @@ docker volume inspect mydata
 # Remove a specific volume
 docker volume rm mydata
 
-# Remove ALL unused volumes (dangerous!)
+# Remove unused ANONYMOUS volumes (default since Docker 23)
 docker volume prune
 
 # Remove all unused volumes including named ones
@@ -1101,7 +1101,7 @@ docker run -d --name reader -v shared:/data:ro alpine</code></pre>
     <h3>Volume Drivers for Cloud Storage</h3>
 
     <div class="code-block">
-        <div class="code-label">Volume Driver Examples</div>
+        <div class="code-header">Volume Driver Examples</div>
         <pre><code># NFS volume
 docker volume create --driver local \
     --opt type=nfs \
@@ -1170,9 +1170,9 @@ volumes:
                 <td>Detect known CVEs in base images and dependencies before deployment.</td>
             </tr>
             <tr>
-                <td><strong>Content trust</strong></td>
-                <td><code>export DOCKER_CONTENT_TRUST=1</code></td>
-                <td>Only pull signed images. Prevents tampered images from running.</td>
+                <td><strong>Image signing</strong></td>
+                <td><code>cosign sign</code> / <code>cosign verify</code> (or Notation)</td>
+                <td>Sign images with Sigstore/cosign or Notation (Notary v2) and enforce verification with admission policies (Kyverno, Sigstore policy-controller, Ratify). Docker Content Trust (<code>DOCKER_CONTENT_TRUST=1</code>) is deprecated and being retired.</td>
             </tr>
             <tr>
                 <td><strong>Secrets management</strong></td>
@@ -1205,7 +1205,7 @@ volumes:
     <h3>Security Example: Hardened Container Run</h3>
 
     <div class="code-block">
-        <div class="code-label">Production-Hardened docker run</div>
+        <div class="code-header">Production-Hardened docker run</div>
         <pre><code># Maximum security container deployment
 docker run -d \
     --name secure-app \
@@ -1294,7 +1294,7 @@ docker run -d \
             </tr>
             <tr>
                 <td><strong>Secrets</strong></td>
-                <td><code>docker secret</code> (Swarm only), or ENV vars (insecure)</td>
+                <td>Compose <code>secrets:</code> (file/env-backed, mounted at /run/secrets), Swarm secrets (encrypted in Raft), or ENV vars (insecure)</td>
                 <td>K8s Secrets + external managers (Vault, AWS Secrets Manager, sealed-secrets)</td>
             </tr>
             <tr>
@@ -1325,7 +1325,7 @@ docker run -d \
             <tr>
                 <td><strong>Rollback</strong></td>
                 <td>Manual (stop old, start new image tag)</td>
-                <td>Automatic: <code>kubectl rollout undo</code>, revision history, automatic on failed deploy</td>
+                <td><code>kubectl rollout undo</code> plus revision history. Failed rollouts are flagged via <code>progressDeadlineSeconds</code>; automatic rollback needs Argo Rollouts, Flagger or Helm <code>--atomic</code></td>
             </tr>
             <tr>
                 <td><strong>Scheduling</strong></td>
@@ -1441,7 +1441,7 @@ docker run -d \
     <h4>Using Kompose (Compose to K8s Converter)</h4>
 
     <div class="code-block">
-        <div class="code-label">Converting docker-compose.yml to Kubernetes manifests</div>
+        <div class="code-header">Converting docker-compose.yml to Kubernetes manifests</div>
         <pre><code># Install kompose
 curl -L https://github.com/kubernetes/kompose/releases/download/v1.31.2/kompose-linux-amd64 \
     -o kompose && chmod +x kompose && sudo mv kompose /usr/local/bin/
@@ -1479,9 +1479,8 @@ kompose convert --chart</code></pre>
     <h4>Side-by-Side: Same App in Compose vs Kubernetes</h4>
 
     <div class="code-block">
-        <div class="code-label">docker-compose.yml</div>
-        <pre><code>version: '3.8'
-services:
+        <div class="code-header">docker-compose.yml</div>
+        <pre><code>services:
   web:
     image: myapp:v1.0
     ports:
@@ -1505,7 +1504,7 @@ volumes:
     </div>
 
     <div class="code-block">
-        <div class="code-label">Kubernetes Equivalent (multiple manifests)</div>
+        <div class="code-header">Kubernetes Equivalent (multiple manifests)</div>
         <pre><code># --- secret.yaml ---
 apiVersion: v1
 kind: Secret
@@ -1649,22 +1648,22 @@ spec:
 
     <h2>10. Interview Questions &amp; Answers</h2>
 
-    <div class="qa-section">
+    <div>
 
-        <div class="qa-item">
+        <div class="qa">
             <h4>Q: What is Docker and how does it differ from Virtual Machines?</h4>
             <p><strong>A:</strong> Docker is a containerization platform that packages applications with their dependencies into isolated units called containers. Unlike VMs which run a full guest OS on a hypervisor (taking minutes to boot and GBs of space), containers share the host kernel and use Linux namespaces/cgroups for isolation. Containers start in seconds, use MBs of memory, and achieve near-native performance. VMs provide stronger isolation (hardware-level) while containers provide process-level isolation.</p>
         </div>
 
-        <div class="qa-item">
+        <div class="qa">
             <h4>Q: Explain Docker image layers. Why do they matter?</h4>
             <p><strong>A:</strong> Docker images are built as a stack of read-only layers. Each Dockerfile instruction (RUN, COPY, ADD) creates a new layer. Layers are cached and shared between images -- if two images use the same base layer, it is stored only once on disk. This makes builds faster (unchanged layers are cached) and pulls efficient (only download layers you do not have). The downside: deleting a file in a later layer does not reduce image size because the file still exists in its original layer. This is why you must clean up within the same RUN instruction.</p>
         </div>
 
-        <div class="qa-item">
+        <div class="qa">
             <h4>Q: What is the difference between CMD and ENTRYPOINT?</h4>
             <div class="code-block">
-                <div class="code-label">CMD vs ENTRYPOINT Behavior</div>
+                <div class="code-header">CMD vs ENTRYPOINT Behavior</div>
                 <pre><code># CMD: Default command, easily overridden at runtime
 FROM ubuntu
 CMD ["echo", "hello world"]
@@ -1688,59 +1687,59 @@ CMD ["--port", "8000"]
             <p><strong>Key Rule:</strong> CMD is the whole command that can be replaced. ENTRYPOINT is the fixed executable; CMD provides its default arguments.</p>
         </div>
 
-        <div class="qa-item">
+        <div class="qa">
             <h4>Q: COPY vs ADD -- when to use which?</h4>
             <p><strong>A:</strong> Always prefer <code>COPY</code> unless you specifically need ADD's extra features. COPY simply copies files from build context to image. ADD does the same but also: (1) auto-extracts tar archives (.tar, .tar.gz), and (2) can download from URLs (though this is discouraged -- use RUN curl instead for cache control). Using COPY makes your Dockerfile more explicit and predictable.</p>
         </div>
 
-        <div class="qa-item">
+        <div class="qa">
             <h4>Q: Explain multi-stage builds. Why use them?</h4>
-            <p><strong>A:</strong> Multi-stage builds use multiple FROM statements in one Dockerfile. You build in one stage (with compilers, dev dependencies) and copy only the final artifacts to a minimal production stage. Benefits: (1) Final image is 5-10x smaller (no build tools), (2) Smaller attack surface, (3) Faster deploys and pulls, (4) Single Dockerfile for build and run. Example: build a Go binary in golang:1.22 image, then COPY --from=builder the binary to a scratch image (just the binary, no OS = ~5MB).</p>
+            <p><strong>A:</strong> Multi-stage builds use multiple FROM statements in one Dockerfile. You build in one stage (with compilers, dev dependencies) and copy only the final artifacts to a minimal production stage. Benefits: (1) Final image is 5-10x smaller (no build tools), (2) Smaller attack surface, (3) Faster deploys and pulls, (4) Single Dockerfile for build and run. Example: build a Go binary in golang:1.26 image, then COPY --from=builder the binary to a scratch image (just the binary, no OS = ~5MB).</p>
         </div>
 
-        <div class="qa-item">
+        <div class="qa">
             <h4>Q: Explain Docker networking types and when to use each.</h4>
             <p><strong>A:</strong> <strong>Bridge</strong> (default): containers get isolated network, communicate via IP or DNS (custom bridge only). Use for most containers. <strong>Host</strong>: container uses host's network stack directly. Use when you need maximum network performance or host port access without mapping. <strong>None</strong>: no networking at all. Use for batch processing that needs no network. <strong>Overlay</strong>: spans multiple Docker hosts (Swarm). Use for multi-host communication. <strong>Macvlan</strong>: assigns MAC address, container appears on physical LAN. Use for legacy apps requiring LAN presence.</p>
         </div>
 
-        <div class="qa-item">
+        <div class="qa">
             <h4>Q: What is the difference between volumes and bind mounts?</h4>
             <p><strong>A:</strong> <strong>Volumes</strong> are managed by Docker (stored in /var/lib/docker/volumes/), portable, work on all platforms, support volume drivers for cloud storage, and are the recommended approach for persistent data. <strong>Bind mounts</strong> map a specific host path into the container, are host-dependent (not portable), but allow real-time file sharing between host and container. Use volumes for production data (databases), bind mounts for development (live code reload).</p>
         </div>
 
-        <div class="qa-item">
+        <div class="qa">
             <h4>Q: How do you reduce Docker image size? Name 5 techniques.</h4>
-            <p><strong>A:</strong> (1) <strong>Multi-stage builds</strong> -- only copy artifacts, not build tools. (2) <strong>Use alpine/slim/distroless base images</strong> -- alpine is ~5MB vs ~1GB for full Ubuntu. (3) <strong>Combine RUN commands</strong> -- clean up in same layer (apt-get install && rm -rf /var/lib/apt/lists/*). (4) <strong>Use .dockerignore</strong> -- exclude .git, node_modules, tests from context. (5) <strong>Remove unnecessary files</strong> -- docs, man pages, locale files, package caches. Bonus: (6) Use scratch for static binaries (Go, Rust).</p>
+            <p><strong>A:</strong> (1) <strong>Multi-stage builds</strong> -- only copy artifacts, not build tools. (2) <strong>Use alpine/slim/distroless base images</strong> -- alpine is ~5-8MB vs ~78MB for ubuntu:24.04 and ~1GB+ for full language images like node:24 or python:3.12. (3) <strong>Combine RUN commands</strong> -- clean up in same layer (apt-get install && rm -rf /var/lib/apt/lists/*). (4) <strong>Use .dockerignore</strong> -- exclude .git, node_modules, tests from context. (5) <strong>Remove unnecessary files</strong> -- docs, man pages, locale files, package caches. Bonus: (6) Use scratch for static binaries (Go, Rust).</p>
         </div>
 
-        <div class="qa-item">
+        <div class="qa">
             <h4>Q: What are Docker security best practices?</h4>
-            <p><strong>A:</strong> (1) Run as non-root user (USER instruction). (2) Use read-only filesystems (--read-only). (3) Drop all capabilities, add back only needed ones (--cap-drop ALL). (4) Set resource limits (--memory, --cpus). (5) Never use --privileged in production. (6) Scan images for vulnerabilities (Trivy, Snyk). (7) Use minimal base images. (8) Never store secrets in images. (9) Enable Docker Content Trust for signed images. (10) Use seccomp/AppArmor profiles.</p>
+            <p><strong>A:</strong> (1) Run as non-root user (USER instruction). (2) Use read-only filesystems (--read-only). (3) Drop all capabilities, add back only needed ones (--cap-drop ALL). (4) Set resource limits (--memory, --cpus). (5) Never use --privileged in production. (6) Scan images for vulnerabilities (Trivy, Snyk). (7) Use minimal base images. (8) Never store secrets in images. (9) Sign images with Sigstore/cosign or Notation and verify signatures at admission (Docker Content Trust is deprecated). (10) Use seccomp/AppArmor profiles.</p>
         </div>
 
-        <div class="qa-item">
+        <div class="qa">
             <h4>Q: Docker vs Kubernetes -- when to use which?</h4>
             <p><strong>A:</strong> Use <strong>Docker Compose</strong> for: local development, single-server apps, small teams, prototypes, CI/CD pipelines, budget-constrained projects. Use <strong>Kubernetes</strong> for: production microservices needing high availability, auto-scaling, multi-team environments with RBAC, zero-downtime deployments, compliance requirements, and when running across multiple nodes/regions. Docker is your build tool regardless -- it creates the images that K8s runs.</p>
         </div>
 
-        <div class="qa-item">
+        <div class="qa">
             <h4>Q: What happened to Docker in Kubernetes (dockershim removal)?</h4>
             <p><strong>A:</strong> In Kubernetes 1.24 (May 2022), <strong>dockershim was removed</strong>. Previously, K8s used Docker as its container runtime via a compatibility layer called dockershim. This was replaced by direct containerd/CRI-O integration via the CRI (Container Runtime Interface). Impact: Docker-built images still work perfectly (OCI standard), but the Docker daemon is no longer needed on K8s nodes. K8s nodes now run containerd or CRI-O directly, which is lighter and more efficient.</p>
         </div>
 
-        <div class="qa-item">
+        <div class="qa">
             <h4>Q: Explain the container lifecycle.</h4>
             <p><strong>A:</strong> <strong>Created</strong> (docker create): filesystem layers assembled, config set, but process not started. <strong>Running</strong> (docker start): main process (PID 1) executing. <strong>Paused</strong> (docker pause): process frozen via cgroups freezer, still in memory. <strong>Stopped</strong> (docker stop): SIGTERM sent, then SIGKILL after grace period (default 10s). <strong>Deleted</strong> (docker rm): container and writable layer removed. <code>docker run</code> combines create + start in one command.</p>
         </div>
 
-        <div class="qa-item">
+        <div class="qa">
             <h4>Q: What is a dangling image?</h4>
             <p><strong>A:</strong> A dangling image is a layer that has no tag and is not referenced by any other image. They are typically created when you rebuild an image with the same tag -- the old image loses its tag and becomes &lt;none&gt;:&lt;none&gt;. They waste disk space. Remove them with: <code>docker image prune</code> (dangling only) or <code>docker image prune -a</code> (all unused images, including those without containers).</p>
         </div>
 
-        <div class="qa-item">
+        <div class="qa">
             <h4>Q: Docker Compose vs Docker Swarm vs Kubernetes?</h4>
-            <p><strong>A:</strong> <strong>Docker Compose</strong>: Multi-container apps on a single host. Development and simple deployments. Not an orchestrator. <strong>Docker Swarm</strong>: Docker's native orchestrator. Multi-host, built into Docker, simpler than K8s but fewer features. Good for small clusters. Largely deprecated in favor of K8s. <strong>Kubernetes</strong>: Industry-standard orchestrator. Multi-host, auto-scaling, self-healing, extensive ecosystem. Complex but most powerful. Production standard for microservices at scale. Most organizations choose K8s over Swarm today.</p>
+            <p><strong>A:</strong> <strong>Docker Compose</strong>: Multi-container apps on a single host. Development and simple deployments. Not an orchestrator. <strong>Docker Swarm</strong>: Docker's native orchestrator. Multi-host, built into Docker, simpler than K8s but fewer features. Good for small clusters. Swarm mode is still supported in Docker Engine but has a much smaller ecosystem. <strong>Kubernetes</strong>: Industry-standard orchestrator. Multi-host, auto-scaling, self-healing, extensive ecosystem. Complex but most powerful. Production standard for microservices at scale. Most organizations choose K8s over Swarm today.</p>
         </div>
 
     </div>
@@ -1779,7 +1778,7 @@ CMD ["--port", "8000"]
             <tr>
                 <td><strong>Disk space full</strong></td>
                 <td>Dangling images, stopped containers, unused volumes, build cache.</td>
-                <td><code>docker system df</code> (show usage), then <code>docker system prune -a --volumes</code> (removes everything unused).</td>
+                <td><code>docker system df</code> (show usage), then <code>docker system prune -a --volumes</code> (removes unused containers, networks, images and anonymous volumes; add <code>docker volume prune -a</code> for unused named volumes).</td>
             </tr>
             <tr>
                 <td><strong>Permission denied on volume</strong></td>
@@ -1789,7 +1788,7 @@ CMD ["--port", "8000"]
             <tr>
                 <td><strong>Slow builds</strong></td>
                 <td>Large build context, cache invalidation, missing .dockerignore.</td>
-                <td>Add .dockerignore (exclude .git, node_modules). Order Dockerfile: dependencies before source code. Use BuildKit: <code>DOCKER_BUILDKIT=1</code>.</td>
+                <td>Add .dockerignore (exclude .git, node_modules). Order Dockerfile: dependencies before source code. BuildKit is the default builder (Engine 23+); use cache mounts (<code>RUN --mount=type=cache</code>) and remote cache (<code>--cache-from</code>/<code>--cache-to</code>).</td>
             </tr>
             <tr>
                 <td><strong>Container OOM killed</strong></td>
@@ -1802,7 +1801,7 @@ CMD ["--port", "8000"]
     <h3>Debug Commands Cheat Sheet</h3>
 
     <div class="code-block">
-        <div class="code-label">Essential Debugging Commands</div>
+        <div class="code-header">Essential Debugging Commands</div>
         <pre><code># View container logs (last 100 lines, follow)
 docker logs -f --tail 100 container_name
 
@@ -1858,7 +1857,7 @@ docker system df -v      # detailed per-image/container/volume</code></pre>
     <h3>Mistake 1: Using :latest Tag</h3>
 
     <div class="code-block">
-        <div class="code-label">WRONG: Unpinned base image</div>
+        <div class="code-header">WRONG: Unpinned base image</div>
         <pre><code># WRONG - "latest" changes without warning, breaks builds unpredictably
 FROM node:latest
 FROM python:latest
@@ -1866,19 +1865,19 @@ FROM nginx:latest</code></pre>
     </div>
 
     <div class="code-block">
-        <div class="code-label">CORRECT: Pinned version and variant</div>
+        <div class="code-header">CORRECT: Pinned version and variant</div>
         <pre><code># CORRECT - specific version, reproducible builds
-FROM node:20.11-alpine3.19
+FROM node:24.11-alpine3.22
 FROM python:3.12-slim-bookworm
-FROM nginx:1.25-alpine</code></pre>
+FROM nginx:1.28-alpine</code></pre>
     </div>
 
     <h3>Mistake 2: Running as Root</h3>
 
     <div class="code-block">
-        <div class="code-label">WRONG: Container runs as root (default)</div>
+        <div class="code-header">WRONG: Container runs as root (default)</div>
         <pre><code># WRONG - if container is compromised, attacker has root access
-FROM node:20-alpine
+FROM node:24-alpine
 WORKDIR /app
 COPY . .
 RUN npm install
@@ -1887,9 +1886,9 @@ CMD ["node", "server.js"]
     </div>
 
     <div class="code-block">
-        <div class="code-label">CORRECT: Non-root user</div>
+        <div class="code-header">CORRECT: Non-root user</div>
         <pre><code># CORRECT - minimal privileges
-FROM node:20-alpine
+FROM node:24-alpine
 WORKDIR /app
 
 # Create non-root user
@@ -1897,7 +1896,7 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Install dependencies as root (needs write to /app)
 COPY package*.json ./
-RUN npm ci --production
+RUN npm ci --omit=dev
 
 # Copy app and change ownership
 COPY --chown=appuser:appgroup . .
@@ -1912,9 +1911,9 @@ CMD ["node", "server.js"]
     <h3>Mistake 3: Not Using Multi-Stage Builds</h3>
 
     <div class="code-block">
-        <div class="code-label">WRONG: Single stage includes build tools (image: ~1.2GB)</div>
+        <div class="code-header">WRONG: Single stage includes build tools (image: ~1.2GB)</div>
         <pre><code># WRONG - final image contains gcc, make, devDependencies, source
-FROM node:20
+FROM node:24
 WORKDIR /app
 COPY . .
 RUN npm install       # includes devDependencies
@@ -1924,17 +1923,17 @@ CMD ["node", "dist/server.js"]
     </div>
 
     <div class="code-block">
-        <div class="code-label">CORRECT: Multi-stage build (image: ~150MB)</div>
+        <div class="code-header">CORRECT: Multi-stage build (image: ~150MB)</div>
         <pre><code># CORRECT - build stage discarded, only runtime artifacts kept
-FROM node:20-alpine AS build
+FROM node:24-alpine AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
 RUN npm run build
-RUN npm prune --production
+RUN npm prune --omit=dev
 
-FROM node:20-alpine
+FROM node:24-alpine
 WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
@@ -1946,10 +1945,10 @@ CMD ["node", "dist/server.js"]
     <h3>Mistake 4: COPY Before Dependency Install (Cache Bust)</h3>
 
     <div class="code-block">
-        <div class="code-label">WRONG: Any source change invalidates npm install cache</div>
+        <div class="code-header">WRONG: Any source change invalidates npm install cache</div>
         <pre><code># WRONG - copying all source first means ANY file change
 # invalidates the npm install cache (slow rebuilds!)
-FROM node:20-alpine
+FROM node:24-alpine
 WORKDIR /app
 COPY . .                  # &lt;-- source changes bust ALL cache below
 RUN npm install           # Re-runs every time any file changes!
@@ -1957,9 +1956,9 @@ CMD ["node", "server.js"]</code></pre>
     </div>
 
     <div class="code-block">
-        <div class="code-label">CORRECT: Copy dependency manifest first, then source</div>
+        <div class="code-header">CORRECT: Copy dependency manifest first, then source</div>
         <pre><code># CORRECT - dependency install is cached until package.json changes
-FROM node:20-alpine
+FROM node:24-alpine
 WORKDIR /app
 COPY package.json package-lock.json ./   # &lt;-- changes rarely
 RUN npm ci                               # Cached until package.json changes
@@ -1970,17 +1969,17 @@ CMD ["node", "server.js"]</code></pre>
     <h3>Mistake 5: Using ADD When COPY Suffices</h3>
 
     <div class="code-block">
-        <div class="code-label">WRONG: ADD has hidden behavior</div>
+        <div class="code-header">WRONG: ADD has hidden behavior</div>
         <pre><code># WRONG - ADD auto-extracts tars and can fetch URLs (surprising behavior)
-FROM node:20-alpine
+FROM node:24-alpine
 ADD . /app                    # Might accidentally extract tar files
 ADD https://example.com/file /app/file  # Downloaded at build time, not cached well</code></pre>
     </div>
 
     <div class="code-block">
-        <div class="code-label">CORRECT: Explicit COPY (use ADD only for tar extraction)</div>
+        <div class="code-header">CORRECT: Explicit COPY (use ADD only for tar extraction)</div>
         <pre><code># CORRECT - COPY is explicit and predictable
-FROM node:20-alpine
+FROM node:24-alpine
 COPY . /app
 
 # Only use ADD when you specifically want tar extraction:
@@ -1990,7 +1989,7 @@ ADD rootfs.tar.gz /</code></pre>
     <h3>Mistake 6: Not Cleaning Up in Same RUN Layer</h3>
 
     <div class="code-block">
-        <div class="code-label">WRONG: Cleanup in separate layer (files still in previous layer)</div>
+        <div class="code-header">WRONG: Cleanup in separate layer (files still in previous layer)</div>
         <pre><code># WRONG - apt cache is in layer 1, removing in layer 2 does NOT reduce size
 RUN apt-get update
 RUN apt-get install -y curl wget git
@@ -1998,7 +1997,7 @@ RUN rm -rf /var/lib/apt/lists/*   # This layer adds to size, doesn't reduce!</co
     </div>
 
     <div class="code-block">
-        <div class="code-label">CORRECT: Install and clean in same RUN (single layer)</div>
+        <div class="code-header">CORRECT: Install and clean in same RUN (single layer)</div>
         <pre><code># CORRECT - single layer, cleanup happens before layer is committed
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -2011,7 +2010,7 @@ RUN apt-get update && \
     <h3>Mistake 7: Storing Secrets in ENV or ARG</h3>
 
     <div class="code-block">
-        <div class="code-label">WRONG: Secrets visible in image history and inspect</div>
+        <div class="code-header">WRONG: Secrets visible in image history and inspect</div>
         <pre><code># WRONG - secrets are baked into image layers forever
 # Visible via: docker history, docker inspect, or pulling the image
 ENV API_KEY=sk-1234567890abcdef
@@ -2020,7 +2019,7 @@ RUN echo "machine github.com login token password ${GITHUB_TOKEN}" > ~/.netrc</c
     </div>
 
     <div class="code-block">
-        <div class="code-label">CORRECT: Use BuildKit secrets or runtime injection</div>
+        <div class="code-header">CORRECT: Use BuildKit secrets or runtime injection</div>
         <pre><code># CORRECT Option 1: BuildKit secret mounts (never stored in layers)
 # syntax=docker/dockerfile:1
 RUN --mount=type=secret,id=github_token \
@@ -2044,11 +2043,11 @@ RUN --mount=type=secret,id=github_token \
     <h2>Quick Reference: Common Docker Commands</h2>
 
     <div class="code-block">
-        <div class="code-label">Docker Command Cheat Sheet</div>
+        <div class="code-header">Docker Command Cheat Sheet</div>
         <pre><code># === IMAGE MANAGEMENT ===
 docker build -t myapp:v1 .                    # Build image from Dockerfile
 docker images                                  # List local images
-docker pull nginx:1.25-alpine                  # Pull image from registry
+docker pull nginx:1.28-alpine                  # Pull image from registry
 docker push myregistry.com/myapp:v1           # Push to registry
 docker rmi myapp:v1                           # Remove image
 docker image prune -a                          # Remove all unused images
@@ -2072,7 +2071,7 @@ docker events                                  # Real-time Docker events
 
 # === SYSTEM MANAGEMENT ===
 docker system df                               # Disk usage summary
-docker system prune -a --volumes              # Clean EVERYTHING unused
+docker system prune -a --volumes              # Clean all unused (anonymous volumes only)
 docker info                                    # Docker daemon info
 docker version                                 # Client + server version
 
@@ -2086,7 +2085,7 @@ docker network connect my-net web             # Add container to network
 docker volume create mydata                    # Create volume
 docker volume ls                               # List volumes
 docker volume inspect mydata                   # Volume details
-docker volume prune                            # Remove unused volumes
+docker volume prune                            # Remove unused anonymous volumes (-a for named)
 
 # === COMPOSE ===
 docker compose up -d                           # Start all services (detached)

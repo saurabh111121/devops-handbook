@@ -265,7 +265,7 @@ certificate → rewrite (global only) → access → response OR (header_filter 
         <div class="qa">
             <div class="q">3. Rate limiting not working across nodes</div>
             <div class="a"><strong>Root cause:</strong> Using <code>local</code> strategy — each node counts independently.<br>
-            <strong>Fix:</strong> Switch to <code>redis</code> strategy for shared counters across nodes. Check: Redis connection, <code>config.redis_host</code>, firewall rules. Also verify plugin fires after auth — unauthenticated requests bypass consumer-scoped rate limits.</div>
+            <strong>Fix:</strong> Switch to <code>redis</code> strategy for shared counters across nodes. Check: Redis connection, <code>config.redis.host</code>/<code>config.redis.port</code> (3.6+; <code>config.redis_host</code> is the legacy field), firewall rules. With <code>limit_by=consumer</code> and no identified consumer, Kong falls back to limiting by client IP. Watch <code>config.anonymous</code>: all anonymous requests share one consumer bucket.</div>
         </div>
 
         <div class="qa">
@@ -287,12 +287,12 @@ certificate → rewrite (global only) → access → response OR (header_filter 
 
         <div class="qa">
             <div class="q">7. CORS preflight handling</div>
-            <div class="a">Enable the CORS plugin. Configure <code>origins</code>, <code>methods</code>, <code>headers</code>, <code>credentials</code>. For preflight (OPTIONS): Kong responds directly without forwarding to upstream. Common issue: wildcard origin (<code>*</code>) doesn't work with <code>credentials: true</code> — must specify exact origin.</div>
+            <div class="a">Enable the CORS plugin. Configure <code>origins</code>, <code>methods</code>, <code>headers</code>, <code>credentials</code>. For preflight (OPTIONS): Kong responds directly without forwarding to upstream. Note: browsers reject <code>Access-Control-Allow-Origin: *</code> when credentials are sent. Kong handles this: with <code>origins: *</code> and <code>credentials: true</code> it reflects the request Origin (and adds <code>Vary: Origin</code>). For security, still list explicit origins — reflecting every origin with credentials is effectively "allow any site".</div>
         </div>
 
         <div class="qa">
             <div class="q">8. WebSocket proxying requirements</div>
-            <div class="a">Kong supports WebSocket natively. Requirements: route must match the upgrade request, <code>Upgrade: websocket</code> and <code>Connection: Upgrade</code> headers must pass through. Increase <code>proxy_read_timeout</code> and <code>proxy_send_timeout</code> for long-lived connections. Protocol must be <code>ws</code> or <code>wss</code> on the service.</div>
+            <div class="a">Kong supports WebSocket natively. Requirements: route must match the upgrade request, <code>Upgrade: websocket</code> and <code>Connection: Upgrade</code> headers must pass through. Works on ordinary <code>http</code>/<code>https</code> services. For long-lived connections, raise the Service's <code>read_timeout</code> and <code>write_timeout</code> (ms, default 60000). The <code>ws</code>/<code>wss</code> protocols are optional and Enterprise-only (for WebSocket-aware plugins).</div>
         </div>
 
         <div class="qa">
@@ -381,7 +381,7 @@ certificate → rewrite (global only) → access → response OR (header_filter 
                     <li>Using <code>local</code> strategy — not shared across nodes</li>
                     <li>Redis connection failure — plugin fail-opens (allows all traffic)</li>
                     <li>Wrong identifier — IP behind load balancer (use <code>X-Forwarded-For</code>)</li>
-                    <li>Plugin fires after auth — unauthenticated requests bypass consumer limits</li>
+                    <li><code>limit_by=consumer</code> with no identified consumer falls back to client IP; with <code>config.anonymous</code>, all anonymous requests share one consumer bucket</li>
                 </ul>
                 <p><strong>Fix:</strong> Use <code>redis</code> strategy, verify Redis connectivity, check <code>X-RateLimit-*</code> response headers.</p>
             </div>
@@ -395,12 +395,14 @@ certificate → rewrite (global only) → access → response OR (header_filter 
                 <p><strong>Causes:</strong></p>
                 <ul>
                     <li>Token expired (check <code>exp</code> claim)</li>
-                    <li>Issuer mismatch (<code>iss</code> in token vs plugin config)</li>
+                    <li>No matching jwt credential for the token's <code>iss</code> (or <code>key_claim_name</code>) claim</li>
+                    <li>Wrong <code>secret</code> or <code>rsa_public_key</code> on the consumer's jwt credential</li>
+                    <li>Token rejected by <code>claims_to_verify</code> (<code>exp</code>/<code>nbf</code>) or exceeds <code>maximum_expiration</code></li>
                     <li>Clock skew between client and Kong</li>
-                    <li>JWKS endpoint unreachable</li>
+                    <li>OIDC (Enterprise <code>openid-connect</code> plugin): issuer mismatch or JWKS endpoint unreachable</li>
                     <li><code>config.anonymous</code> misconfigured — allowing unintended access</li>
                 </ul>
-                <p><strong>Debug:</strong> Decode JWT at jwt.io, check clock sync, verify JWKS URL accessible from Kong pod.</p>
+                <p><strong>Debug:</strong> Decode JWT at jwt.io, check clock sync, verify the consumer's jwt credential (key/secret); for openid-connect, verify the issuer/JWKS URL is reachable from the Kong pod.</p>
             </div>
         </div>
 

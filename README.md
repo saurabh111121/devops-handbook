@@ -12,21 +12,21 @@ A comprehensive, offline-ready reference site covering everything a DevOps/SRE e
 |----------|-------|--------|
 | **Containers** | 1 | Docker, Dockerfile, Compose, Docker vs K8s |
 | **Kubernetes Core** | 7 | Architecture, Workloads, Networking, Storage, Scaling, Security, Observability |
-| **Kubernetes Advanced** | 5 | Helm, Service Mesh (Istio), ArgoCD/GitOps, Troubleshooting, YAML Reference |
+| **Kubernetes Advanced** | 6 | Helm, Service Mesh (Istio), ArgoCD/GitOps, Multi-Tier Deployment, Troubleshooting, YAML Reference |
 | **DevOps** | 6 | Git, CI/CD, SRE Principles, Observability, Terraform, Ansible |
 | **Infrastructure** | 7 | Linux/Networking, AWS, TLS/Certificates, Databases, Message Queues, FinOps, Disaster Recovery |
 | **Application** | 5 | Microservices, API/REST, Bash/Python Scripting, Prometheus/Grafana, Logging Stacks |
-| **Interview** | 1 | System Design, Scenarios, Gotchas, AWS, Behavioral |
+| **Interview** | 6 | Interview Prep (System Design, Scenarios, Gotchas, AWS, Behavioral) + company prep: Kong, Okta, Okta Troubleshooting, Salesforce, Databricks |
 
-**Total: 40 pages | 7 categories | 100+ YAML examples | 80+ Interview Q&A**
+**Total: 38 content pages (47 HTML files incl. index pages) | 7 categories | 100+ YAML examples | 80+ Interview Q&A**
 
 ---
 
 ## Features
 
-- **Offline-first** — Pure HTML/CSS/JS, no server needed. Open from Finder or any browser.
+- **Offline-first** — Pure HTML/CSS/JS, no server needed. Open from Finder or any browser. (The Databricks page loads Font Awesome icons from a CDN; offline, only those icons are missing.)
 - **Dark theme** by default with Light mode toggle
-- **Search** — Instant keyword search across all 32 content pages
+- **Search** — Instant keyword search across all 38 content pages
 - **Priority badges** — Must Know / High / Medium on each topic
 - **Hover navigation** — Dropdown menus in the topbar show sub-pages
 - **Production-ready YAML** — Copy-paste templates for every K8s resource
@@ -42,15 +42,16 @@ A comprehensive, offline-ready reference site covering everything a DevOps/SRE e
 DevOps-SRE Handbook/
 ├── index.html                  ← Homepage (7 category cards)
 ├── css/style.css               ← Shared stylesheet (dark/light themes)
-├── js/app.js                   ← Search + theme toggle
+├── js/app.js                   ← Nav/footer injection + search + theme toggle
 │
 ├── containers/                 ← Docker
 ├── kubernetes-core/            ← Architecture, Workloads, Networking, Storage, Scaling, Security, Observability
-├── kubernetes-advanced/        ← Helm, Istio, ArgoCD, Troubleshooting, YAML Reference
+├── kubernetes-advanced/        ← Helm, Istio, ArgoCD, Multi-Tier Deployment, Troubleshooting, YAML Reference
 ├── devops/                     ← Git, CI/CD, SRE, Observability, Terraform, Ansible
 ├── infrastructure/             ← Linux, AWS, TLS, Databases, Queues, FinOps, DR
 ├── application/                ← Microservices, APIs, Scripting, Prometheus, Logging
 └── interview/                  ← Full interview prep
+    └── companies/              ← Company hub: Kong, Okta, Okta Troubleshooting, Salesforce, Databricks
 ```
 
 ---
@@ -62,7 +63,7 @@ DevOps-SRE Handbook/
 3. Navigate by category or use the search bar (press `/` to focus)
 4. Toggle dark/light theme with the button in the top-right
 
-No build step, no dependencies, no internet required.
+No build step, no dependencies, no internet required (except Font Awesome icons on the Databricks page, loaded from a CDN).
 
 ---
 
@@ -86,7 +87,7 @@ Microservices (saga, CQRS, circuit breaker) · REST APIs, gRPC, GraphQL · OAuth
 
 - HTML5 + CSS3 (custom properties for theming)
 - Vanilla JavaScript (no frameworks)
-- No external dependencies at runtime
+- No external dependencies at runtime (except Font Awesome from cdnjs on the Databricks page)
 
 ---
 

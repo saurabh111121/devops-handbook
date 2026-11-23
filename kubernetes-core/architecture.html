@@ -144,7 +144,7 @@
     <div class="point">
         <div class="point-num">7</div>
         <div class="point-content">
-            <span class="point-title">API Versioning and Aggregation:</span> Supports multiple API versions (v1, apps/v1, etc.) simultaneously for backward compatibility. The aggregation layer allows extending the API with custom resources (CRDs) and API services without modifying core code.
+            <span class="point-title">API Versioning and Aggregation:</span> Supports multiple API versions (v1, apps/v1, etc.) simultaneously for backward compatibility. The API can be extended without modifying core code: CRDs add custom resources served in-process by the apiextensions-apiserver, while the aggregation layer (APIService objects) proxies requests to separate extension API servers such as metrics-server.
         </div>
     </div>
 
@@ -258,7 +258,7 @@
     <div class="point">
         <div class="point-num orange">3</div>
         <div class="point-content">
-            <span class="point-title">Node Controller:</span> Monitors node health via heartbeats (NodeStatus and Lease objects). If a node stops reporting, it marks the node as NotReady after 40s (default), then begins evicting pods after 5 minutes (pod-eviction-timeout).
+            <span class="point-title">Node Controller:</span> Monitors node health via heartbeats (NodeStatus and Lease objects). If a node stops reporting, it marks the node's Ready condition as Unknown after <code>node-monitor-grace-period</code> (50s by default since v1.32) and applies <code>node.kubernetes.io/unreachable</code> (or <code>not-ready</code>) NoExecute taints. Pods are evicted once their <code>tolerationSeconds</code> expire, which defaults to 300s (added by the DefaultTolerationSeconds admission plugin).
         </div>
     </div>
     <div class="point">
@@ -356,7 +356,7 @@
     <div class="point">
         <div class="point-num green">3</div>
         <div class="point-content">
-            <span class="point-title">IPVS Mode:</span> Uses Linux IPVS (IP Virtual Server) kernel module for load balancing. Supports multiple algorithms (round-robin, least connections, shortest expected delay). Better performance than iptables at scale (O(1) vs O(n) for connection routing).
+            <span class="point-title">IPVS Mode:</span> Uses Linux IPVS (IP Virtual Server) kernel module for load balancing. Supports multiple algorithms (round-robin, least connections, shortest expected delay). Better performance than iptables at scale (O(1) vs O(n) for connection routing). <strong>Deprecated since Kubernetes v1.35</strong> -- nftables mode is the recommended replacement for new clusters.
         </div>
     </div>
     <div class="point">
@@ -444,7 +444,7 @@
 │ etcd │          │  scheduler  │        │  controller-manager │
 └──────┘          └──────┬──────┘        └─────────┬──────────┘
                          │                         │
-                         │ Bind Pod (PATCH)        │ Create/Update Resources
+                         │ Bind Pod (POST binding) │ Create/Update Resources
                          │                         │
                          └────────┬────────────────┘
                                   │
@@ -465,7 +465,7 @@
 Communication Rules:
 ─────────────────────
 1. API Server ←→ etcd         : Only API server talks to etcd (mutual TLS)
-2. Scheduler  ──→ API Server  : Watch unscheduled pods, PATCH nodeName
+2. Scheduler  ──→ API Server  : Watch unscheduled pods, POST pods/binding
 3. Controller ──→ API Server  : Watch resources, create/update/delete objects
 4. Kubelet    ←→ API Server   : Watch pods for this node, report status
 5. Kube-proxy ──→ API Server  : Watch Services + EndpointSlices
@@ -595,7 +595,7 @@ Communication Rules:
     <div class="point">
         <div class="point-num">10</div>
         <div class="point-content">
-            <span class="point-title">Scheduler Binds Pod to Node:</span> The scheduler creates a Binding object (or PATCHes the pod's <code>spec.nodeName</code>) via the API server, assigning the pod to the chosen node. This is persisted to etcd and triggers another round of WATCH events.
+            <span class="point-title">Scheduler Binds Pod to Node:</span> The scheduler creates a Binding object (POST to <code>pods/{name}/binding</code>) via the API server, which sets the pod's <code>spec.nodeName</code>, assigning the pod to the chosen node. This is persisted to etcd and triggers another round of WATCH events.
         </div>
     </div>
     <div class="point">
@@ -703,14 +703,14 @@ Key HA Design Decisions:
     <div class="qa">
         <div class="q">Q4: How does the scheduler decide which node gets a pod?</div>
         <div class="a">
-            <strong>Two-phase: Filter then Score.</strong> First, filtering eliminates nodes that cannot possibly run the pod (not enough CPU/memory, wrong node selector, unmatched taints, volume zone mismatch). Then, scoring ranks the remaining nodes using weighted priority functions: resource balance (LeastRequestedPriority), spreading across zones (InterPodAntiAffinity), image locality, and custom priorities. The highest-scoring node wins. If tied, random selection breaks the tie.
+            <strong>Two-phase: Filter then Score.</strong> First, filtering eliminates nodes that cannot possibly run the pod (not enough CPU/memory, wrong node selector, unmatched taints, volume zone mismatch). Then, scoring ranks the remaining nodes using weighted priority functions: resource fit (NodeResourcesFit with the LeastAllocated strategy), NodeResourcesBalancedAllocation, spreading across zones (PodTopologySpread), InterPodAffinity, ImageLocality, and custom plugins. The highest-scoring node wins. If tied, random selection breaks the tie.
         </div>
     </div>
 
     <div class="qa">
         <div class="q">Q5: What is the role of the pause container in a pod?</div>
         <div class="a">
-            <strong>It holds the pod's network namespace.</strong> The pause container (gcr.io/google_containers/pause) is the first container created in every pod. It acquires the network namespace (IP address, port space) and then simply sleeps forever. All other containers in the pod join this namespace via Linux namespace sharing. This ensures the network identity persists even if application containers crash and restart -- the pod IP stays stable.
+            <strong>It holds the pod's network namespace.</strong> The pause container (<code>registry.k8s.io/pause</code>) is the first container created in every pod. It acquires the network namespace (IP address, port space) and then simply sleeps forever. All other containers in the pod join this namespace via Linux namespace sharing. This ensures the network identity persists even if application containers crash and restart -- the pod IP stays stable.
         </div>
     </div>
 
@@ -724,7 +724,7 @@ Key HA Design Decisions:
     <div class="qa">
         <div class="q">Q7: What is the difference between kube-proxy's iptables and IPVS modes?</div>
         <div class="a">
-            <strong>Performance characteristics and load balancing algorithms differ significantly.</strong> iptables mode uses sequential rule matching (O(n) per connection for n services), supports only random probability-based load balancing, and becomes slow with 10,000+ services. IPVS uses hash tables (O(1) per connection), supports 8 load balancing algorithms (round-robin, least-connections, etc.), and handles large clusters efficiently. However, iptables is simpler to debug with standard Linux tools.
+            <strong>Performance characteristics and load balancing algorithms differ significantly.</strong> iptables mode uses sequential rule matching (O(n) per connection for n services), supports only random probability-based load balancing, and becomes slow with 10,000+ services. IPVS uses hash tables (O(1) per connection), supports 8 load balancing algorithms (round-robin, least-connections, etc.), and handles large clusters efficiently. However, iptables is simpler to debug with standard Linux tools. Note that IPVS mode has been deprecated since Kubernetes v1.35; nftables mode is the recommended choice for large clusters going forward.
         </div>
     </div>
 
@@ -745,7 +745,7 @@ Key HA Design Decisions:
     <div class="qa">
         <div class="q">Q10: If you have a 3-node etcd cluster and lose 2 nodes, what happens?</div>
         <div class="a">
-            <strong>The cluster becomes read-only and effectively unavailable for writes.</strong> With only 1 of 3 members alive, quorum (2) cannot be reached. etcd will continue to serve stale reads (if configured with serializable reads) but will reject all write operations. The Kubernetes API server will return errors for any state-changing operations (creating pods, updating deployments). Recovery requires either restoring at least one more member or performing a disaster recovery procedure: restoring from a snapshot to a new single-node cluster using <code>etcdctl snapshot restore --force-new-cluster</code>.
+            <strong>The cluster becomes read-only and effectively unavailable for writes.</strong> With only 1 of 3 members alive, quorum (2) cannot be reached. etcd will continue to serve stale reads (if configured with serializable reads) but will reject all write operations. The Kubernetes API server will return errors for any state-changing operations (creating pods, updating deployments). Recovery requires either restoring at least one more member or performing a disaster recovery procedure: restoring from a snapshot to a new single-node cluster using <code>etcdutl snapshot restore snapshot.db --data-dir &lt;new-dir&gt;</code> (etcdctl snapshot restore was removed in etcd 3.6), or by restarting a surviving member with <code>etcd --force-new-cluster</code>.
         </div>
     </div>
 
