@@ -73,7 +73,7 @@
   |     INTERMEDIATE CA            |    Online, handles day-to-day signing
   |   (Signed by Root CA)          |    If compromised, only it is revoked (not root)
   |                                |
-  |   Validity: 5-10 years         |    Examples: Let's Encrypt R3, DigiCert SHA2
+  |   Validity: 5-10 years         |    Examples: Let's Encrypt R1x/E-series (e.g. R11, E6), DigiCert G2
   |   Signs: Leaf certificates     |
   +===============+================+
                   |
@@ -83,8 +83,9 @@
   |     LEAF CERTIFICATE           |    Your server's certificate
   |   (Signed by Intermediate)     |    Contains: domain name, public key, validity
   |                                |
-  |   Validity: 90 days - 1 year   |    Presented to clients during TLS handshake
-  |   CN/SAN: *.example.com        |
+  |   Validity: max 200 days       |    Presented to clients during TLS handshake
+  |   CN/SAN: *.example.com        |    Public max: 200d (2026), 100d (2027), 47d (2029)
+  |                                |    (CA/B Forum SC-081); Let's Encrypt issues 90d
   +================================+
 
   VERIFICATION (client-side):
@@ -293,9 +294,9 @@
   |  Root CAs (150-200 trusted roots)              |
   |                                                |
   |  - DigiCert Global Root G2                     |
-  |  - ISRG Root X1 (Let's Encrypt)               |
+  |  - ISRG Root X1 (Let's Encrypt)                |
   |  - Amazon Root CA 1-4                          |
-  |  - Baltimore CyberTrust Root                   |
+  |  - DigiCert Global Root G3                     |
   |  - GlobalSign Root CA                          |
   +============================+===================+
                                |
@@ -551,6 +552,8 @@ kind: Certificate
 metadata:
   name: app-tls
   namespace: production
+  labels:
+    use-dns-solver: "true"  # Matches the dns01 solver selector (needed for the wildcard)
 spec:
   # Secret where cert will be stored
   secretName: app-tls-secret
@@ -600,15 +603,15 @@ metadata:
   annotations:
     # cert-manager will auto-create Certificate resource
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    # Optional: force DNS-01 for this ingress
-    cert-manager.io/acme-challenge-type: "dns01"
+    # Challenge type (HTTP-01 vs DNS-01) is chosen by the issuer's solver selectors,
+    # not by an Ingress annotation
 spec:
   ingressClassName: nginx
   tls:
   - hosts:
     - app.example.com
     - api.example.com
-    secretName: app-tls-secret  # cert-manager creates this
+    secretName: app-ingress-tls-secret  # cert-manager creates this (distinct from app-tls-secret above)
   rules:
   - host: app.example.com
     http:
@@ -805,15 +808,15 @@ openssl x509 -in server.crt -enddate -noout
 openssl verify -CAfile ca.crt server.crt
 
 # Check remote server certificate
-openssl s_client -connect example.com:443 -servername example.com </dev/null 2>/dev/null \
+openssl s_client -connect example.com:443 -servername example.com &lt;/dev/null 2>/dev/null \
   | openssl x509 -text -noout
 
 # Check expiry of remote server
-openssl s_client -connect example.com:443 -servername example.com </dev/null 2>/dev/null \
+openssl s_client -connect example.com:443 -servername example.com &lt;/dev/null 2>/dev/null \
   | openssl x509 -enddate -noout
 
 # Check full chain from remote server
-openssl s_client -connect example.com:443 -servername example.com -showcerts </dev/null
+openssl s_client -connect example.com:443 -servername example.com -showcerts &lt;/dev/null
 
 # Verify key matches certificate
 openssl x509 -in server.crt -modulus -noout | md5sum

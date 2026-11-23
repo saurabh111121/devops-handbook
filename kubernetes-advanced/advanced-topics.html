@@ -94,8 +94,8 @@ spec:
             port: 8080
           initialDelaySeconds: 5
           periodSeconds: 5
-      minReadySeconds: 10     # Wait 10s after ready before continuing
-      progressDeadlineSeconds: 600  # Fail if not complete in 10min
+  minReadySeconds: 10     # Wait 10s after ready before continuing
+  progressDeadlineSeconds: 600  # Fail if not complete in 10min
 </pre>
         </div>
 
@@ -369,12 +369,12 @@ spec:
                 <td>VXLAN mesh overlay</td>
                 <td>Basic K8s NetworkPolicy</td>
                 <td>IPsec (sleeve)</td>
-                <td>Simple setup, multicast support</td>
+                <td>Discontinued - Weaveworks shut down in 2024 and the project is archived; not for new clusters</td>
             </tr>
             <tr>
                 <td><strong>AWS VPC CNI</strong></td>
                 <td>Native VPC (ENI-based)</td>
-                <td>Via Calico add-on</td>
+                <td>Native (VPC CNI v1.14+, enableNetworkPolicy), or Calico/Cilium</td>
                 <td>VPC-level</td>
                 <td>EKS clusters (pods get VPC IPs)</td>
             </tr>
@@ -671,7 +671,7 @@ spec:
             <tr><td>prometheus-operator</td><td>Prometheus, Alertmanager</td><td>ServiceMonitor, PrometheusRule CRDs</td></tr>
             <tr><td>cert-manager</td><td>TLS certificates</td><td>Auto-issue/renew from Let's Encrypt, Vault</td></tr>
             <tr><td>postgres-operator (Zalando)</td><td>PostgreSQL clusters</td><td>HA, patroni, connection pooling</td></tr>
-            <tr><td>strimzi-kafka-operator</td><td>Apache Kafka</td><td>Kafka, ZooKeeper, Connect, MirrorMaker</td></tr>
+            <tr><td>strimzi-kafka-operator</td><td>Apache Kafka</td><td>Kafka (KRaft), Connect, MirrorMaker 2, Cruise Control</td></tr>
             <tr><td>external-secrets-operator</td><td>Secrets sync</td><td>AWS SM, HashiCorp Vault, GCP SM</td></tr>
             <tr><td>ArgoCD</td><td>GitOps deployments</td><td>Application CRD, sync from Git</td></tr>
         </table>
@@ -730,7 +730,7 @@ spec:
 
         <div class="cmd">ETCDCTL_API=3 etcdctl snapshot save /backup/etcd-snapshot-$(date +%Y%m%d).db --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key</div>
 
-        <div class="cmd">ETCDCTL_API=3 etcdctl snapshot status /backup/etcd-snapshot.db --write-out=table</div>
+        <div class="cmd">etcdutl snapshot status /backup/etcd-snapshot.db --write-out=table</div>
 
         <div class="code-block">
             <div class="code-header">
@@ -741,8 +741,8 @@ spec:
 # Stop kube-apiserver (move static pod manifest)
 mv /etc/kubernetes/manifests/kube-apiserver.yaml /tmp/
 
-# Restore the snapshot
-ETCDCTL_API=3 etcdctl snapshot restore /backup/etcd-snapshot.db \
+# Restore the snapshot (etcd 3.6+: restore lives in etcdutl, not etcdctl)
+etcdutl snapshot restore /backup/etcd-snapshot.db \
   --data-dir=/var/lib/etcd-restored \
   --name=control-plane-1 \
   --initial-cluster=control-plane-1=https://10.0.0.10:2380 \
@@ -933,7 +933,7 @@ spec:
         <h3>Sidecar Containers</h3>
 
         <div class="card card-info">
-            <p>Sidecar containers run alongside the main container for the lifetime of the pod. In Kubernetes 1.28+, native sidecar support was added via <code>restartPolicy: Always</code> in initContainers (ensures sidecars start before and stop after main containers).</p>
+            <p>Sidecar containers run alongside the main container for the lifetime of the pod. Native sidecar support (alpha in 1.28 behind a feature gate, enabled by default from 1.29, GA in 1.33) works via <code>restartPolicy: Always</code> in initContainers (ensures sidecars start before and stop after main containers).</p>
         </div>
 
         <div class="code-block">
@@ -947,7 +947,7 @@ kind: Pod
 metadata:
   name: app-with-sidecars
 spec:
-  # Native sidecar (K8s 1.28+) - starts before main, stops after main
+  # Native sidecar (on by default K8s 1.29+, GA 1.33) - starts before main, stops after main
   initContainers:
   - name: log-shipper
     image: fluent-bit:2.2
@@ -1092,8 +1092,9 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: production
+spec:
   finalizers:
-  - kubernetes    # Standard namespace finalizer - cleans up all resources
+  - kubernetes    # Standard namespace finalizer (set by the API server) - cleans up all resources
 ---
 # Custom finalizer on a CRD instance
 apiVersion: mycompany.io/v1
@@ -1393,12 +1394,12 @@ spec:
                     <li>Use <code>etcdctl snapshot save</code> with TLS certificates</li>
                     <li>Schedule regular backups (CronJob or external tool)</li>
                     <li>Store snapshots in remote storage (S3, GCS) with retention</li>
-                    <li>Verify snapshots with <code>etcdctl snapshot status</code></li>
+                    <li>Verify snapshots with <code>etcdutl snapshot status</code> (removed from etcdctl in etcd 3.6)</li>
                 </ol>
                 <p><strong>Restore:</strong></p>
                 <ol>
                     <li>Stop API server (move static pod manifest)</li>
-                    <li><code>etcdctl snapshot restore</code> to a new data directory</li>
+                    <li><code>etcdutl snapshot restore</code> to a new data directory (etcdctl restore was removed in etcd 3.6)</li>
                     <li>Update etcd pod to use new data directory</li>
                     <li>Restart API server</li>
                     <li>Verify cluster health</li>
@@ -1441,7 +1442,7 @@ spec:
                     <li>Run <strong>alongside</strong> app containers for the pod's lifetime</li>
                     <li>Run <strong>in parallel</strong> with the main container</li>
                     <li>Use for: proxies, log shippers, config watchers, metrics exporters</li>
-                    <li>K8s 1.28+ native sidecars: init containers with <code>restartPolicy: Always</code></li>
+                    <li>Native sidecars (alpha 1.28, default-on 1.29, GA 1.33): init containers with <code>restartPolicy: Always</code></li>
                 </ul>
             </div>
         </div>
@@ -1467,7 +1468,7 @@ spec:
                 <ul>
                     <li>You need BGP peering with physical network infrastructure</li>
                     <li>You need mature, battle-tested network policies</li>
-                    <li>You run on older kernels (Cilium requires 4.19+)</li>
+                    <li>You run on older kernels (current Cilium requires 5.10+)</li>
                     <li>You need integration with non-K8s workloads (VMs, bare metal)</li>
                 </ul>
                 <p><strong>Choose Cilium when:</strong></p>

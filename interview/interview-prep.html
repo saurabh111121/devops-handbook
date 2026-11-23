@@ -71,7 +71,7 @@ Key Components:
    - Protected main branch: requires PR, 1+ approvals, passing CI
    - Conventional commits for auto-versioning
 
-2. Build Stage (Jenkins/GitHub Actions/ArgoCD)
+2. Build Stage (Jenkins/GitHub Actions/GitLab CI)
    - Dockerfile per service (multi-stage builds)
    - Shared CI templates (DRY pipeline definitions)
    - Artifact: versioned Docker image + Helm chart
@@ -277,7 +277,7 @@ Architecture:
 Failover Process:
 1. Health check fails in Region A (automated detection)
 2. Route 53 updates DNS to Region B (automatic, ~60s)
-3. Aurora replica promoted to primary (automatic, ~60s)
+3. Initiate Aurora Global DB failover (manual or scripted via failover-global-cluster, ~1-2 min)
 4. EKS in Region B scales up (Karpenter, ~3-5 min)
 5. Total RTO: ~5-10 minutes
 
@@ -842,7 +842,7 @@ Phase 1: DETECT and ASSESS (first 5 minutes)
    $ kubectl logs suspicious-pod -n production --tail=100
 
 2. Check network connections:
-   $ kubectl exec suspicious-pod -- netstat -tlnp 2>/dev/null
+   $ kubectl exec suspicious-pod -- netstat -tnp 2>/dev/null   # or ss -tnp (established outbound)
    $ kubectl exec suspicious-pod -- cat /proc/net/tcp
    - What IPs? What ports? Known C2 servers? Crypto mining pools?
 
@@ -854,7 +854,10 @@ Phase 1: DETECT and ASSESS (first 5 minutes)
 Phase 2: CONTAIN (next 10 minutes)
 
 4. Isolate immediately (do NOT delete the pod - preserve evidence):
-   # Apply deny-all NetworkPolicy to isolate the pod
+   # NetworkPolicies are additive: other policies selecting this pod still
+   # allow traffic. Relabel it so it drops out of their selectors first.
+   $ kubectl label pod suspicious-pod -n production app- quarantine=true
+   # Then apply a deny-all NetworkPolicy matching the quarantine label
    $ kubectl apply -f - &lt;&lt;EOF
    apiVersion: networking.k8s.io/v1
    kind: NetworkPolicy
@@ -864,9 +867,10 @@ Phase 2: CONTAIN (next 10 minutes)
    spec:
      podSelector:
        matchLabels:
-         app: suspicious-app
+         quarantine: "true"
      policyTypes: [Ingress, Egress]
-     # No rules = deny all traffic
+     # No rules = deny all (only if no other policy allows this pod;
+     # for guaranteed deny use a Cilium/Calico deny/priority policy)
    EOF
 
 5. Revoke credentials:
@@ -1577,20 +1581,21 @@ Production VPC Design (multi-AZ, defense in depth):
   | Tier      | AZ-a (10.0.x.0) | AZ-b (10.0.x.0) | AZ-c (10.0.x.0) |
   +-----------+------------------+------------------+------------------+
   | Public    | 10.0.1.0/24      | 10.0.2.0/24      | 10.0.3.0/24      |
-  | (ALB,NAT) | 254 IPs          | 254 IPs          | 254 IPs          |
+  | (ALB,NAT) | 251 IPs          | 251 IPs          | 251 IPs          |
   +-----------+------------------+------------------+------------------+
-  | Private   | 10.0.10.0/22     | 10.0.14.0/22     | 10.0.18.0/22     |
-  | (App/EKS) | 1022 IPs         | 1022 IPs         | 1022 IPs         |
+  | Private   | 10.0.8.0/22      | 10.0.12.0/22     | 10.0.16.0/22     |
+  | (App/EKS) | 1019 IPs         | 1019 IPs         | 1019 IPs         |
   +-----------+------------------+------------------+------------------+
   | Data      | 10.0.100.0/24    | 10.0.101.0/24    | 10.0.102.0/24    |
-  | (RDS,ElC) | 254 IPs          | 254 IPs          | 254 IPs          |
+  | (RDS,ElC) | 251 IPs          | 251 IPs          | 251 IPs          |
   +-----------+------------------+------------------+------------------+
 
 Subnet Sizing for EKS:
 - Each pod gets an IP from the subnet (AWS VPC CNI)
 - m5.xlarge = max 58 pods = 58 IPs per node
 - 50 nodes * 58 = 2,900 IPs needed minimum
-- /22 subnet = 1,022 IPs per AZ (scale with secondary CIDR if needed)
+- /22 subnet = 1,019 usable IPs per AZ (AWS reserves 5 per subnet; /24 = 251)
+  (scale with secondary CIDR if needed)
 
 Key Components:
 1. Internet Gateway: attached to VPC, enables public subnet internet access
@@ -1671,7 +1676,7 @@ Route 53 Routing Policies:
    Use: Fine-tuned geographic routing with ability to shift traffic.
    Example: Shift traffic away from us-east-1 during maintenance (set bias=-50)
    - Bias: expand (+) or shrink (-) a region's geographic area
-   - Requires Traffic Flow (visual editor)
+   - Standard record or Traffic Flow (maps are Traffic Flow only)
 
 7. MULTIVALUE ANSWER: Like simple but with health checks per record.
    Use: Simple load balancing without ELB.
@@ -1949,7 +1954,11 @@ Practice Questions (do one per week):
 Learning-by-breaking exercises (on your home lab):
 
 1. Kill the scheduler:
-   $ kubectl delete pod -n kube-system -l component=kube-scheduler
+   # kube-scheduler is a static pod: deleting it via kubectl only removes the
+   # mirror pod and kubelet recreates it. Move the manifest instead
+   # (kind example; move it back to restore):
+   $ docker exec -it kind-control-plane \
+       mv /etc/kubernetes/manifests/kube-scheduler.yaml /tmp/
    What happens? New pods stay Pending. Existing pods unaffected.
 
 2. Fill a disk:

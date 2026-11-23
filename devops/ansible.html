@@ -32,7 +32,7 @@
                 <li><strong>Agentless:</strong> No software to install on managed nodes. Uses SSH (Linux) or WinRM (Windows).</li>
                 <li><strong>Push-Based:</strong> Control node pushes configuration to managed nodes (vs. pull-based like Puppet/Chef).</li>
                 <li><strong>Idempotent:</strong> Running the same playbook multiple times produces the same result without side effects.</li>
-                <li><strong>Declarative:</strong> You describe the desired state; Ansible figures out how to get there.</li>
+                <li><strong>Declarative modules, procedural playbooks:</strong> Modules are declarative (you describe the desired state), but playbooks execute procedurally, task by task in order.</li>
                 <li><strong>YAML-Based:</strong> Human-readable configuration (no custom DSL to learn).</li>
             </ul>
         </div>
@@ -79,7 +79,7 @@ Flow:
             <div class="card">
                 <h4>Control Node Requirements</h4>
                 <ul>
-                    <li>Python 3.9+ installed</li>
+                    <li>Python 3.11+ (ansible-core 2.18/2.19) or 3.12+ (ansible-core 2.20+) installed</li>
                     <li>Ansible package installed (<code>pip install ansible</code>)</li>
                     <li>SSH access to managed nodes</li>
                     <li>Can be your laptop, a CI server, or a dedicated Ansible controller</li>
@@ -88,7 +88,7 @@ Flow:
             <div class="card">
                 <h4>Managed Node Requirements</h4>
                 <ul>
-                    <li>Python 2.7+ or 3.5+ (most modules)</li>
+                    <li>Python 3.8+ (3.9+ for ansible-core 2.20+); the <code>raw</code> module works without Python</li>
                     <li>SSH server running (sshd)</li>
                     <li>No Ansible installation needed</li>
                     <li>User with appropriate privileges (sudo)</li>
@@ -359,7 +359,7 @@ Playbook (YAML file)
         enabled: true
 
     - name: Open firewall port for HTTP
-      ansible.builtin.ufw:
+      community.general.ufw:
         rule: allow
         port: "{{ nginx_port }}"
         proto: tcp
@@ -888,7 +888,7 @@ ssl_private_key: "{{ vault_ssl_private_key }}"
             </tr>
             <tr>
                 <td><strong>Approach</strong></td>
-                <td>Procedural (tasks run in order)</td>
+                <td>Procedural execution (tasks run in order); modules are declarative</td>
                 <td>Declarative (desired state, dependency graph)</td>
             </tr>
             <tr>
@@ -974,7 +974,7 @@ ssl_private_key: "{{ vault_ssl_private_key }}"
                     <li>Use Molecule for role testing</li>
                     <li>Test against multiple OS versions</li>
                     <li>Use Docker or Vagrant as test drivers</li>
-                    <li>Include lint, syntax, converge, verify, idempotence steps</li>
+                    <li>Include converge, idempotence, and verify steps; run ansible-lint separately (Molecule no longer has a lint stage)</li>
                 </ul>
             </div>
         </div>
@@ -1025,7 +1025,7 @@ ansible-project/
         <div class="qa">
             <div class="q">Q1: What is Ansible and how does it differ from other configuration management tools?</div>
             <div class="a">
-                <p>Ansible is an <strong>agentless</strong>, push-based automation tool that uses SSH to configure systems. Unlike Chef and Puppet (which require agents on managed nodes and use a pull model), Ansible has zero footprint on target systems. It uses simple YAML playbooks instead of Ruby (Chef) or a custom DSL (Puppet), making it easier to learn. It's also procedural but idempotent, meaning tasks execute in order but repeated runs don't cause unintended changes.</p>
+                <p>Ansible is an <strong>agentless</strong>, push-based automation tool that uses SSH to configure systems. Unlike Chef and Puppet (which require agents on managed nodes and use a pull model), Ansible has zero footprint on target systems. It uses simple YAML playbooks instead of Ruby (Chef) or a custom DSL (Puppet), making it easier to learn. Its modules are declarative (desired state), but playbooks execute procedurally in order, and because modules are idempotent, repeated runs don't cause unintended changes.</p>
             </div>
         </div>
 
@@ -1074,7 +1074,7 @@ ansible-project/
         <div class="qa">
             <div class="q">Q8: How do you test Ansible roles?</div>
             <div class="a">
-                <p>Use <strong>Molecule</strong>, the standard testing framework for Ansible roles. It provides a full test lifecycle: lint (yamllint, ansible-lint), syntax check, create (spin up test instances via Docker/Vagrant/cloud), converge (run the role), idempotence (run again to verify no changes), verify (run assertions with testinfra/goss), and destroy (cleanup). This enables TDD for infrastructure code and CI/CD integration.</p>
+                <p>Use <strong>Molecule</strong>, the standard testing framework for Ansible roles. It provides a full test lifecycle: dependency (install required roles/collections), create (spin up test instances via Docker/Podman drivers from the <code>molecule-plugins</code> package), prepare, converge (run the role), idempotence (run again to verify no changes), verify (run assertions, using the default Ansible verifier or optionally testinfra), and destroy (cleanup). Run ansible-lint and yamllint separately, since Molecule no longer has a lint stage. This enables TDD for infrastructure code and CI/CD integration.</p>
             </div>
         </div>
 
@@ -1133,7 +1133,8 @@ ansible-project/
                     <span class="step-num">5.</span>
                     <span><strong>Retry just the failed host:</strong></span>
                 </div>
-                <div class="cmd">ansible-playbook site.yml --limit @site.retry</div>
+                <div class="cmd">ansible-playbook site.yml --limit failed-host</div>
+                <p>Retry files are disabled by default since Ansible 2.8. To use <code>--limit @site.retry</code>, first set <code>retry_files_enabled = True</code> in ansible.cfg (or <code>ANSIBLE_RETRY_FILES_ENABLED=1</code>).</p>
             </div>
         </div>
 

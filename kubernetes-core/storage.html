@@ -44,7 +44,7 @@
     <div class="point">
         <div class="point-num">3</div>
         <div class="point-content">
-            <span class="point-title">Size Limits:</span> You can set <code>sizeLimit</code> to cap the storage usage. For memory-backed emptyDir, exceeding the limit causes pod eviction. For disk-backed, it triggers the node's eviction manager when disk pressure thresholds are crossed.
+            <span class="point-title">Size Limits:</span> You can set <code>sizeLimit</code> to cap the storage usage. For disk-backed emptyDir, the kubelet evicts the pod once usage exceeds <code>sizeLimit</code> (no node disk pressure required). For memory-backed emptyDir, the tmpfs is capped at <code>sizeLimit</code> (writes fail with ENOSPC) and usage counts toward the container's memory limit.
         </div>
     </div>
     <div class="point">
@@ -497,8 +497,8 @@ provisioner: ebs.csi.aws.com
 # Parameters passed directly to the EBS CSI driver
 parameters:
   type: gp3                          # Volume type: gp3 (general purpose SSD)
-  iops: "3000"                       # Baseline IOPS (gp3 supports up to 16,000)
-  throughput: "125"                  # Throughput in MiB/s (gp3 supports up to 1,000)
+  iops: "3000"                       # Baseline IOPS (gp3 supports up to 80,000, max 500 IOPS/GiB)
+  throughput: "125"                  # Throughput in MiB/s (gp3 supports up to 2,000)
   encrypted: "true"                  # Enable encryption at rest
   kmsKeyId: "arn:aws:kms:us-east-1:123456789:key/abc-def-123"  # Custom KMS key
   fsType: ext4                       # Filesystem type (ext4, xfs)
@@ -792,7 +792,7 @@ spec:
     <div class="point">
         <div class="point-num">2</div>
         <div class="point-content">
-            <span class="point-title">kubernetes.io/tls:</span> Stores a TLS certificate (tls.crt) and private key (tls.key). Validated by Kubernetes to ensure both fields are present and the cert is PEM-encoded. Used by Ingress resources for TLS termination.
+            <span class="point-title">kubernetes.io/tls:</span> Stores a TLS certificate (tls.crt) and private key (tls.key). The API server only validates that both keys are present; it does not check the certificate or PEM contents. Used by Ingress resources for TLS termination.
         </div>
     </div>
     <div class="point">
@@ -1014,7 +1014,7 @@ spec:
     <div class="point">
         <div class="point-num">5</div>
         <div class="point-content">
-            <span class="point-title">CSI Migration:</span> Kubernetes is migrating all in-tree volume plugins (awsElasticBlockStore, gcePersistentDisk, azureDisk) to their CSI equivalents. Existing PVs using in-tree plugins continue to work via a translation layer that redirects calls to the CSI driver.
+            <span class="point-title">CSI Migration:</span> CSI migration is complete: the in-tree volume plugins (awsElasticBlockStore, gcePersistentDisk, azureDisk) have been removed from Kubernetes (1.27-1.28). Existing PVs that use the legacy in-tree specs continue to work via a translation layer that redirects calls to the CSI driver, so the matching CSI driver must be installed in the cluster.
         </div>
     </div>
 
@@ -1188,7 +1188,7 @@ spec:
             </div>
             <div class="scenario-step">
                 <span class="step-num">4.</span>
-                <span>WaitForFirstConsumer: If using this binding mode, the PVC stays Pending until a pod is scheduled that references it. This is normal behavior -- create the pod and the PVC will bind. Check with <code>kubectl get pvc -o yaml | grep volumeBindingMode</code>.</span>
+                <span>WaitForFirstConsumer: If using this binding mode, the PVC stays Pending until a pod is scheduled that references it. This is normal behavior -- create the pod and the PVC will bind. Check with <code>kubectl get storageclass &lt;name&gt; -o jsonpath='{.volumeBindingMode}'</code>, or look for the <code>WaitForFirstConsumer</code> event in <code>kubectl describe pvc</code>.</span>
             </div>
             <div class="scenario-step">
                 <span class="step-num">5.</span>
@@ -1223,7 +1223,7 @@ spec:
             </div>
             <div class="scenario-step">
                 <span class="step-num">4.</span>
-                <span>Check SELinux/AppArmor: On nodes with SELinux enabled, volume mounts may have incorrect labels. Use <code>seLinuxOptions</code> in securityContext or set the volume mount's <code>seLinuxRelabel</code> field to allow relabeling.</span>
+                <span>Check SELinux/AppArmor: On nodes with SELinux enabled, volume mounts may have incorrect labels. Use <code>securityContext.seLinuxOptions</code> to set the label, and the pod-level <code>spec.securityContext.seLinuxChangePolicy</code> (<code>Recursive</code> or <code>MountOption</code>) to control how volumes are relabeled.</span>
             </div>
             <div class="scenario-step">
                 <span class="step-num">5.</span>

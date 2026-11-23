@@ -308,7 +308,7 @@ spec:
 
     <h2>3. Pod Security Standards (PSS)</h2>
 
-    <p>Pod Security Standards define three progressive levels of security restriction. They replace the deprecated PodSecurityPolicy (PSP) and are enforced via the built-in Pod Security Admission controller.</p>
+    <p>Pod Security Standards define three progressive levels of security restriction. They replace PodSecurityPolicy (PSP), which was removed in Kubernetes v1.25, and are enforced via the built-in Pod Security Admission controller.</p>
 
     <h3>Security Levels</h3>
 
@@ -554,7 +554,6 @@ metadata:
       All pods must have 'app' and 'team' labels for identification
       and cost attribution.
 spec:
-  validationFailureAction: Enforce   # Block non-compliant resources
   background: true                    # Also scan existing resources
   rules:
   - name: check-required-labels
@@ -564,6 +563,7 @@ spec:
           kinds:
           - Pod
     validate:
+      failureAction: Enforce          # Block non-compliant resources (per-rule; replaces deprecated spec.validationFailureAction)
       message: "Labels 'app' and 'team' are required on all pods."
       pattern:
         metadata:
@@ -579,6 +579,7 @@ spec:
           - StatefulSet
           - DaemonSet
     validate:
+      failureAction: Enforce
       message: "Labels 'app', 'team', and 'env' are required on workloads."
       pattern:
         metadata:
@@ -604,14 +605,16 @@ spec:
                   │   ┌──────────────────────────────────────────────────────┐  │
                   │   │              ADMISSION CONTROLLERS                   │  │
                   │   │                                                      │  │
-                  │   │  ┌─────────────────┐     ┌────────────────────┐     │  │
-                  │   │  │   Mutating       │────▶│    Validating      │     │  │
-                  │   │  │   Webhooks       │     │    Webhooks        │     │  │
-                  │   │  │                 │     │                    │     │  │
-                  │   │  │  - Inject sidecars│     │  - OPA/Gatekeeper │     │  │
-                  │   │  │  - Set defaults  │     │  - Kyverno        │     │  │
-                  │   │  │  - Add labels    │     │  - Pod Security   │     │  │
-                  │   │  └─────────────────┘     └────────────────────┘     │  │
+                  │   │  ┌─────────────────┐     ┌────────────────────┐      │  │
+                  │   │  │   Mutating      │────▶│    Validating      │      │  │
+                  │   │  │   Webhooks      │     │    Webhooks        │      │  │
+                  │   │  │                 │     │                    │      │  │
+                  │   │  │ - Add sidecars  │     │  - OPA/Gatekeeper  │      │  │
+                  │   │  │ - Set defaults  │     │  - Kyverno         │      │  │
+                  │   │  │ - Add labels    │     │                    │      │  │
+                  │   │  └─────────────────┘     └────────────────────┘      │  │
+                  │   │  Built-in plugins also run here (not webhooks):      │  │
+                  │   │  e.g. PodSecurity (Pod Security Admission)           │  │
                   │   └──────────────────────────────────────┬───────────────┘  │
                   │                                          │                  │
                   │                                          ▼                  │
@@ -641,11 +644,13 @@ resources:
     providers:
     # Providers are tried in order; first one is used for WRITING
     # All listed providers are tried for READING (supports key rotation)
+    # Production: prefer the kms (v2) provider with an external KMS.
+    # aescbc is no longer recommended (padding-oracle risk); use secretbox for local keys.
 
-    - aescbc:
+    - secretbox:
         keys:
         - name: key1
-          secret: c2VjcmV0LWtleS1oZXJlLTMyLWJ5dGVz    # base64-encoded 32-byte key
+          secret: &lt;BASE64_32_BYTE_KEY&gt;    # generate: head -c 32 /dev/urandom | base64
     - identity: {}    # Fallback: read unencrypted data (for migration)
 
 # To enable, add to kube-apiserver manifest:
@@ -758,7 +763,9 @@ kubectl label namespace production \
 
 # Step 4: Test with a dry-run
 kubectl run test --image=nginx --dry-run=server -n production
-# Should be rejected if image defaults to root</code></pre>
+# Rejected: the generated pod spec does not set the securityContext fields
+# 'restricted' requires (runAsNonRoot, allowPrivilegeEscalation=false,
+# capabilities.drop=[ALL], seccompProfile). PSA never inspects the image USER.</code></pre>
 
     <h3>Scenario 3: Securing a Multi-Tenant Cluster</h3>
 

@@ -196,7 +196,9 @@ spec:
             <tr><th>Mode</th><th>Behavior</th><th>Use Case</th></tr>
             <tr><td><code>Off</code></td><td>Only provides recommendations, never applies them</td><td>Observing right-sizing without disruption</td></tr>
             <tr><td><code>Initial</code></td><td>Sets resources only at pod creation time</td><td>New pods get right-sized; existing pods untouched</td></tr>
-            <tr><td><code>Auto</code></td><td>Evicts and recreates pods to apply new resource values</td><td>Full automatic right-sizing (causes restarts)</td></tr>
+            <tr><td><code>Recreate</code></td><td>Evicts and recreates pods to apply new resource values</td><td>Full automatic right-sizing (causes restarts)</td></tr>
+            <tr><td><code>InPlaceOrRecreate</code></td><td>Resizes running pods in place where possible, falls back to eviction/recreate</td><td>Automatic right-sizing with fewer restarts (needs in-place pod resize support)</td></tr>
+            <tr><td><code>Auto</code></td><td>Deprecated; currently behaves the same as <code>Recreate</code></td><td>Avoid in new manifests; will be removed in a future API version</td></tr>
         </table>
 
         <div class="card card-warning">
@@ -222,7 +224,7 @@ spec:
     kind: Deployment
     name: web-app
   updatePolicy:
-    updateMode: "Auto"
+    updateMode: "Recreate"     # or "InPlaceOrRecreate"; "Auto" is deprecated
   resourcePolicy:
     containerPolicies:
     - containerName: web-container
@@ -421,7 +423,6 @@ spec:
   - type: prometheus
     metadata:
       serverAddress: http://prometheus:9090
-      metricName: http_requests_total
       threshold: "100"
       query: sum(rate(http_requests_total{service="orders"}[2m]))
 </pre>
@@ -696,6 +697,10 @@ spec:
             </tr>
         </table>
 
+        <div class="card card-info">
+            <p><strong>Note:</strong> The eviction order above is the typical outcome, not a literal QoS ranking. Under node pressure the kubelet ranks pods by whether usage exceeds requests, then by pod priority, then by how far usage is above requests. BestEffort pods (requests = 0) therefore tend to go first, and Guaranteed pods tend to go last.</p>
+        </div>
+
         <h3>CPU Throttling vs OOM Kill</h3>
 
         <div class="grid-2">
@@ -795,7 +800,7 @@ spec:
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
 metadata:
-  name: system-critical
+  name: platform-critical   # "system-" prefix is reserved by Kubernetes
 value: 1000000
 globalDefault: false
 preemptionPolicy: PreemptLowerPriority
@@ -837,7 +842,7 @@ kind: Pod
 metadata:
   name: critical-service
 spec:
-  priorityClassName: system-critical
+  priorityClassName: platform-critical
   containers:
   - name: app
     image: critical-app:v1
@@ -965,7 +970,7 @@ spec:
             <p class="q">Q: What happens when a pod exceeds its CPU limit vs. its memory limit?</p>
             <div class="a">
                 <p><strong>CPU (compressible):</strong> The pod is <strong>throttled</strong>. CFS limits its CPU time. The process slows down but is NOT killed. This manifests as increased latency.</p>
-                <p><strong>Memory (incompressible):</strong> The pod is <strong>OOM killed</strong> (exit code 137). The kubelet restarts it according to restartPolicy. If node-level memory pressure occurs, kubelet evicts pods by QoS class: BestEffort first, then Burstable, then Guaranteed.</p>
+                <p><strong>Memory (incompressible):</strong> The pod is <strong>OOM killed</strong> (exit code 137). The kubelet restarts it according to restartPolicy. If node-level memory pressure occurs, the kubelet does not rank pods by QoS class for eviction. It ranks by (1) whether the pod's usage exceeds its requests, (2) pod priority, then (3) how far usage is above requests. QoS class does set <code>oom_score_adj</code>, which affects which process the kernel OOM killer picks.</p>
             </div>
         </div>
 

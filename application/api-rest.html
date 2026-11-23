@@ -389,9 +389,9 @@ Response:
         </div>
         <p><strong>Cursor-based</strong> is preferred for large or frequently-changing datasets because it avoids the "missing items" problem of offset pagination when records are inserted/deleted between pages.</p>
 
-        <h3>Error Response Format (RFC 7807)</h3>
+        <h3>Error Response Format (Problem Details, RFC 9457)</h3>
         <div class="code-block">
-            <div class="code-header"><span class="filename">Problem Details (RFC 7807)</span><span class="tag tag-red">Error</span></div>
+            <div class="code-header"><span class="filename">Problem Details (RFC 9457, obsoletes RFC 7807)</span><span class="tag tag-red">Error</span></div>
 <pre>
 HTTP/1.1 422 Unprocessable Entity
 Content-Type: application/problem+json
@@ -587,7 +587,8 @@ ALLOW (200)     REJECT (429)
  Advantages:
  - Allows bursts up to bucket capacity
  - Smooth rate over time
- - Simple to implement (Redis INCR + EXPIRE)
+ - Implement with a Redis Lua script/hash (tokens + last refill time)
+   (plain INCR + EXPIRE is a fixed window, not a token bucket)
 </pre>
         </div>
 
@@ -675,6 +676,8 @@ Access-Control-Allow-Credentials: true
 syntax = "proto3";
 
 package user;
+
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/example/user/pb";
 
@@ -806,7 +809,7 @@ message ChatMessage {
             </tr>
             <tr>
                 <td>Tooling</td>
-                <td>grpcurl, BloomRPC</td>
+                <td>grpcurl, grpcui, Postman/Insomnia, Kreya</td>
                 <td>curl, Postman, browser</td>
             </tr>
             <tr>
@@ -1105,6 +1108,20 @@ components:
           type: integer
         total_pages:
           type: integer
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
 
   responses:
     Unauthorized:
@@ -1302,8 +1319,8 @@ security:
         <div class="qa">
             <div class="q">Q10: Explain CORS and why it exists.</div>
             <div class="a">
-                <p><strong>CORS (Cross-Origin Resource Sharing)</strong> is a browser security mechanism that restricts web pages from making requests to a different origin (domain, port, or protocol) than the one serving the page.</p>
-                <p><strong>Why it exists:</strong> Without CORS, a malicious site could make authenticated requests to your bank's API using your cookies (CSRF attack). The Same-Origin Policy prevents this by default.</p>
+                <p><strong>CORS (Cross-Origin Resource Sharing)</strong> is a browser mechanism that lets a server opt in to relaxing the Same-Origin Policy, allowing pages from other origins (scheme, domain, or port) to read its responses.</p>
+                <p><strong>Why it exists:</strong> The Same-Origin Policy stops scripts on one origin from reading responses from another (e.g., a malicious site reading your bank API data). CORS lets servers selectively allow legitimate cross-origin reads. Note: SOP does not stop cross-site requests from being <em>sent</em> with cookies, so CORS is not a CSRF defense; use SameSite cookies, CSRF tokens, and Origin checks for that.</p>
                 <p><strong>How it works:</strong></p>
                 <ul>
                     <li><strong>Simple requests</strong> (GET, POST with standard headers): Browser adds Origin header; server responds with Access-Control-Allow-Origin</li>
@@ -1371,9 +1388,9 @@ security:
             <div class="scenario-body">
                 <p><strong>Situation:</strong> You need to rename a field from <code>userName</code> to <code>display_name</code> in your public API response. Thousands of clients depend on the current format.</p>
                 <div class="scenario-step"><span class="step-num">1.</span> <strong>Add</strong> new field <code>display_name</code> alongside old <code>userName</code> (non-breaking)</div>
-                <div class="scenario-step"><span class="step-num">2.</span> Add <code>Deprecation: true</code> header and document the change</div>
+                <div class="scenario-step"><span class="step-num">2.</span> Add <code>Deprecation: @1767225599</code> header (RFC 9745 Structured Field Date) plus <code>Link: &lt;...&gt;; rel="deprecation"</code> and document the change</div>
                 <div class="scenario-step"><span class="step-num">3.</span> Notify API consumers via changelog, email, dashboard warning</div>
-                <div class="scenario-step"><span class="step-num">4.</span> Set a sunset date (e.g., 6 months). Add <code>Sunset: Sat, 01 Nov 2026 00:00:00 GMT</code> header</div>
+                <div class="scenario-step"><span class="step-num">4.</span> Set a sunset date (e.g., 6 months). Add <code>Sunset: Mon, 01 Nov 2027 00:00:00 GMT</code> header</div>
                 <div class="scenario-step"><span class="step-num">5.</span> Monitor usage of deprecated field (log when clients still read it)</div>
                 <div class="scenario-step"><span class="step-num">6.</span> After sunset date: stop returning <code>userName</code> (or create v2 if many breaking changes)</div>
                 <p><strong>Principles:</strong></p>

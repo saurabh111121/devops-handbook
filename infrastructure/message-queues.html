@@ -470,7 +470,7 @@ channel.start_consuming()
                     <tr>
                         <td><strong>Throughput</strong></td>
                         <td>Unlimited (near)</td>
-                        <td>300 msg/s (3000 with batching)</td>
+                        <td>300 TPS per API action (3,000 msg/s with batching); high-throughput mode up to 70,000 TPS in some regions</td>
                     </tr>
                     <tr>
                         <td><strong>Ordering</strong></td>
@@ -826,15 +826,68 @@ while True:
                 <span class="tag tag-blue">Strimzi</span>
             </div>
 <pre>
-apiVersion: kafka.strimzi.io/v1beta2
+# KRaft mode (no ZooKeeper): brokers and controllers run in KafkaNodePools
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  name: controller
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: production-cluster
+spec:
+  replicas: 3
+  roles:
+    - controller
+  storage:
+    type: jbod
+    volumes:
+    - id: 0
+      type: persistent-claim
+      size: 50Gi
+      class: gp3
+      kraftMetadata: shared
+      deleteClaim: false
+  resources:
+    requests:
+      memory: 2Gi
+      cpu: "500m"
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  name: broker
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: production-cluster
+spec:
+  replicas: 3
+  roles:
+    - broker
+  storage:
+    type: jbod
+    volumes:
+    - id: 0
+      type: persistent-claim
+      size: 500Gi
+      class: gp3
+      kraftMetadata: shared
+      deleteClaim: false
+  resources:
+    requests:
+      memory: 8Gi
+      cpu: "2"
+    limits:
+      memory: 8Gi
+      cpu: "4"
+---
+apiVersion: kafka.strimzi.io/v1
 kind: Kafka
 metadata:
   name: production-cluster
   namespace: kafka
 spec:
   kafka:
-    version: 3.6.0
-    replicas: 3
+    version: 4.3.1
     listeners:
       - name: plain
         port: 9092
@@ -852,31 +905,6 @@ spec:
       min.insync.replicas: 2
       log.retention.hours: 168        # 7 days
       log.segment.bytes: 1073741824   # 1GB segments
-    storage:
-      type: jbod
-      volumes:
-      - id: 0
-        type: persistent-claim
-        size: 500Gi
-        class: gp3
-        deleteClaim: false
-    resources:
-      requests:
-        memory: 8Gi
-        cpu: "2"
-      limits:
-        memory: 8Gi
-        cpu: "4"
-  zookeeper:
-    replicas: 3
-    storage:
-      type: persistent-claim
-      size: 50Gi
-      class: gp3
-    resources:
-      requests:
-        memory: 2Gi
-        cpu: "500m"
   entityOperator:
     topicOperator: {}
     userOperator: {}
@@ -889,7 +917,7 @@ spec:
                 <span class="tag tag-green">Strimzi</span>
             </div>
 <pre>
-apiVersion: kafka.strimzi.io/v1beta2
+apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
 metadata:
   name: orders
@@ -1031,10 +1059,10 @@ env:
                 <span class="title">Scenario: Kafka Broker Failure</span>
             </div>
             <div class="scenario-body">
-                <p><strong>Symptom:</strong> One of three Kafka brokers goes down. Under-replicated partitions detected. Some producers getting errors. Consumer rebalancing triggered.</p>
+                <p><strong>Symptom:</strong> One of three Kafka brokers goes down. Under-replicated partitions detected. Some producers getting errors. Consumers briefly pause on affected partitions.</p>
                 <div class="scenario-step"><span class="step-num">1.</span> <strong>Assess impact:</strong> Check under-replicated partitions: <code>kafka-topics.sh --describe --under-replicated-partitions</code>. If <code>min.insync.replicas=2</code> and RF=3, one broker down is survivable.</div>
                 <div class="scenario-step"><span class="step-num">2.</span> <strong>Verify availability:</strong> Producers with <code>acks=all</code> may get errors if ISR drops below <code>min.insync.replicas</code>. Check ISR count for affected partitions. Leader election should auto-promote an ISR follower.</div>
-                <div class="scenario-step"><span class="step-num">3.</span> <strong>Consumers:</strong> Group rebalancing will reassign partitions from dead broker's consumers. Expect brief pause in consumption. Check consumer group state: <code>kafka-consumer-groups.sh --describe</code>.</div>
+                <div class="scenario-step"><span class="step-num">3.</span> <strong>Consumers:</strong> No group rebalance is triggered (consumers are not tied to brokers). Expect a brief fetch pause while partition leadership moves to an ISR follower; if the dead broker was the group coordinator, a new coordinator takes over. Check consumer group state: <code>kafka-consumer-groups.sh --describe</code>.</div>
                 <div class="scenario-step"><span class="step-num">4.</span> <strong>Recovery:</strong> If broker restarts, it will rejoin cluster and start catching up (fetching missed data from leaders). Monitor replication catch-up. If disk failed, broker needs fresh data (full replication from scratch).</div>
                 <div class="scenario-step"><span class="step-num">5.</span> <strong>Post-mortem:</strong> Verify RF >= 3 for all critical topics. Ensure brokers are in different failure domains (AZs in K8s: pod anti-affinity). Test broker failure regularly. Monitor ISR shrink rate as early warning.</div>
             </div>

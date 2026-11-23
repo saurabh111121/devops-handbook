@@ -473,7 +473,7 @@ DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-5432}"
 DB_NAME="${DB_NAME:-myapp_production}"
 DB_USER="${DB_USER:-backup_user}"
-BACKUP_DIR="/var/backups/postgres"
+BACKUP_DIR="${BACKUP_DIR:-/var/backups/postgres}"
 S3_BUCKET="${S3_BUCKET:-my-backups-bucket}"
 RETENTION_DAYS=30
 TIMESTAMP="$(date '+%Y%m%d_%H%M%S')"
@@ -497,7 +497,9 @@ mkdir -p "$BACKUP_DIR"
 
 # Create backup
 log "Starting backup of $DB_NAME..."
-pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -Fc "$DB_NAME" | \
+# Plain SQL (-Fp) piped to gzip; restore with: gunzip -c FILE | psql
+# (Alternative: -Fc custom format is already compressed; write to .dump, restore with pg_restore)
+pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -Fp "$DB_NAME" | \
     gzip -9 > "$BACKUP_FILE"
 
 BACKUP_SIZE=$(du -sh "$BACKUP_FILE" | cut -f1)
@@ -532,7 +534,7 @@ log "S3: s3://$S3_BUCKET/postgres/$(basename "$BACKUP_FILE")"
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Blue-green deployment script for Kubernetes
+# Rolling-update deployment script with automatic rollback
 
 APP_NAME="${1:?Usage: $0 APP_NAME IMAGE_TAG}"
 IMAGE_TAG="${2:?Usage: $0 APP_NAME IMAGE_TAG}"
@@ -635,15 +637,15 @@ log "=== Cleanup Starting (DRY_RUN=$DRY_RUN) ==="
 # 1. Docker cleanup
 log "--- Docker Cleanup ---"
 log "Dangling images:"
-docker images -f "dangling=true" -q | wc -l | xargs -I{} log "  {} dangling images found"
+log "  $(docker images -f "dangling=true" -q | wc -l) dangling images found"
 run_cmd docker image prune -f
 
 log "Unused volumes:"
-docker volume ls -f "dangling=true" -q | wc -l | xargs -I{} log "  {} unused volumes found"
+log "  $(docker volume ls -f "dangling=true" -q | wc -l) unused volumes found"
 run_cmd docker volume prune -f
 
 log "Stopped containers:"
-docker ps -a -f "status=exited" -q | wc -l | xargs -I{} log "  {} stopped containers found"
+log "  $(docker ps -a -f "status=exited" -q | wc -l) stopped containers found"
 run_cmd docker container prune -f
 
 # 2. Old log files
@@ -959,7 +961,7 @@ done
 */5 * * * * /opt/scripts/health-check.sh >> /var/log/health.log 2>&1
 
 # Cleanup old files every Sunday at 3 AM
-0 3 * * 0 /opt/scripts/cleanup.sh DRY_RUN=false >> /var/log/cleanup.log 2>&1
+0 3 * * 0 DRY_RUN=false /opt/scripts/cleanup.sh >> /var/log/cleanup.log 2>&1
 
 # Rotate logs at midnight
 0 0 * * * /usr/sbin/logrotate /etc/logrotate.conf
@@ -1650,7 +1652,7 @@ teardown() {
     export DB_NAME="nonexistent_db"
     run ./backup.sh
     [ "$status" -ne 0 ]
-    [[ "$output" == *"Error"* ]]
+    [[ "$output" == *"ERROR"* ]]
 }
 
 @test "old backups are cleaned up" {

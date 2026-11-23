@@ -475,29 +475,27 @@ spec:
         <div class="diagram">
             <div class="diagram-label">Sync Wave Execution Order</div>
 <pre>
-Wave -1: PreSync Hooks
-  |  (e.g., database migration Job)
+Phase 1: PreSync hooks
+  |  (e.g., database migration Job; waves apply within the phase)
   v
-Wave 0: Core Resources (default)
-  |  (e.g., ConfigMaps, Secrets, Deployments)
+Phase 2: Sync (resources ordered by wave, lowest first)
+  |  Wave -1: Namespace
+  |  Wave  0: ConfigMaps, Secrets (default wave)
+  |  Wave  1: Deployment
+  |  Wave  2: Service, Ingress
   v
-Wave 1: Dependent Resources
-  |  (e.g., Services, Ingress)
-  v
-Wave 2: Post-deployment
-  |  (e.g., HPA, monitoring configs)
-  v
-PostSync Hooks
-  |  (e.g., smoke test Job, notification)
-  v
-SyncFail Hooks
+Phase 3: PostSync hooks (only if sync succeeds and resources are healthy)
+     (e.g., smoke test Job, notification)
+
+On failure at any phase:
+  SyncFail hooks
      (e.g., rollback notification)
 
 Hook Phases:
-  PreSync  -> Before any sync operation
-  Sync     -> During sync (with wave ordering)
-  PostSync -> After successful sync
-  SyncFail -> If sync fails
+  PreSync  -> Before the Sync phase
+  Sync     -> Alongside manifests, ordered by wave
+  PostSync -> After successful sync and healthy resources
+  SyncFail -> If the sync operation fails
   Skip     -> Skip this resource during sync
 </pre>
         </div>
@@ -899,7 +897,7 @@ spec:
   # Allowed source repositories
   sourceRepos:
     - 'https://github.com/myorg/backend-*'
-    - 'https://charts.helm.sh/stable'
+    - 'https://prometheus-community.github.io/helm-charts'
 
   # Allowed destination clusters and namespaces
   destinations:
@@ -1103,7 +1101,7 @@ spec:
             <tr>
                 <td><strong>UI</strong></td>
                 <td>Rich built-in Web UI with visualization</td>
-                <td>No built-in UI (Weave GitOps optional)</td>
+                <td>No built-in UI (options: Flux Operator web UI, Capacitor, Headlamp Flux plugin; Weave GitOps is no longer vendor-maintained)</td>
             </tr>
             <tr>
                 <td><strong>Architecture</strong></td>
@@ -1350,7 +1348,7 @@ spec:
                 <div class="code-block">
                     <div class="code-header"><span class="filename">external-secret.yaml</span><span class="tag tag-blue">YAML</span></div>
 <pre>
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: app-secrets

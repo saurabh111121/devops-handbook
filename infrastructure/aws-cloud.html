@@ -586,7 +586,7 @@
 eksctl create cluster \
   --name my-cluster \
   --region us-east-1 \
-  --version 1.29 \
+  --version 1.34 \
   --nodegroup-name standard-workers \
   --node-type m5.xlarge \
   --nodes 3 \
@@ -621,7 +621,7 @@ eksctl scale nodegroup \
   --nodes 5
 
 # Upgrade cluster
-eksctl upgrade cluster --name my-cluster --version 1.30 --approve
+eksctl upgrade cluster --name my-cluster --version 1.35 --approve
 
 # Install add-on
 eksctl create addon --cluster my-cluster --name aws-ebs-csi-driver
@@ -1075,7 +1075,7 @@ eksctl create addon --cluster my-cluster --name aws-ebs-csi-driver
             <ul>
                 <li><strong>What:</strong> First invocation (or scale-up) requires downloading code, starting runtime, initializing handler. Adds 100ms-10s latency</li>
                 <li><strong>When:</strong> First request, after idle timeout (~5-15 min), during scale-out</li>
-                <li><strong>Factors affecting duration:</strong> Runtime (Java/C# worst, Python/Node fastest), package size, VPC attachment, init code complexity</li>
+                <li><strong>Factors affecting duration:</strong> Runtime (Java/C# worst, Python/Node fastest), package size, init code complexity (VPC attachment is now a minor factor thanks to Hyperplane ENIs)</li>
             </ul>
         </div>
 
@@ -1098,7 +1098,7 @@ eksctl create addon --cluster my-cluster --name aws-ebs-csi-driver
                     <li>Keep functions small and focused (single responsibility)</li>
                     <li>Use environment variables for configuration</li>
                     <li>Use dead letter queues (DLQ) for failed async invocations</li>
-                    <li>Avoid VPC unless necessary (adds cold start overhead)</li>
+                    <li>Attach to a VPC only when you need private resources (with Hyperplane ENIs, VPC attachment no longer adds significant cold start latency)</li>
                     <li>Use Step Functions for orchestrating multiple Lambdas</li>
                 </ul>
             </div>
@@ -1390,7 +1390,7 @@ eksctl create addon --cluster my-cluster --name aws-ebs-csi-driver
                 </div>
                 <div class="scenario-step">
                     <span class="step-num">6.</span>
-                    <span>Consider SnapStart (Java only): snapshots initialized function for near-zero cold starts</span>
+                    <span>Consider SnapStart (Java, Python, .NET): snapshots initialized function for near-zero cold starts</span>
                 </div>
                 <div class="scenario-step">
                     <span class="step-num">7.</span>

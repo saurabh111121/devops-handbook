@@ -181,7 +181,7 @@
                 <li><strong>Cross-AZ:</strong> $0.01/GB each direction ($0.02 round-trip) - significant for chatty microservices</li>
                 <li><strong>Cross-Region:</strong> $0.02/GB - minimize cross-region data replication where possible</li>
                 <li><strong>NAT Gateway:</strong> $0.045/GB processed + $0.045/hr - often the biggest surprise on bills</li>
-                <li><strong>VPC endpoints:</strong> $0.01/GB (vs $0.045 for NAT) - use for S3, DynamoDB, ECR, etc.</li>
+                <li><strong>VPC endpoints:</strong> Gateway endpoints for S3/DynamoDB are free; interface endpoints (ECR, STS, etc.) are $0.01/GB + $0.01/hr (vs $0.045/GB for NAT)</li>
             </ul>
         </div>
 
@@ -235,7 +235,7 @@
             </ul>
         </div>
 
-        <div class="cmd">helm install kubecost kubecost/cost-analyzer --namespace kubecost --create-namespace --set prometheus.server.enabled=false --set prometheus.server.external.url=http://prometheus-server.monitoring:9090</div>
+        <div class="cmd">helm install kubecost kubecost/cost-analyzer --namespace kubecost --create-namespace --set global.prometheus.enabled=false --set global.prometheus.fqdn=http://prometheus-server.monitoring.svc:9090</div>
 
         <!-- ============================================ -->
         <!-- 4. Spot Instances -->
@@ -315,8 +315,8 @@ managedNodeGroups:
     tags:
       k8s.io/cluster-autoscaler/node-template/label/lifecycle: spot
 ---
-# Karpenter Provisioner for Spot (alternative to managed node groups)
-apiVersion: karpenter.sh/v1beta1
+# Karpenter NodePool for Spot (alternative to managed node groups)
+apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
   name: spot-pool
@@ -341,13 +341,16 @@ spec:
           operator: In
           values: ["us-east-1a", "us-east-1b", "us-east-1c"]
       nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
         name: default
+      expireAfter: 720h   # Replace nodes after 30 days
   limits:
     cpu: "100"
     memory: 400Gi
   disruption:
-    consolidationPolicy: WhenUnderutilized
-    expireAfter: 720h   # Replace nodes after 30 days
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
             </pre>
         </div>
 
@@ -550,7 +553,7 @@ spec:
                 <tbody>
                     <tr><td>gp3</td><td>$0.08</td><td>3000 baseline (free)</td><td>125 MB/s (free)</td><td>General purpose (REPLACE gp2)</td></tr>
                     <tr><td>gp2</td><td>$0.10</td><td>Burst: 3000, baseline: 3*GB</td><td>Linked to IOPS</td><td>Legacy - migrate to gp3</td></tr>
-                    <tr><td>io2</td><td>$0.125 + $0.065/IOPS</td><td>Up to 64,000</td><td>1,000 MB/s</td><td>High-performance databases</td></tr>
+                    <tr><td>io2 (Block Express)</td><td>$0.125 + $0.065/IOPS</td><td>Up to 256,000</td><td>4,000 MB/s</td><td>High-performance databases</td></tr>
                     <tr><td>st1 (HDD)</td><td>$0.045</td><td>500 IOPS max</td><td>500 MB/s</td><td>Sequential reads (logs, analytics)</td></tr>
                 </tbody>
             </table>
@@ -616,14 +619,14 @@ spec:
   |       |                                                |
   |       |  +------------------+                          |
   |       +->| VPC Endpoint     |-> S3/DynamoDB/ECR        |
-  |          | $0.01/GB         |   (vs $0.045 via NAT)    |
-  |          | $0.01/hr (IF)    |                          |
+  |          | Gateway: free    |   (vs $0.045 via NAT)    |
+  |          | IF: $0.01/GB+/hr |                          |
   |          +------------------+                          |
   +--------------------------------------------------------+
 
   KEY SAVINGS:
-  - VPC Endpoint for S3:    saves $0.035/GB vs NAT Gateway
-  - VPC Endpoint for ECR:   saves on image pulls (significant at scale)
+  - Gateway Endpoint S3/DDB: free, saves full $0.045/GB NAT processing
+  - Interface Endpoint ECR: $0.01/GB, saves on image pulls (significant at scale)
   - Topology-aware routing: keeps traffic in same AZ (saves $0.02/GB RT)
   - CloudFront for static: cheaper than direct egress + caching
             </pre>

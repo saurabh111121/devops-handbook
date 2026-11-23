@@ -254,8 +254,8 @@ spec:
          |
          v
  +-------+---------------------------------------------------+
- |           DaemonSet Log Collector                          |
- |   (Fluentd / Fluent Bit / Promtail / Vector)              |
+ |           DaemonSet Log Collector                         |
+ |   (Fluentd / Fluent Bit / Alloy / Vector)                 |
  |                                                           |
  |   - Mounts /var/log from host                             |
  |   - Tails log files                                       |
@@ -340,13 +340,13 @@ spec:
         <h3>EFK vs Loki Stack</h3>
 
         <table>
-            <tr><th>Aspect</th><th>EFK (Elasticsearch + Fluentd + Kibana)</th><th>Loki (Promtail + Loki + Grafana)</th></tr>
+            <tr><th>Aspect</th><th>EFK (Elasticsearch + Fluentd + Kibana)</th><th>Loki (Alloy + Loki + Grafana)</th></tr>
             <tr><td>Indexing</td><td>Full-text index on all fields</td><td>Only indexes labels (metadata)</td></tr>
             <tr><td>Storage</td><td>High (indexes everything)</td><td>Low (stores compressed chunks)</td></tr>
             <tr><td>Query</td><td>Powerful full-text search (Lucene)</td><td>LogQL (label-based, then grep)</td></tr>
             <tr><td>Cost</td><td>Expensive (RAM-heavy)</td><td>Cheap (runs on object storage)</td></tr>
             <tr><td>Best For</td><td>Complex search, analytics, compliance</td><td>K8s-native, cost-effective, Grafana users</td></tr>
-            <tr><td>Collector</td><td>Fluentd / Fluent Bit</td><td>Promtail / Grafana Agent</td></tr>
+            <tr><td>Collector</td><td>Fluentd / Fluent Bit</td><td>Grafana Alloy (Promtail and Grafana Agent are EOL) / OTel Collector / Fluent Bit</td></tr>
         </table>
 
         <h3>Structured Logging Best Practices</h3>
@@ -514,20 +514,20 @@ stringData:
       repeat_interval: 4h
       routes:
       # Critical alerts - page immediately
-      - match:
-          severity: critical
+      - matchers:
+        - severity = "critical"
         receiver: 'pagerduty-critical'
         group_wait: 10s
         repeat_interval: 1h
       # Warning alerts - Slack channel
-      - match:
-          severity: warning
+      - matchers:
+        - severity = "warning"
         receiver: 'slack-warnings'
         group_wait: 1m
         repeat_interval: 4h
       # Info alerts - low priority
-      - match:
-          severity: info
+      - matchers:
+        - severity = "info"
         receiver: 'slack-info'
         repeat_interval: 12h
 
@@ -540,7 +540,7 @@ stringData:
 
     - name: 'pagerduty-critical'
       pagerduty_configs:
-      - service_key: 'YOUR_PAGERDUTY_KEY'
+      - routing_key: 'YOUR_PAGERDUTY_INTEGRATION_KEY'   # Events API v2
         severity: 'critical'
 
     - name: 'slack-warnings'
@@ -554,10 +554,10 @@ stringData:
         send_resolved: false
 
     inhibit_rules:
-    - source_match:
-        severity: 'critical'
-      target_match:
-        severity: 'warning'
+    - source_matchers:
+      - severity = "critical"
+      target_matchers:
+      - severity = "warning"
       equal: ['alertname', 'namespace']
 </pre>
         </div>
@@ -606,7 +606,8 @@ spec:
     # High memory usage
     - alert: ContainerMemoryHigh
       expr: |
-        container_memory_working_set_bytes / container_spec_memory_limit_bytes > 0.9
+        container_memory_working_set_bytes{container!=""}
+          / (container_spec_memory_limit_bytes{container!=""} &gt; 0) &gt; 0.9
       for: 5m
       labels:
         severity: warning
@@ -639,9 +640,9 @@ spec:
     - alert: ErrorBudgetBurnHigh
       expr: |
         (
-          job:slo_errors_per_request:ratio_rate1h{job="web-api"} > (14.4 * 0.001)
+          job:slo_errors_per_request:ratio_rate1h{job="web-api"} &gt; (14.4 * 0.001)
           and
-          job:slo_errors_per_request:ratio_rate5m{job="web-api"} > (14.4 * 0.001)
+          job:slo_errors_per_request:ratio_rate5m{job="web-api"} &gt; (14.4 * 0.001)
         )
       for: 2m
       labels:
@@ -649,22 +650,37 @@ spec:
         slo: "availability"
       annotations:
         summary: "High error budget burn rate for {{ $labels.job }}"
-        description: "Burning error budget 14.4x faster than sustainable. Will exhaust in ~1h."
+        description: "Burning error budget 14.4x faster than sustainable (~2% of 30-day budget per hour). Will exhaust in ~2 days."
 
-    - alert: ErrorBudgetBurnSlow
+    - alert: ErrorBudgetBurnMedium
       expr: |
         (
-          job:slo_errors_per_request:ratio_rate6h{job="web-api"} > (1 * 0.001)
+          job:slo_errors_per_request:ratio_rate6h{job="web-api"} &gt; (6 * 0.001)
           and
-          job:slo_errors_per_request:ratio_rate30m{job="web-api"} > (1 * 0.001)
+          job:slo_errors_per_request:ratio_rate30m{job="web-api"} &gt; (6 * 0.001)
         )
       for: 15m
       labels:
         severity: warning
         slo: "availability"
       annotations:
+        summary: "Medium error budget burn for {{ $labels.job }}"
+        description: "Burning error budget 6x faster than sustainable (~5% of budget per 6h). Will exhaust in ~5 days."
+
+    - alert: ErrorBudgetBurnSlow
+      expr: |
+        (
+          job:slo_errors_per_request:ratio_rate3d{job="web-api"} &gt; (1 * 0.001)
+          and
+          job:slo_errors_per_request:ratio_rate6h{job="web-api"} &gt; (1 * 0.001)
+        )
+      for: 1h
+      labels:
+        severity: info
+        slo: "availability"
+      annotations:
         summary: "Slow error budget burn for {{ $labels.job }}"
-        description: "Burning error budget 1x faster than sustainable. Will exhaust in ~30 days."
+        description: "Burning error budget at 1x (sustainable pace). Budget will be exactly used up over the 30-day window."
 </pre>
         </div>
 
@@ -673,9 +689,9 @@ spec:
         <div class="card card-info">
             <p><strong>Multi-window, multi-burn-rate alerts</strong> balance detection speed with false-positive rate:</p>
             <ul>
-                <li><strong>Fast burn (14.4x)</strong> - Consumes monthly budget in ~1 hour. Use short windows (1h + 5m). Page immediately.</li>
-                <li><strong>Medium burn (6x)</strong> - Consumes budget in ~5 hours. Windows: 6h + 30m. Alert with urgency.</li>
-                <li><strong>Slow burn (1x)</strong> - Consumes budget at sustainable pace over 30 days. Windows: 3d + 6h. Ticket/low priority.</li>
+                <li><strong>Fast burn (14.4x)</strong> - Uses ~2% of the 30-day budget per hour; exhausts it in ~2 days. Use short windows (1h + 5m). Page immediately.</li>
+                <li><strong>Medium burn (6x)</strong> - Uses ~5% of the budget per 6h; exhausts it in ~5 days. Windows: 6h + 30m. Alert with urgency.</li>
+                <li><strong>Slow burn (1x)</strong> - Consumes budget at sustainable pace; exhausted in exactly 30 days. Windows: 3d + 6h. Ticket/low priority.</li>
             </ul>
             <p>Two windows per alert prevent alerting on very brief spikes (short window) while ensuring recent relevance (long window).</p>
         </div>
@@ -795,12 +811,12 @@ spec:
            |                |                |
            v                v                v
     +------+----------------+----------------+------+
-    |         OpenTelemetry Collector                |
-    |         (DaemonSet or Sidecar)                 |
+    |         OpenTelemetry Collector               |
+    |         (DaemonSet agent -&gt; gateway)          |
     |                                               |
     |  Receivers:  OTLP, Jaeger, Zipkin             |
     |  Processors: Batch, Filter, Tail-sample       |
-    |  Exporters:  Jaeger, Tempo, X-Ray             |
+    |  Exporters:  OTLP (Jaeger/Tempo), awsxray     |
     +---+-------------------+-------------------+---+
         |                   |                   |
         v                   v                   v
@@ -824,14 +840,18 @@ spec:
                 <span class="tag tag-purple">OpenTelemetry</span>
             </div>
 <pre>
-apiVersion: opentelemetry.io/v1alpha1
+# Agent tier: one collector per node. Receives spans and metrics, then forwards
+# traces to the gateway, routed by traceID so all spans of a trace reach one pod.
+# loadbalancing, tail_sampling and the prometheus exporter ship only in the
+# contrib (or a custom) distribution: set spec.image to a collector-contrib image.
+apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
-  name: otel-collector
+  name: otel-agent
   namespace: observability
 spec:
   mode: daemonset
-  config: |
+  config:
     receivers:
       otlp:
         protocols:
@@ -840,13 +860,59 @@ spec:
           http:
             endpoint: 0.0.0.0:4318
     processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_mib: 512
+        spike_limit_mib: 128
       batch:
         timeout: 5s
         send_batch_size: 1024
+    exporters:
+      loadbalancing:
+        routing_key: traceID
+        protocol:
+          otlp:
+            tls:
+              insecure: true
+        resolver:
+          dns:
+            hostname: otel-gateway-collector-headless.observability.svc.cluster.local
+            port: 4317
+      prometheus:
+        endpoint: 0.0.0.0:8889
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [loadbalancing]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [prometheus]
+---
+# Gateway tier: sees complete traces, so tail sampling decisions are correct.
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-gateway
+  namespace: observability
+spec:
+  mode: statefulset
+  replicas: 3
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+    processors:
       memory_limiter:
-        limit_mib: 512
-        spike_limit_mib: 128
+        check_interval: 1s
+        limit_mib: 1024
+        spike_limit_mib: 256
       tail_sampling:
+        decision_wait: 10s
         policies:
         - name: errors
           type: status_code
@@ -857,23 +923,20 @@ spec:
         - name: probabilistic
           type: probabilistic
           probabilistic: {sampling_percentage: 10}
+      batch:
+        timeout: 5s
+        send_batch_size: 1024
     exporters:
       otlp/jaeger:
         endpoint: jaeger-collector:4317
         tls:
           insecure: true
-      prometheus:
-        endpoint: 0.0.0.0:8889
     service:
       pipelines:
         traces:
           receivers: [otlp]
           processors: [memory_limiter, tail_sampling, batch]
           exporters: [otlp/jaeger]
-        metrics:
-          receivers: [otlp]
-          processors: [memory_limiter, batch]
-          exporters: [prometheus]
 </pre>
         </div>
 
@@ -902,7 +965,7 @@ spec:
                     <li><strong>Define PrometheusRules</strong> for alerts (pod crashes, node issues, SLO violations)</li>
                     <li><strong>Configure Alertmanager</strong> routing to Slack/PagerDuty based on severity</li>
                     <li><strong>Add long-term storage</strong> (Thanos/Cortex) if needed for retention beyond local TSDB</li>
-                    <li><strong>Deploy logging</strong> (Loki + Promtail) and tracing (Tempo + OTel) for full observability</li>
+                    <li><strong>Deploy logging</strong> (Loki + Grafana Alloy) and tracing (Tempo + OTel) for full observability</li>
                 </ol>
             </div>
         </div>

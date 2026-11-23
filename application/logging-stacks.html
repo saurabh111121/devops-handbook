@@ -52,7 +52,7 @@
            v  (DaemonSet collector reads from node)
   +--------+-------------------------------------------+
   |          LOG COLLECTOR (DaemonSet per node)         |
-  |  Fluent Bit / Fluentd / Promtail / Filebeat        |
+  |  Fluent Bit / Fluentd / Alloy / Filebeat           |
   |  - Tail log files                                  |
   |  - Parse (JSON/regex)                              |
   |  - Enrich (K8s metadata: pod, namespace, labels)   |
@@ -86,7 +86,7 @@
         <div class="card card-info">
             <h4>K8s Logging Fundamentals</h4>
             <ul>
-                <li><strong>stdout/stderr:</strong> Container runtime captures stdout/stderr and writes to JSON log files on the node</li>
+                <li><strong>stdout/stderr:</strong> Container runtime (containerd/CRI-O) captures stdout/stderr and writes them to log files on the node in CRI format: timestamp, stream, partial/full tag (P/F), message</li>
                 <li><strong>Log rotation:</strong> kubelet manages log rotation (default: 10MB per file, 5 files per container)</li>
                 <li><strong>Node path:</strong> <code>/var/log/containers/</code> contains symlinks to <code>/var/log/pods/</code></li>
                 <li><strong>kubectl logs:</strong> Reads from the container runtime API (only shows current/previous container logs)</li>
@@ -214,7 +214,7 @@
 input {
   beats {
     port => 5044
-    ssl => true
+    ssl_enabled => true
     ssl_certificate => "/etc/logstash/certs/logstash.crt"
     ssl_key => "/etc/logstash/certs/logstash.key"
   }
@@ -272,8 +272,8 @@ output {
     index => "logs-%{[kubernetes][namespace]}-%{+YYYY.MM.dd}"
     user => "logstash_writer"
     password => "${ES_PASSWORD}"
-    ssl => true
-    cacert => "/etc/logstash/certs/ca.crt"
+    ssl_enabled => true
+    ssl_certificate_authorities => ["/etc/logstash/certs/ca.crt"]
   }
 
   # Dead letter queue for failed events
@@ -316,13 +316,12 @@ output {
 &lt;source&gt;
   @type tail
   path /var/log/containers/*.log
-  pos_file /var/log/fluentd-containers.pos
+  pos_file /var/log/fluentd-buffers/fluentd-containers.pos
   tag kubernetes.*
   read_from_head true
+  # containerd/CRI-O write CRI format, not Docker JSON (needs fluent-plugin-parser-cri)
   &lt;parse&gt;
-    @type json
-    time_key time
-    time_format %Y-%m-%dT%H:%M:%S.%NZ
+    @type cri
   &lt;/parse&gt;
 &lt;/source&gt;
 
@@ -338,7 +337,7 @@ output {
 # FILTER: Parse application JSON logs
 &lt;filter kubernetes.**&gt;
   @type parser
-  key_name log
+  key_name message
   reserve_data true
   remove_key_name_field true
   &lt;parse&gt;
@@ -442,9 +441,6 @@ spec:
             - name: varlog
               mountPath: /var/log
               readOnly: true
-            - name: containers
-              mountPath: /var/lib/docker/containers
-              readOnly: true
             - name: fluentd-config
               mountPath: /fluentd/etc
             - name: buffer
@@ -453,14 +449,13 @@ spec:
         - name: varlog
           hostPath:
             path: /var/log
-        - name: containers
-          hostPath:
-            path: /var/lib/docker/containers
         - name: fluentd-config
           configMap:
             name: fluentd-config
-        - name: buffer
-          emptyDir: {}
+        - name: buffer             # hostPath so pos_file + buffers survive pod restarts
+          hostPath:
+            path: /var/lib/fluentd-buffers
+            type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -496,6 +491,8 @@ subjects:
         <!-- 5. Loki + Promtail + Grafana -->
         <!-- ============================================ -->
         <h2>5. Loki + Promtail + Grafana</h2>
+
+        <p><strong>Note:</strong> Promtail reached end of life on March 2, 2026 and gets no further updates. Use <strong>Grafana Alloy</strong> as the Loki collector for new deployments. Existing Promtail configs can be converted with <code>alloy convert --source-format=promtail</code>. The Promtail config below is kept for reference, since many clusters still run it.</p>
 
         <div class="diagram">
             <div class="diagram-label">Loki Architecture (Like Prometheus, But for Logs)</div>
@@ -723,7 +720,7 @@ scrape_configs:
                     <li><strong>Pros:</strong> Low resource overhead, single config for all pods, no app changes needed</li>
                     <li><strong>Cons:</strong> Only captures stdout/stderr, shared config limits per-app customization</li>
                     <li><strong>Use when:</strong> Standard logging setup, most applications write to stdout</li>
-                    <li><strong>Tools:</strong> Fluent Bit (lightweight), Fluentd, Promtail, Filebeat</li>
+                    <li><strong>Tools:</strong> Fluent Bit (lightweight), Fluentd, Grafana Alloy (Promtail successor; Promtail is EOL), Filebeat</li>
                 </ul>
             </div>
 
@@ -891,8 +888,8 @@ processors:
 exporters:
   prometheusremotewrite:
     endpoint: "http://prometheus:9090/api/v1/write"
-  loki:
-    endpoint: "http://loki:3100/loki/api/v1/push"
+  otlphttp/loki:
+    endpoint: "http://loki:3100/otlp"
   otlp/tempo:
     endpoint: "http://tempo:4317"
     tls:
@@ -907,7 +904,7 @@ service:
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch, resource]
-      exporters: [loki]
+      exporters: [otlphttp/loki]
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
@@ -1089,7 +1086,7 @@ PUT _ilm/policy/logs-lifecycle
                 <div class="scenario-step"><span class="step-num">2.</span> <span>Identify unassigned shards: <code>GET _cat/shards?v&h=index,shard,prirep,state,unassigned.reason&s=state</code></span></div>
                 <div class="scenario-step"><span class="step-num">3.</span> <span>Check allocation explanation: <code>GET _cluster/allocation/explain</code> - tells WHY shard cannot be allocated</span></div>
                 <div class="scenario-step"><span class="step-num">4.</span> <span><strong>Common causes:</strong> (a) Disk full (>85% watermark blocks allocation), (b) Node left cluster, (c) Allocation filtering rules, (d) Too many shards per node</span></div>
-                <div class="scenario-step"><span class="step-num">5.</span> <span><strong>Disk full fix:</strong> Delete old indices, increase disk, or lower watermark: <code>PUT _cluster/settings {"transient":{"cluster.routing.allocation.disk.watermark.high":"90%"}}</code></span></div>
+                <div class="scenario-step"><span class="step-num">5.</span> <span><strong>Disk full fix:</strong> Delete old indices, increase disk, or temporarily raise the watermarks (defaults: low 85%, high 90%, flood_stage 95%), then revert: <code>PUT _cluster/settings {"persistent":{"cluster.routing.allocation.disk.watermark.low":"90%","cluster.routing.allocation.disk.watermark.high":"95%"}}</code></span></div>
                 <div class="scenario-step"><span class="step-num">6.</span> <span><strong>Node down fix:</strong> If node returns, shards auto-recover. If node permanently gone, reduce replica count or wait for timeout</span></div>
                 <div class="scenario-step"><span class="step-num">7.</span> <span><strong>Force allocate (last resort):</strong> <code>POST _cluster/reroute {"commands":[{"allocate_stale_primary":{"index":"...","shard":0,"node":"...","accept_data_loss":true}}]}</code></span></div>
                 <div class="scenario-step"><span class="step-num">8.</span> <span><strong>Prevention:</strong> Monitor disk usage, set ILM policies, alert on <code>elasticsearch_cluster_health_status{color="red"}</code></span></div>
@@ -1144,7 +1141,7 @@ PUT _ilm/policy/logs-lifecycle
                 <div class="scenario-step"><span class="step-num">1.</span> <span>Identify largest log files: <code>du -sh /var/log/containers/* | sort -rh | head -20</code></span></div>
                 <div class="scenario-step"><span class="step-num">2.</span> <span>Find the culprit pod: File name format is <code>&lt;pod&gt;_&lt;namespace&gt;_&lt;container&gt;-&lt;id&gt;.log</code></span></div>
                 <div class="scenario-step"><span class="step-num">3.</span> <span><strong>Immediate fix:</strong> Truncate the log file (not delete - container runtime still has handle): <code>truncate -s 0 /var/log/containers/culprit-pod*.log</code></span></div>
-                <div class="scenario-step"><span class="step-num">4.</span> <span>Check kubelet config: <code>containerLogMaxSize</code> (default 10Mi) and <code>containerLogMaxFiles</code> (default 5). If not set, logs grow unbounded</span></div>
+                <div class="scenario-step"><span class="step-num">4.</span> <span>Check kubelet config: <code>containerLogMaxSize</code> (default 10Mi) and <code>containerLogMaxFiles</code> (default 5). These defaults (10Mi x 5 per container) apply when unset; tune them down if many containers share a small disk</span></div>
                 <div class="scenario-step"><span class="step-num">5.</span> <span><strong>Fix the application:</strong> Investigate why it is logging so much. Stack trace in a loop? Debug logging enabled? Infinite retry with logging?</span></div>
                 <div class="scenario-step"><span class="step-num">6.</span> <span><strong>Prevention:</strong> Set kubelet log rotation, use resource quotas with ephemeral storage limits, alert on disk usage > 70%</span></div>
                 <div class="scenario-step"><span class="step-num">7.</span> <span>Add ephemeral storage limit to pod spec: <code>resources.limits.ephemeral-storage: 1Gi</code> (evicts pod if exceeded)</span></div>

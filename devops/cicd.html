@@ -602,7 +602,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=sha,prefix=
+            type=sha,prefix=,format=long
             type=semver,pattern={{version}}
             type=raw,value=latest,enable={{is_default_branch}}
 
@@ -645,10 +645,9 @@ jobs:
           git commit -m "deploy: update my-app to ${{ github.sha }}"
           git push
 
-      # ArgoCD will detect the change and sync automatically
-      - name: Wait for ArgoCD sync
-        run: |
-          argocd app wait my-app --timeout 300 --health
+      # Done: ArgoCD (pull model) detects the manifest change and syncs.
+      # CI never talks to the cluster; use Argo CD Notifications to
+      # report sync/health status back (e.g. Slack, GitHub commit status).
             </pre>
         </div>
 

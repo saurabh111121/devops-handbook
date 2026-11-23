@@ -780,18 +780,18 @@ spec:
                 <h4>CloudNativePG</h4>
                 <ul>
                     <li>Official CNCF PostgreSQL operator</li>
-                    <li>Automated failover with Raft consensus</li>
+                    <li>Automated failover via the Kubernetes API (no external DCS like etcd)</li>
                     <li>Continuous backup to S3/GCS/Azure</li>
                     <li>PITR built-in</li>
                     <li>Rolling updates with zero downtime</li>
-                    <li>Connection pooling (PgBouncer sidecar)</li>
+                    <li>Connection pooling (PgBouncer via the Pooler resource)</li>
                 </ul>
-                <div class="cmd">kubectl apply -f https://get.enterprisedb.io/cnp/postgresql-operator-1.22.yaml</div>
+                <div class="cmd">kubectl apply --server-side -f https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-1.30/releases/cnpg-1.30.2.yaml</div>
             </div>
             <div class="card card-success">
                 <h4>Zalando Postgres Operator</h4>
                 <ul>
-                    <li>Uses Patroni for HA (etcd-based leader election)</li>
+                    <li>Uses Patroni for HA (Kubernetes API as DCS by default; etcd optional)</li>
                     <li>Logical backups and WAL-E/WAL-G shipping</li>
                     <li>Connection pooling built-in</li>
                     <li>Clone from S3 or existing cluster</li>
@@ -892,9 +892,9 @@ spec:
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_email
     ON users (email);
 
--- Unsafe alternative (holds AccessExclusiveLock):
+-- Unsafe alternative (holds SHARE lock):
 -- CREATE INDEX idx_users_email ON users (email);
--- This blocks ALL reads and writes!
+-- Blocks INSERT/UPDATE/DELETE for the whole build; reads still work.
 </pre>
         </div>
 
@@ -961,6 +961,7 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_email
 <pre>
 import redis
 import json
+from datetime import timedelta
 
 r = redis.Redis(host='redis', port=6379, db=0)
 
@@ -1016,7 +1017,7 @@ def update_user(user_id, data):
                 <div class="point">
                     <span class="point-num orange">4</span>
                     <div class="point-content">
-                        <span class="point-title">Cache Stampede Prevention</span> - Use locking (SETNX) or probabilistic early expiration to prevent thundering herd.
+                        <span class="point-title">Cache Stampede Prevention</span> - Use locking (SET key value NX PX) or probabilistic early expiration to prevent thundering herd.
                     </div>
                 </div>
             </div>
@@ -1079,7 +1080,7 @@ def update_user(user_id, data):
 
         <div class="qa">
             <div class="q">Q2: Explain the CAP theorem with a real-world example.</div>
-            <div class="a"><strong>Answer:</strong> CAP states a distributed system can guarantee at most 2 of: Consistency, Availability, Partition tolerance. Since network partitions are inevitable, the real choice is CP vs AP. <strong>CP example:</strong> A banking system (PostgreSQL with sync replication) - during a network partition, it refuses writes rather than risk inconsistency. <strong>AP example:</strong> A shopping cart (DynamoDB) - during a partition, both sides accept writes and resolve conflicts later (last-writer-wins or merge). The system stays available but may show stale data temporarily.</div>
+            <div class="a"><strong>Answer:</strong> CAP states a distributed system can guarantee at most 2 of: Consistency, Availability, Partition tolerance. Since network partitions are inevitable, the real choice is CP vs AP. <strong>CP example:</strong> A banking system (PostgreSQL with sync replication) - during a network partition, it refuses writes rather than risk inconsistency. <strong>AP example:</strong> A shopping cart on Cassandra or a Dynamo-style store (or DynamoDB global tables across Regions) - during a partition, both sides accept writes and resolve conflicts later (last-writer-wins or merge). The system stays available but may show stale data temporarily.</div>
         </div>
 
         <div class="qa">
@@ -1109,7 +1110,7 @@ def update_user(user_id, data):
 
         <div class="qa">
             <div class="q">Q8: What are common Redis use cases beyond simple caching?</div>
-            <div class="a"><strong>Answer:</strong> (1) <strong>Session store:</strong> Fast reads, TTL for expiry; (2) <strong>Rate limiting:</strong> INCR + EXPIRE for sliding window; (3) <strong>Leaderboards:</strong> Sorted sets with ZADD/ZRANGE; (4) <strong>Pub/Sub:</strong> Real-time notifications, chat; (5) <strong>Distributed locks:</strong> SETNX + TTL (Redlock algorithm); (6) <strong>Queue:</strong> Lists with LPUSH/BRPOP for simple job queues; (7) <strong>Geospatial:</strong> GEOADD/GEORADIUS for location-based queries; (8) <strong>Streams:</strong> Event log with consumer groups (like mini-Kafka); (9) <strong>Bloom filters:</strong> Probabilistic membership testing (RedisBloom module).</div>
+            <div class="a"><strong>Answer:</strong> (1) <strong>Session store:</strong> Fast reads, TTL for expiry; (2) <strong>Rate limiting:</strong> INCR + EXPIRE (fixed window) or ZADD/ZREMRANGEBYSCORE (sliding window); (3) <strong>Leaderboards:</strong> Sorted sets with ZADD/ZRANGE; (4) <strong>Pub/Sub:</strong> Real-time notifications, chat; (5) <strong>Distributed locks:</strong> SET key value NX PX 30000 (Redlock algorithm); (6) <strong>Queue:</strong> Lists with LPUSH/BRPOP for simple job queues; (7) <strong>Geospatial:</strong> GEOADD/GEOSEARCH for location-based queries; (8) <strong>Streams:</strong> Event log with consumer groups (like mini-Kafka); (9) <strong>Bloom filters:</strong> Probabilistic membership testing (RedisBloom module).</div>
         </div>
 
         <div class="qa">
